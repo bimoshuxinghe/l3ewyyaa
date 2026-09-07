@@ -28,7 +28,7 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * <p>
  * 用法：
  * <pre>
- *   /ysp?id=cctv1                                直播：返回改造成"一直拉流"的直播 m3u8（无本地缓存，按目标时长周期重拉）
+ *   /ysp?id=cctv1                                直播：80s 内复用同一取址会话，实时拉上游滑动窗口 m3u8 补全 TS 输出（psy1.php 同款）
  *   /ysp?id=cctv1&playseek=YYYYMMDDHHMMSS-...    回看：302 跳转
  *   /ysp?id=cctv1&debug=1                        调试：返回上游原始 JSON
  *   /ysp                                         频道列表
@@ -38,12 +38,33 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  */
 public class Ysp implements Process {
 
+    private static final Pattern TS_PATTERN = Pattern.compile("(.*?\\.ts)", Pattern.CASE_INSENSITIVE);
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
+    /** psy1.php: $cacheTimeoutLive = 80 —— 直播 playurl 缓存 80s（PHP 存 Cookie，这里存进程内 map） */
+    private static final long CACHE_TIMEOUT = 80_000L;
+
     private final Random random = new Random();
+    /** psy1.php: $cache = $_COOKIE['playurl_cache'] —— 频道 id → playurl + 时间 */
+    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
     private String guid = "";
+
+    /** psy1.php: $cache[$id] = ['url' => ..., 'time' => ...]，80s 内复用同一取址会话 */
+    private static final class CacheEntry {
+        final String url;
+        final long time;
+
+        CacheEntry(String url) {
+            this.url = url;
+            this.time = System.currentTimeMillis();
+        }
+
+        boolean valid() {
+            return System.currentTimeMillis() - time <= CACHE_TIMEOUT;
+        }
+    }
 
     /** 诊断日志（Logcat + 调试页环形缓冲），任何失败静默 */
     private static void diag(String msg) {
@@ -80,25 +101,49 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程：每次播放器来拉列表都重新取址并拉最新 m3u8（不做任何本地缓存）。
-            // 返回的列表经 toLive() 改造成直播形态（去 #EXT-X-ENDLIST + 目标时长封顶 6s），
-            // 播放器会按目标时长周期性重拉；每次重拉都重新取址、拿到带新签名的 .ts，
-            // 签名永不过期，从根上消除复用旧地址导致的 Bad HTTP Status / 403。
+            // 直播主流程——严格对齐 psy1.php（该部署实测不断流）：
+            //   PHP: playurl 缓存 80s（Cookie），80s 内播放器每 6~7s 重拉列表时用同一个
+            //        playurl 实时拉 CDN 的 m3u8 → 上游返回同一会话的滑动窗口，MEDIA-SEQUENCE
+            //        连续递增、切片签名随窗口刷新，播放器平滑跟随直播头，永不断流。
+            //   注意：不可"每次刷新都重新取址"！重新取址 = 新 guid/新 cKey = 新会话，
+            //        返回列表的序列号相对上一轮回退，ExoPlayer 不应用该更新、继续抱旧
+            //        切片 URL 播放 → 签名 2~3 分钟过期 → 403 Bad HTTP Status（实测复现）。
+            //   PHP: 拉取失败且本轮用的是缓存地址 → 清缓存换新地址重试一次；仍失败 die。
             try {
-                for (int attempt = 0; attempt < 2; attempt++) {
-                    String playurl = getPlayUrl(cnlid, livepid, defn, null);
-                    if (playurl == null) { // psy1.php: die("获取播放地址失败")
-                        diag("API失败 id=" + id);
-                        return placeholder(id);
+                String playurl = null;
+                boolean needRefresh = true;
+                for (int attempt = 1; attempt <= 2; attempt++) {
+                    // psy1.php: 仅第一轮且直播时检查 80s 缓存
+                    if (attempt == 1) {
+                        CacheEntry entry = cache.get(id);
+                        if (entry != null && entry.valid()) {
+                            needRefresh = false;
+                            playurl = entry.url;
+                        }
                     }
-                    String m3u8 = fetchM3u8(playurl);
-                    if (m3u8 != null) { // 成功：转成"一直拉流"的直播列表后输出
-                        return m3u8Response(toLive(m3u8, playurl));
+                    if (needRefresh) { // psy1.php: $needRefresh → getPlayUrl + 写缓存
+                        playurl = getPlayUrl(cnlid, livepid, defn, null);
+                        if (playurl == null) { // psy1.php: die("获取播放地址失败")
+                            diag("API失败 id=" + id);
+                            return placeholder(id);
+                        }
+                        cache.put(id, new CacheEntry(playurl));
                     }
-                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
+                    String m3u8 = fetchM3u8(playurl); // psy1.php: file_get_contents，每次都实时拉
+                    if (m3u8 != null) { // psy1.php: preg_replace 补全 TS 后 print_r
+                        return m3u8Response(patchTs(m3u8, playurl));
+                    }
+                    if (attempt == 1 && !needRefresh) { // psy1.php: 用了缓存地址且拉取失败 → 清缓存重试
+                        cache.remove(id);
+                        needRefresh = true;
+                        diag("CDN拉取失败(缓存地址) id=" + id + "，清缓存换新地址重试");
+                        continue;
+                    }
+                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt);
+                    break;
                 }
                 diag("无法获取M3U8 id=" + id);
-                return placeholder(id); // psy1.php 为 die，这里用占位列表替代，保证不断流、不收 5xx
+                return placeholder(id); // psy1.php 为 die(200+文本)，这里用占位列表替代，保证不断流、不收 5xx
             } catch (Throwable t) {
                 // 直播路径任何意外异常同样不允许 5xx
                 diag("直播处理异常: " + t);
@@ -690,41 +735,19 @@ public class Ysp implements Process {
     }
 
     /**
-     * 把上游 m3u8 改造成「一直拉流」的直播列表（对应手机版 psy1 的实时刷新行为）：
-     *  - 切片补成绝对地址，直接打 CDN（首 2~3 分钟已验证可正常播放，无需代理）
-     *  - 去掉 #EXT-X-ENDLIST，让播放器把它当直播，按目标时长周期性重拉列表
-     *  - 目标时长封顶 6s，强制播放器每几秒重拉一次 → 每次都重新取址、拿到带新签名的 .ts，
-     *    从根上消除「复用旧 m3u8 里过期签名切片 → Bad HTTP Status / 403」的问题。
+     * 补全 TS 相对路径——与 psy1.php 逐字等价：
+     * PHP: preg_replace("/(.*?.ts)/i", $baseUrl."$1", $m3u8Content)
+     * 只补全相对路径为绝对地址，绝不改动 #EXT-X-ENDLIST / TARGETDURATION 等任何标签，
+     * 保持上游列表原样（同会话滑动窗口由上游维护，80s 缓存的 playurl 每次都拉到最新窗口）。
+     * 必须用 StringBuffer 重载：appendReplacement(StringBuilder,...) 是 Java 9+ API，
+     * 部分老机型 core-oj.jar 没有该方法，会直接 NoSuchMethodError 导致该频道断流。
      */
-    private static String toLive(String m3u8, String playurl) {
+    private static String patchTs(String m3u8, String playurl) {
         String baseUrl = playurl.substring(0, playurl.lastIndexOf('/') + 1);
-        StringBuilder sb = new StringBuilder();
-        for (String raw : m3u8.split("\n")) {
-            String line = raw.replace("\r", "");
-            if (line.startsWith("#EXT-X-ENDLIST")) continue; // 转直播：去掉结束标记
-            if (line.startsWith("#EXT-X-TARGETDURATION:")) {
-                int t = 6; // 封顶 6s，保证播放器频繁重拉
-                try {
-                    int v = Integer.parseInt(line.substring(line.indexOf(':') + 1).trim());
-                    if (v >= 1 && v < 6) t = v;
-                } catch (Exception ignored) {
-                }
-                sb.append("#EXT-X-TARGETDURATION:").append(t).append('\n');
-                continue;
-            }
-            if (line.startsWith("#") || line.trim().isEmpty()) {
-                sb.append(line).append('\n');
-                continue;
-            }
-            String seg = line.trim();
-            if (!seg.toLowerCase().contains(".ts")) {
-                sb.append(line).append('\n');
-                continue;
-            }
-            // 切片补成绝对地址（直接打 CDN；签名随每次重拉列表而刷新）
-            String abs = seg.startsWith("http") ? seg : baseUrl + seg;
-            sb.append(abs).append('\n');
-        }
+        Matcher m = TS_PATTERN.matcher(m3u8);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(baseUrl + m.group(1)));
+        m.appendTail(sb);
         return sb.toString();
     }
 }
