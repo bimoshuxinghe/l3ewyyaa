@@ -10,17 +10,12 @@ import com.github.catvod.net.OkHttp;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,7 +28,7 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * <p>
  * 用法：
  * <pre>
- *   /ysp?id=cctv1                                直播：80s 内复用同一取址会话，实时拉上游滑动窗口 m3u8 补全 TS 输出（psy1.php 同款）
+ *   /ysp?id=cctv1                                直播：每次刷新都重新取址拉全新流（og3rswee 手机版 88c4a1b 同构，实测不断流）
  *   /ysp?id=cctv1&playseek=YYYYMMDDHHMMSS-...    回看：302 跳转
  *   /ysp?id=cctv1&debug=1                        调试：返回上游原始 JSON
  *   /ysp                                         频道列表
@@ -47,47 +42,9 @@ public class Ysp implements Process {
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
-    /** psy1.php: $cacheTimeoutLive = 80 —— 直播 playurl 缓存 80s（PHP 存 Cookie，这里存进程内 map） */
-    private static final long CACHE_TIMEOUT = 80_000L;
-    /** CDN 实测（2026-09）：同一 playurl 地址的重复列表拉取会被概率性 403（约 75%），
-     *  与请求指纹无关；而新取址的首次拉取几乎必成（PHP 完整主流程 12/12 全成）。
-     *  因此保活线程拉取失败立即换新址预热，让缓存里永远躺着"新鲜必成"的地址。 */
-    private static final long KEEP_ALIVE_PERIOD = 6_000L;
-    /** 频道最后一次被播放器访问后，保活再持续 5 分钟 */
-    private static final long ACTIVE_WINDOW = 300_000L;
-
     private final Random random = new Random();
-    /** psy1.php: $cache = $_COOKIE['playurl_cache'] —— 频道 id → playurl + 时间 */
-    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
-    /** 每频道最近一次成功输出的完整 m3u8（已补全 TS）。拉取失败时兜底返回它：
-     *  切片 token 长寿（实测 ≥9 分钟），stale 列表可正常播放，窗口连续不打崩播放器；
-     *  远优于 placeholder（seq=0 的空列表会让 ExoPlayer 窗口巨跳、反复重置转圈）。 */
-    private final Map<String, String> lastGood = new ConcurrentHashMap<>();
-    /** 频道最近一次被播放器访问的时刻（保活线程只保活跃频道） */
-    private final Map<String, Long> lastAccess = new ConcurrentHashMap<>();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService keeper = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "ysp-keeper");
-        t.setDaemon(true);
-        return t;
-    });
-    private volatile boolean keeperStarted = false;
     private String guid = "";
-
-    /** psy1.php: $cache[$id] = ['url' => ..., 'time' => ...]，80s 内复用同一取址会话 */
-    private static final class CacheEntry {
-        final String url;
-        final long time;
-
-        CacheEntry(String url) {
-            this.url = url;
-            this.time = System.currentTimeMillis();
-        }
-
-        boolean valid() {
-            return System.currentTimeMillis() - time <= CACHE_TIMEOUT;
-        }
-    }
 
     /** 诊断日志（Logcat + 调试页环形缓冲），任何失败静默 */
     private static void diag(String msg) {
@@ -124,65 +81,31 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程——严格对齐 psy1.php，并加两层实测驱动的加固：
-            //   [换址] CDN 对同一地址的重复拉取概率性 403（实测 12 次仅 3 次成功），
-            //          新址首拉几乎必成；主流程与 PHP 同构：缓存地址拉取失败 → 清缓存
-            //          → 重新取址重试。注意：请求指纹必须与 PHP file_get_contents 一致
-            //          （无 UA 无 Accept），UA=qqlive 只能用于取址 API——指纹被 CDN
-            //          拉黑会让"新址首拉"也 403，重试链全断（旧版断流根因）。
-            //   [兜底] 播放器路径拉取彻底失败时返回最近一次成功列表（切片 token 实测 ≥9 分钟
-            //          长寿，stale 列表可继续播，窗口连续）；绝不让 403/5xx 透传给 ExoPlayer
-            //          （一次 Bad HTTP Status 播放器就停机，必须手动刷新）。
-            lastAccess.put(id, System.currentTimeMillis());
-            startKeeper();
+            // 直播主流程——与 og3rswee 手机版 88c4a1b 完全同构（该实现在用户真机长期实测不断流）：
+            // 每次播放器刷新（约 6~7s 一次）都重新取址、拉一份全新的流，不做任何本地缓存。
+            // 实测规律：403 全部出现在"复用旧 playurl 地址"时（同地址重复拉取概率性 403），
+            // 而新取址后的首次拉取几乎必成——每次都拉新的，从根上掐掉 403。
+            // ⚠️ 不可在此之上叠加取址保活/预取线程：取址频率翻倍会触发 CDN 风控
+            //    （电视版实测：加 keeper 后反而断得更快，取址配额疑似按 IP 计）。
             try {
-                String playurl = null;
-                boolean needRefresh = true;
-                for (int attempt = 1; attempt <= 2; attempt++) {
-                    // psy1.php: 仅第一轮且直播时检查 80s 缓存
-                    if (attempt == 1) {
-                        CacheEntry entry = cache.get(id);
-                        if (entry != null && entry.valid()) {
-                            needRefresh = false;
-                            playurl = entry.url;
-                        }
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    String playurl = getPlayUrl(cnlid, livepid, defn, null);
+                    if (playurl == null) { // psy1.php: die("获取播放地址失败")
+                        diag("API失败 id=" + id);
+                        return placeholder(id);
                     }
-                    if (needRefresh) { // psy1.php: $needRefresh → getPlayUrl + 写缓存
-                        playurl = getPlayUrl(cnlid, livepid, defn, null);
-                        if (playurl == null) { // psy1.php: die("获取播放地址失败")
-                            diag("API失败 id=" + id);
-                            return stale(id) != null ? m3u8Response(stale(id)) : placeholder(id);
-                        }
-                        cache.put(id, new CacheEntry(playurl));
-                    }
-                    String m3u8 = fetchM3u8(playurl); // psy1.php: file_get_contents，每次都实时拉
+                    String m3u8 = fetchM3u8(playurl);
                     if (m3u8 != null) { // psy1.php: preg_replace 补全 TS 后 print_r
-                        String body = patchTs(m3u8, playurl);
-                        lastGood.put(id, body);
-                        return m3u8Response(body);
+                        return m3u8Response(patchTs(m3u8, playurl));
                     }
-                    if (attempt == 1 && !needRefresh) { // psy1.php: 用了缓存地址且拉取失败 → 清缓存重试
-                        cache.remove(id);
-                        needRefresh = true;
-                        diag("CDN拉取失败(缓存地址) id=" + id + "，清缓存换新地址重试");
-                        continue;
-                    }
-                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt);
-                    break;
+                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
                 }
                 diag("无法获取M3U8 id=" + id);
-                // 兜底：返回最近一次成功列表（切片长寿可播）；冷启动无历史才用占位列表
-                String stale = stale(id);
-                if (stale != null) {
-                    diag("返回 stale 兜底列表 id=" + id);
-                    return m3u8Response(stale);
-                }
-                return placeholder(id); // psy1.php 为 die(200+文本)，这里用占位列表替代，保证不断流、不收 5xx
+                return placeholder(id); // psy1.php 为 die，这里用占位列表替代，保证不断流、不收 5xx
             } catch (Throwable t) {
                 // 直播路径任何意外异常同样不允许 5xx
                 diag("直播处理异常: " + t);
-                String stale = stale(id);
-                return stale != null ? m3u8Response(stale) : placeholder(id);
+                return placeholder(id);
             }
         } catch (Throwable e) {
             return Nano.error(e.getMessage());
@@ -209,63 +132,6 @@ public class Ysp implements Process {
         response.addHeader("Access-Control-Allow-Origin", "*");
         response.addHeader("Cache-Control", "no-store");
         return response;
-    }
-
-    /** 最近一次成功输出的列表；没有则 null */
-    private String stale(String id) {
-        return lastGood.get(id);
-    }
-
-    /** 保活线程：对活跃频道每 6s 实时拉一次列表。作用：
-     *  1) 缓存地址拉取失败（同地址概率性 403）→ 立即静默换新址预热，播放器请求
-     *     命中缓存时拿到的是"新鲜必成"地址；与 PHP 网页部署每 6s 被前端访问的拓扑等价；
-     *  2) 保活拉取成功 → 刷新 lastGood，让兜底列表始终接近直播头，兜底时窗口连续。 */
-    private synchronized void startKeeper() {
-        if (keeperStarted) return;
-        keeperStarted = true;
-        keeper.scheduleWithFixedDelay(() -> {
-            try {
-                long now = System.currentTimeMillis();
-                for (Map.Entry<String, Long> e : lastAccess.entrySet()) {
-                    if (now - e.getValue() > ACTIVE_WINDOW) continue; // 5 分钟没人看就不管
-                    String id = e.getKey();
-                    keepAliveOnce(id);
-                }
-            } catch (Throwable t) {
-                diag("keeper异常: " + t);
-            }
-        }, KEEP_ALIVE_PERIOD, KEEP_ALIVE_PERIOD, TimeUnit.MILLISECONDS);
-        diag("keeper 已启动");
-    }
-
-    /** 单频道一次保活：用缓存地址实时拉；失败则换新址重试一次；成功刷新 lastGood */
-    private void keepAliveOnce(String id) {
-        try {
-            String[] channel = Channel.find(id);
-            if (channel == null) return;
-            CacheEntry entry = cache.get(id);
-            if (entry == null) {
-                // 冷频道：只取址预热，不拉列表（等播放器来取）
-                String fresh = getPlayUrl(channel[0], channel[1], channel[2], null);
-                if (fresh != null) cache.put(id, new CacheEntry(fresh));
-                return;
-            }
-            String m3u8 = fetchM3u8(entry.url);
-            if (m3u8 != null) {
-                lastGood.put(id, patchTs(m3u8, entry.url));
-                return;
-            }
-            // 会话已死：换新址静默预热
-            cache.remove(id);
-            String fresh = getPlayUrl(channel[0], channel[1], channel[2], null);
-            if (fresh == null) return;
-            cache.put(id, new CacheEntry(fresh));
-            m3u8 = fetchM3u8(fresh);
-            if (m3u8 != null) lastGood.put(id, patchTs(m3u8, fresh));
-            diag("keeper 换址预热 id=" + id + (m3u8 != null ? " 成功" : " 失败"));
-        } catch (Throwable t) {
-            diag("keepAlive异常 id=" + id + ": " + t);
-        }
     }
 
     /** 动态输出 FongMi 直播源 txt（/ysp?list=live）。
@@ -813,56 +679,28 @@ public class Ysp implements Process {
 
     // ---------------- m3u8 处理 ----------------
 
-    /**
-     * 拉取上游 m3u8 列表——指纹与 psy1.php 的 file_get_contents 逐字等价：
-     * PHP 实发请求 = 「GET ... HTTP/1.1 + Host + Connection: close」，无 UA / 无 Accept（strace 实测）。
-     * CDN 按请求指纹拦截（实测：UA=qqlive/curl/Dalvik 一律 403，裸请求正常放行）——
-     * 旧版用 UA=qqlive 拉列表，指纹被拉黑，几乎必 403，这正是 7-8s 转圈与 Bad HTTP Status 的根因。
-     * UA 只能用于 bkliveinfo 取址 API（PHP 同款），绝不能用于 CDN。
-     * 用 HttpURLConnection 而非 OkHttp：可精确控制请求头（UA 置空 = 服务端读到空 UA，与无头等效）。
-     */
+    /** 与手机版 88c4a1b 逐字一致：qqlive UA + 通配 Accept + OKHttp。
+     *  家庭宽带网络下 CDN 接受该指纹；403 只出现在复用旧 playurl 地址时，
+     *  主流程每次重新取址即可规避。
+     *  ⚠️ 勿按沙箱机房 IP 的实测"优化"此处的指纹——机房与家宽的 CDN 风控规则不同
+     *  （机房 IP 上 qqlive 一律 403、裸请求放行；真机家宽上 qqlive 正常、空 UA 反而可疑）。 */
     private String fetchM3u8(String url) {
-        HttpURLConnection conn = null;
         try {
-            conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setConnectTimeout(5000);
-            conn.setReadTimeout(5000);
-            conn.setRequestProperty("User-Agent", "");      // 复刻 PHP：无 UA（置空发送空值头，服务端读到空串）
-            conn.setRequestProperty("Accept", "");          // 复刻 PHP：无 Accept
-            conn.setRequestProperty("Connection", "close"); // 复刻 PHP：逐字等价
-            int code = conn.getResponseCode();
-            if (code != 200) {
-                diag("CDN " + code + " " + shortUrl(url));
-                return null;
-            }
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            try (java.io.InputStream in = conn.getInputStream()) {
-                byte[] buf = new byte[8192];
-                int n;
-                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            }
-            String body = out.toString("UTF-8");
-            return body.contains("#EXTM3U") ? body : null;
+            Map<String, String> headers = new LinkedHashMap<>();
+            headers.put("User-Agent", UA);
+            headers.put("Accept", "*/*");
+            String body = OkHttp.string(url, headers);
+            return body != null && body.contains("#EXTM3U") ? body : null;
         } catch (Exception e) {
             return null;
-        } finally {
-            if (conn != null) try {
-                conn.disconnect();
-            } catch (Exception ignored) {
-            }
         }
-    }
-
-    private static String shortUrl(String url) {
-        int q = url.indexOf('?');
-        return q > 0 ? url.substring(0, q) : url;
     }
 
     /**
      * 补全 TS 相对路径——与 psy1.php 逐字等价：
      * PHP: preg_replace("/(.*?.ts)/i", $baseUrl."$1", $m3u8Content)
      * 只补全相对路径为绝对地址，绝不改动 #EXT-X-ENDLIST / TARGETDURATION 等任何标签，
-     * 保持上游列表原样（同会话滑动窗口由上游维护，80s 缓存的 playurl 每次都拉到最新窗口）。
+     * 保持上游列表原样（playurl 每次都新取，返回的窗口天然紧跟直播头）。
      * 必须用 StringBuffer 重载：appendReplacement(StringBuilder,...) 是 Java 9+ API，
      * 部分老机型 core-oj.jar 没有该方法，会直接 NoSuchMethodError 导致该频道断流。
      */
