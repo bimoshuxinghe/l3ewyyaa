@@ -149,6 +149,12 @@ public class LiveConfig extends BaseConfig {
 
     private void parseText(Config config, String text) {
         Live live = new Live(UrlUtil.getName(config.getUrl()), config.getUrl()).sync();
+        // 内置 YSP 直播源：注入默认 EPG 与频道台标。
+        // 必须在 LiveParser.text 之前设置，否则频道无法继承 live 的 epg/logo 模板。
+        if (config.getUrl().contains("/ysp?list=live")) {
+            live.setEpg("https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz");
+            live.setLogo("https://gcore.jsdelivr.net/gh/sparkssssssssss/epg/logo/{name}.png");
+        }
         lives = new ArrayList<>(List.of(live));
         LiveParser.text(live, text);
         setHome(config, live, false);

@@ -194,6 +194,10 @@ public class Live {
         return TextUtils.isEmpty(logo) ? "" : logo;
     }
 
+    public void setLogo(String logo) {
+        this.logo = logo;
+    }
+
     public String getEpg() {
         return TextUtils.isEmpty(epg) ? "" : epg;
     }
