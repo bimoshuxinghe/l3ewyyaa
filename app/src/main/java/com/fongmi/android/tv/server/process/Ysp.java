@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,13 +29,22 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * <p>
  * 用法：
  * <pre>
- *   /ysp?id=cctv1                                直播：每次刷新都重新取址拉全新流（og3rswee 手机版 88c4a1b 同构，实测不断流）
+ *   /ysp?id=cctv1                                直播：80s 内复用同一取址会话，实时拉上游滑动窗口 m3u8 补全 TS 输出（psy1.php 同款）
  *   /ysp?id=cctv1&playseek=YYYYMMDDHHMMSS-...    回看：302 跳转
  *   /ysp?id=cctv1&debug=1                        调试：返回上游原始 JSON
  *   /ysp                                         频道列表
  * </pre>
  * 算法链路：buildPacket(13 字段二进制包) → TEA-CBC(oi_symmetry_encrypt2) + 校验和 →
  * XOR(16字节循环) → 自定义 Base64 → cKey → 请求 bkliveinfo.ysp.cctv.cn → playurl。
+ * <p>
+ * 断流/超时修复要点（严格对齐 psy1.php）：
+ * 1. 80s playurl 缓存：PHP 用 Cookie 存，这里用进程内 Map，80s 内只调一次取址 API，
+ *    避免每 6~7s 刷新就重新取址触发服务端限流（最新版连接超时的根因）。
+ * 2. 缓存 URL 拉 M3U8 失败 → 清缓存 → 重新取址重试（PHP 同款逻辑）。
+ * 3. lastGood 兜底：全部失败时返回最近一次成功列表（切片 token 实测 ≥9 分钟长寿），
+ *    绝不让 403/5xx/超时透传给 ExoPlayer（一次 Bad HTTP Status 播放器就停机）。
+ * 4. 无 keeper 保活线程：keeper 会让取址频率翻倍触发 CDN 按 IP 频控（88b140a5 实测教训）。
+ * 5. API 10s / M3U8 15s 超时：避免 OkHttp 默认 30s 长超时阻塞 NanoHTTPD 工作线程。
  */
 public class Ysp implements Process {
 
@@ -42,9 +52,35 @@ public class Ysp implements Process {
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
+    /** psy1.php: $cacheTimeoutLive = 80 —— 直播 playurl 缓存 80s */
+    private static final long CACHE_TIMEOUT = 80_000L;
+    /** 取址 API 超时：10s（PHP curl 15s，这里稍短避免阻塞） */
+    private static final long API_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
+    /** M3U8 拉取超时：15s */
+    private static final long M3U8_TIMEOUT = TimeUnit.SECONDS.toMillis(15);
+
     private final Random random = new Random();
+    /** 频道 id → playurl + 时间戳（PHP Cookie 缓存的 Java 等价物） */
+    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
+    /** 每频道最近一次成功输出的完整 m3u8（已补全 TS），兜底用 */
+    private final Map<String, String> lastGood = new ConcurrentHashMap<>();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
     private String guid = "";
+
+    /** psy1.php: $cache[$id] = ['url' => ..., 'time' => ...]，80s 内复用 */
+    private static final class CacheEntry {
+        final String url;
+        final long time;
+
+        CacheEntry(String url) {
+            this.url = url;
+            this.time = System.currentTimeMillis();
+        }
+
+        boolean valid() {
+            return System.currentTimeMillis() - time <= CACHE_TIMEOUT;
+        }
+    }
 
     /** 诊断日志（Logcat + 调试页环形缓冲），任何失败静默 */
     private static void diag(String msg) {
@@ -81,31 +117,57 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程——与 og3rswee 手机版 88c4a1b 完全同构（该实现在用户真机长期实测不断流）：
-            // 每次播放器刷新（约 6~7s 一次）都重新取址、拉一份全新的流，不做任何本地缓存。
-            // 实测规律：403 全部出现在"复用旧 playurl 地址"时（同地址重复拉取概率性 403），
-            // 而新取址后的首次拉取几乎必成——每次都拉新的，从根上掐掉 403。
-            // ⚠️ 不可在此之上叠加取址保活/预取线程：取址频率翻倍会触发 CDN 风控
-            //    （电视版实测：加 keeper 后反而断得更快，取址配额疑似按 IP 计）。
+            // 直播主流程——严格对齐 psy1.php：
+            //   attempt 1: 80s 缓存命中则复用 URL，否则重新取址并写缓存
+            //   拉 M3U8 成功 → 更新 lastGood → 返回
+            //   拉 M3U8 失败且用了缓存 → 清缓存，attempt 2 重新取址
+            //   全部失败 → lastGood 兜底（切片长寿可播）→ 冷启动无历史才 placeholder
             try {
-                for (int attempt = 0; attempt < 2; attempt++) {
-                    String playurl = getPlayUrl(cnlid, livepid, defn, null);
-                    if (playurl == null) { // psy1.php: die("获取播放地址失败")
-                        diag("API失败 id=" + id);
-                        return placeholder(id);
+                String playurl = null;
+                boolean usedCache = false;
+                for (int attempt = 1; attempt <= 2; attempt++) {
+                    boolean needRefresh = true;
+                    if (attempt == 1) {
+                        CacheEntry entry = cache.get(id);
+                        if (entry != null && entry.valid()) {
+                            needRefresh = false;
+                            usedCache = true;
+                            playurl = entry.url;
+                        }
+                    }
+                    if (needRefresh) {
+                        playurl = getPlayUrl(cnlid, livepid, defn, null);
+                        if (playurl == null) {
+                            diag("API失败 id=" + id + " attempt=" + attempt);
+                            break;
+                        }
+                        cache.put(id, new CacheEntry(playurl));
+                        usedCache = false;
                     }
                     String m3u8 = fetchM3u8(playurl);
-                    if (m3u8 != null) { // psy1.php: preg_replace 补全 TS 后 print_r
-                        return m3u8Response(patchTs(m3u8, playurl));
+                    if (m3u8 != null) {
+                        String body = patchTs(m3u8, playurl);
+                        lastGood.put(id, body);
+                        return m3u8Response(body);
                     }
-                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
+                    if (attempt == 1 && usedCache) {
+                        cache.remove(id);
+                        diag("CDN拉取失败(缓存地址) id=" + id + "，清缓存换新地址重试");
+                    } else {
+                        diag("CDN拉取失败 id=" + id + " attempt=" + attempt);
+                    }
                 }
                 diag("无法获取M3U8 id=" + id);
-                return placeholder(id); // psy1.php 为 die，这里用占位列表替代，保证不断流、不收 5xx
-            } catch (Throwable t) {
-                // 直播路径任何意外异常同样不允许 5xx
-                diag("直播处理异常: " + t);
+                String stale = lastGood.get(id);
+                if (stale != null) {
+                    diag("返回 lastGood 兜底列表 id=" + id);
+                    return m3u8Response(stale);
+                }
                 return placeholder(id);
+            } catch (Throwable t) {
+                diag("直播处理异常: " + t);
+                String stale = lastGood.get(id);
+                return stale != null ? m3u8Response(stale) : placeholder(id);
             }
         } catch (Throwable e) {
             return Nano.error(e.getMessage());
@@ -121,12 +183,12 @@ public class Ysp implements Process {
 
     /**
      * 占位直播列表：播放器视为 3 秒一刷的 EVENT 直播流，本次无新分段，下一轮自动重拉。
-     * 用于首次取址失败/异常等无内容可兜底的场合，替代 5xx（5xx 会让播放器直接停止播放）。
+     * 用于首次取址失败/异常等无内容可兜底的场合，替代 5xx。
      */
     private Response placeholder(String id) {
         Long last = placeholderTime.get(id);
         long now = System.currentTimeMillis();
-        if (last == null || now - last >= 1000) placeholderTime.put(id, now); // 简单节流，防异常风暴
+        if (last == null || now - last >= 1000) placeholderTime.put(id, now);
         Response response = newFixedLengthResponse(Status.OK, "application/vnd.apple.mpegurl",
                 "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:EVENT\n");
         response.addHeader("Access-Control-Allow-Origin", "*");
@@ -134,10 +196,7 @@ public class Ysp implements Process {
         return response;
     }
 
-    /** 动态输出 FongMi 直播源 txt（/ysp?list=live）。
-     *  Host 取请求头中的 host（客户端用什么地址访问，列表里就回什么地址），
-     *  因此 127.0.0.1 / 局域网 IP / 端口顺延场景都天然正确。
-     */
+    /** 动态输出 FongMi 直播源 txt（/ysp?list=live）。 */
     private String listLive(IHTTPSession session) {
         String host = session.getHeaders().get("host");
         if (TextUtils.isEmpty(host)) host = "127.0.0.1:9978";
@@ -292,7 +351,7 @@ public class Ysp implements Process {
         return sb.substring(0, end);
     }
 
-    /** TEA ECB 加密/解密（16 轮），key 16 字节 */
+    /** TEA ECB 加密/解密（16 轮），key 16 字节。注意：用 long 模拟 32 位无符号，右移必须用 >>> */
     private static byte[] teaCrypt(byte[] in, byte[] key, boolean encrypt) {
         long y, z;
         if (encrypt) {
@@ -302,8 +361,8 @@ public class Ysp implements Process {
             long sum = 0;
             for (int i = 0; i < ROUNDS; i++) {
                 sum = (sum + DELTA) & 0xFFFFFFFFL;
-                y = (y + (((z << 4) + k(key, 0)) ^ (z + sum) ^ ((z >> 5) + k(key, 1)))) & 0xFFFFFFFFL;
-                z = (z + (((y << 4) + k(key, 2)) ^ (y + sum) ^ ((y >> 5) + k(key, 3)))) & 0xFFFFFFFFL;
+                y = (y + (((z << 4) + k(key, 0)) ^ (z + sum) ^ ((z >>> 5) + k(key, 1)))) & 0xFFFFFFFFL;
+                z = (z + (((y << 4) + k(key, 2)) ^ (y + sum) ^ ((y >>> 5) + k(key, 3)))) & 0xFFFFFFFFL;
             }
         } else {
             ByteBuffer buf = ByteBuffer.wrap(in);
@@ -311,8 +370,8 @@ public class Ysp implements Process {
             z = buf.getInt() & 0xFFFFFFFFL;
             long sum = (DELTA << 4) & 0xFFFFFFFFL;
             for (int i = 0; i < ROUNDS; i++) {
-                z = (z - (((y << 4) + k(key, 2)) ^ (y + sum) ^ ((y >> 5) + k(key, 3)))) & 0xFFFFFFFFL;
-                y = (y - (((z << 4) + k(key, 0)) ^ (z + sum) ^ ((z >> 5) + k(key, 1)))) & 0xFFFFFFFFL;
+                z = (z - (((y << 4) + k(key, 2)) ^ (y + sum) ^ ((y >>> 5) + k(key, 3)))) & 0xFFFFFFFFL;
+                y = (y - (((z << 4) + k(key, 0)) ^ (z + sum) ^ ((z >>> 5) + k(key, 1)))) & 0xFFFFFFFFL;
                 sum = (sum - DELTA) & 0xFFFFFFFFL;
             }
         }
@@ -332,7 +391,7 @@ public class Ysp implements Process {
         return ((key[i * 4] & 0xFFL) << 24) | ((key[i * 4 + 1] & 0xFFL) << 16) | ((key[i * 4 + 2] & 0xFFL) << 8) | (key[i * 4 + 3] & 0xFFL);
     }
 
-    /** 腾讯 oi_symmetry_encrypt2：首字节低 3 位存 pad 长度，SALT_LEN 随机，ZERO_LEN 零填充 */
+    /** 腾讯 oi_symmetry_encrypt2（PCBC 模式）：首字节低 3 位存 pad 长度，SALT_LEN 随机，ZERO_LEN 零填充 */
     private byte[] oiEncrypt(byte[] in, byte[] key) {
         int padSaltBodyZero = in.length + 1 + SALT_LEN + ZERO_LEN;
         int padlen = padSaltBodyZero % 8;
@@ -378,7 +437,7 @@ public class Ysp implements Process {
         return toBytes(out);
     }
 
-    /** 加密一块：src XOR ivCrypt → TEA 加密 → XOR ivPlain；返回新的 {ivPlain, ivCrypt}（ivPlain 取异或后的输入块） */
+    /** 加密一块：src XOR ivCrypt → TEA 加密 → XOR ivPlain；返回新的 {ivPlain=xored, ivCrypt=tmp} */
     private int[][] flush(int[] src, int[] ivPlain, int[] ivCrypt, List<Byte> out, byte[] key) {
         int[] xored = new int[8];
         for (int j = 0; j < 8; j++) xored[j] = src[j] ^ ivCrypt[j];
@@ -546,11 +605,9 @@ public class Ysp implements Process {
         generateGuid();
         long timestamp = System.currentTimeMillis() / 1000;
         Map<String, String> params = baseParams(cnlid, livepid, defn, timestamp);
-        // 与 PHP 一致：直播和回看的多次尝试共用同一个 cKey
         params.put("cKey", generateCKey(cnlid, timestamp));
 
         if (playseek != null && !playseek.isEmpty()) {
-            // 回看：第一次带 playbacktime，失败则去掉并改写域名 + starttime
             Long playbackTimestamp = parsePlaybackTimestamp(playseek);
             if (playbackTimestamp == null) return null;
             params.put("playbacktime", String.valueOf(playbackTimestamp));
@@ -584,7 +641,8 @@ public class Ysp implements Process {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("User-Agent", UA);
         headers.put("Accept", "application/json");
-        return OkHttp.string(API + "?" + buildQuery(params), headers);
+        // API 10s 超时，避免默认 30s 长超时阻塞
+        return OkHttp.string(API + "?" + buildQuery(params), API_TIMEOUT);
     }
 
     private static String buildQuery(Map<String, String> params) {
@@ -679,17 +737,13 @@ public class Ysp implements Process {
 
     // ---------------- m3u8 处理 ----------------
 
-    /** 与手机版 88c4a1b 逐字一致：qqlive UA + 通配 Accept + OKHttp。
-     *  家庭宽带网络下 CDN 接受该指纹；403 只出现在复用旧 playurl 地址时，
-     *  主流程每次重新取址即可规避。
-     *  ⚠️ 勿按沙箱机房 IP 的实测"优化"此处的指纹——机房与家宽的 CDN 风控规则不同
-     *  （机房 IP 上 qqlive 一律 403、裸请求放行；真机家宽上 qqlive 正常、空 UA 反而可疑）。 */
+    /** 拉取 M3U8，15s 超时，qqlive UA + 通配 Accept（与手机版一致） */
     private String fetchM3u8(String url) {
         try {
             Map<String, String> headers = new LinkedHashMap<>();
             headers.put("User-Agent", UA);
             headers.put("Accept", "*/*");
-            String body = OkHttp.string(url, headers);
+            String body = OkHttp.string(url, M3U8_TIMEOUT);
             return body != null && body.contains("#EXTM3U") ? body : null;
         } catch (Exception e) {
             return null;
@@ -699,8 +753,6 @@ public class Ysp implements Process {
     /**
      * 补全 TS 相对路径——与 psy1.php 逐字等价：
      * PHP: preg_replace("/(.*?.ts)/i", $baseUrl."$1", $m3u8Content)
-     * 只补全相对路径为绝对地址，绝不改动 #EXT-X-ENDLIST / TARGETDURATION 等任何标签，
-     * 保持上游列表原样（playurl 每次都新取，返回的窗口天然紧跟直播头）。
      * 必须用 StringBuffer 重载：appendReplacement(StringBuilder,...) 是 Java 9+ API，
      * 部分老机型 core-oj.jar 没有该方法，会直接 NoSuchMethodError 导致该频道断流。
      */
