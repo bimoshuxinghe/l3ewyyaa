@@ -61,6 +61,7 @@ import com.fongmi.android.tv.ui.dialog.LiveDialog;
 import com.fongmi.android.tv.ui.dialog.PassDialog;
 import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
+import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Notify;
@@ -158,6 +159,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
         PlayerSetting.applyControllerTransparency(mBinding.control.getRoot());
         mClockHhmm = Clock.create().view(mBinding.widget.clockHhmm).format("HH:mm");

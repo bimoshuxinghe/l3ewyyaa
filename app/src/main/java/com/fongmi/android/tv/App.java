@@ -12,7 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.os.HandlerCompat;
 
+import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Notify;
+import com.fongmi.android.tv.utils.Task;
 import com.fongmi.android.tv.proxy.ProxySubscriptionManager;
 import com.fongmi.hook.Hook;
 import com.github.catvod.Init;
@@ -84,6 +86,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
         super.onCreate();
         Notify.createChannel();
         ProxySubscriptionManager.get().applySaved();
+        // 远程服务开关：启动即后台预取服务器指令（不阻塞启动，主页入口同步裁决）
+        Task.execute(() -> Guard.prefetch());
         registerActivityLifecycleCallbacks(this);
     }
 

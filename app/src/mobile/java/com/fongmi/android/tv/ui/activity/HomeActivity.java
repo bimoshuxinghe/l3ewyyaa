@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.ResUtil;
 
 
@@ -89,6 +90,7 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化
         orientation = getResources().getConfiguration().orientation;
         mBinding.navigation.setOnItemSelectedListener(this);
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.navigation, (v, insets) -> {

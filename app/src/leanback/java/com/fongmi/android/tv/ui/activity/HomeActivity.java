@@ -69,6 +69,7 @@ import com.fongmi.android.tv.ui.presenter.HeaderPresenter;
 import com.fongmi.android.tv.ui.presenter.HistoryPresenter;
 import com.fongmi.android.tv.ui.presenter.ProgressPresenter;
 import com.fongmi.android.tv.ui.presenter.VodPresenter;
+import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
@@ -314,6 +315,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
         mBinding.progressLayout.showProgress();
         PermissionUtil.requestNotify(this);
