@@ -28,7 +28,7 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * <p>
  * 用法：
  * <pre>
- *   /ysp?id=cctv1                                直播：返回补全过 TS 路径的 m3u8（80s 缓存）
+ *   /ysp?id=cctv1                                直播：返回改造成"一直拉流"的直播 m3u8（无本地缓存，按目标时长周期重拉）
  *   /ysp?id=cctv1&playseek=YYYYMMDDHHMMSS-...    回看：302 跳转
  *   /ysp?id=cctv1&debug=1                        调试：返回上游原始 JSON
  *   /ysp                                         频道列表
@@ -38,7 +38,6 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  */
 public class Ysp implements Process {
 
-    private static final Pattern TS_PATTERN = Pattern.compile("(.*?\\.ts)", Pattern.CASE_INSENSITIVE);
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
@@ -81,9 +80,10 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程，与 psy1.php 实际行为一致：每次播放器刷新（约 6~7s 一次）都重新取址、
-            // 拉一份全新的流，不做任何本地缓存。实测证明 403 全部出现在"复用旧地址"时，
-            // 而新取址后的首次拉取从不 403——所以每次都拉新的，从根上掐掉 403。
+            // 直播主流程：每次播放器来拉列表都重新取址并拉最新 m3u8（不做任何本地缓存）。
+            // 返回的列表经 toLive() 改造成直播形态（去 #EXT-X-ENDLIST + 目标时长封顶 6s），
+            // 播放器会按目标时长周期性重拉；每次重拉都重新取址、拿到带新签名的 .ts，
+            // 签名永不过期，从根上消除复用旧地址导致的 Bad HTTP Status / 403。
             try {
                 for (int attempt = 0; attempt < 2; attempt++) {
                     String playurl = getPlayUrl(cnlid, livepid, defn, null);
@@ -92,8 +92,8 @@ public class Ysp implements Process {
                         return placeholder(id);
                     }
                     String m3u8 = fetchM3u8(playurl);
-                    if (m3u8 != null) { // 成功：补全 TS 路径后输出（psy1.php: preg_replace + print_r）
-                        return m3u8Response(patchTs(m3u8, playurl));
+                    if (m3u8 != null) { // 成功：转成"一直拉流"的直播列表后输出
+                        return m3u8Response(toLive(m3u8, playurl));
                     }
                     diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
                 }
@@ -112,6 +112,7 @@ public class Ysp implements Process {
     private Response m3u8Response(String body) {
         Response response = newFixedLengthResponse(Status.OK, "application/vnd.apple.mpegurl", body);
         response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Cache-Control", "no-store");
         return response;
     }
 
@@ -126,6 +127,7 @@ public class Ysp implements Process {
         Response response = newFixedLengthResponse(Status.OK, "application/vnd.apple.mpegurl",
                 "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:3\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:EVENT\n");
         response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Cache-Control", "no-store");
         return response;
     }
 
@@ -687,15 +689,42 @@ public class Ysp implements Process {
         }
     }
 
-    /** 补全 TS 相对路径（对应 PHP 的 preg_replace("/(.*?.ts)/i", $baseUrl."$1", ...)） */
-    private static String patchTs(String m3u8, String playurl) {
+    /**
+     * 把上游 m3u8 改造成「一直拉流」的直播列表（对应手机版 psy1 的实时刷新行为）：
+     *  - 切片补成绝对地址，直接打 CDN（首 2~3 分钟已验证可正常播放，无需代理）
+     *  - 去掉 #EXT-X-ENDLIST，让播放器把它当直播，按目标时长周期性重拉列表
+     *  - 目标时长封顶 6s，强制播放器每几秒重拉一次 → 每次都重新取址、拿到带新签名的 .ts，
+     *    从根上消除「复用旧 m3u8 里过期签名切片 → Bad HTTP Status / 403」的问题。
+     */
+    private static String toLive(String m3u8, String playurl) {
         String baseUrl = playurl.substring(0, playurl.lastIndexOf('/') + 1);
-        Matcher m = TS_PATTERN.matcher(m3u8);
-        // 必须用 StringBuffer 重载：appendReplacement(StringBuilder,...) 是 Java 9+ API，
-        // 部分老机型 core-oj.jar 没有该方法，会直接 NoSuchMethodError 导致该频道断流
-        StringBuffer sb = new StringBuffer();
-        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(baseUrl + m.group(1)));
-        m.appendTail(sb);
+        StringBuilder sb = new StringBuilder();
+        for (String raw : m3u8.split("\n")) {
+            String line = raw.replace("\r", "");
+            if (line.startsWith("#EXT-X-ENDLIST")) continue; // 转直播：去掉结束标记
+            if (line.startsWith("#EXT-X-TARGETDURATION:")) {
+                int t = 6; // 封顶 6s，保证播放器频繁重拉
+                try {
+                    int v = Integer.parseInt(line.substring(line.indexOf(':') + 1).trim());
+                    if (v >= 1 && v < 6) t = v;
+                } catch (Exception ignored) {
+                }
+                sb.append("#EXT-X-TARGETDURATION:").append(t).append('\n');
+                continue;
+            }
+            if (line.startsWith("#") || line.trim().isEmpty()) {
+                sb.append(line).append('\n');
+                continue;
+            }
+            String seg = line.trim();
+            if (!seg.toLowerCase().contains(".ts")) {
+                sb.append(line).append('\n');
+                continue;
+            }
+            // 切片补成绝对地址（直接打 CDN；签名随每次重拉列表而刷新）
+            String abs = seg.startsWith("http") ? seg : baseUrl + seg;
+            sb.append(abs).append('\n');
+        }
         return sb.toString();
     }
 }
