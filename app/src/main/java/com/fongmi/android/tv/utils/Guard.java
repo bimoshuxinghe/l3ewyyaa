@@ -55,7 +55,7 @@ public class Guard {
 
     private static final AtomicReference<Outcome> pending = new AtomicReference<>();
     private static final CountDownLatch latch = new CountDownLatch(1);
-    private static volatile boolean verified = false;
+    private static volatile boolean denied = false; // 已裁决为"停止服务"：后续持续阻断
 
     private static class Outcome {
         final boolean allow;
@@ -144,7 +144,7 @@ public class Guard {
     /** 主页入口：同步裁决。返回 false 表示已执行停止流程，调用方应立即 return */
     public static boolean enforce(Activity activity) {
         Outcome o = resolve();
-        verified = o.allow;
+        if (!o.allow) denied = true;
         if (!o.allow) {
             block(activity, o.msg, o.mode);
             return false;
@@ -152,9 +152,19 @@ public class Guard {
         return true;
     }
 
-    /** 播放页等次级入口：仅复核内存裁决结果，不发网络请求 */
+    /**
+     * 播放页等次级入口：复核裁决结果，不发网络请求。
+     * <p>
+     * 未取得任何裁决时一律放行。原因：播放页一旦阻断会立刻 {@code finish()}，而 finish 发生在
+     * {@code initView} 之前，后续字段（Clock、Observer 等）尚未赋值，{@code onDestroy()} 访问它们
+     * 会直接 NPE 崩溃；而 kill switch 的主裁决由主页 {@link #enforce(Activity)} 负责，播放页只做复核。
+     */
     public static boolean soft() {
-        return verified;
+        if (denied) return false;
+        Outcome o = pending.get();
+        if (o == null) return true;
+        if (!o.allow) denied = true;
+        return o.allow;
     }
 
     private static Outcome resolve() {

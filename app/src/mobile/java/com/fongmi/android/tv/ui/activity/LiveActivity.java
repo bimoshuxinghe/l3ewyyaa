@@ -90,6 +90,7 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
     private GroupAdapter mGroupAdapter;
     private Observer<Epg> mObserveEpg;
     private LiveViewModel mViewModel;
+    private boolean mConfigReady; // initView 是否已走完，onDestroy 据此决定是否清理 Observer
     private CustomKeyDown mKeyDown;
     private List<Group> mHides;
     private String mPlaybackKey;
@@ -189,6 +190,7 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
     protected void initView(Bundle savedInstanceState) {
         if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
+        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理
         mFrameParams = mBinding.video.getLayoutParams();
         mKeyDown = CustomKeyDown.create(this, mBinding.exo);
         setVideoSafeInset();
@@ -1428,6 +1430,7 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
 
     @Override
     protected void onDestroy() {
+        if (!mConfigReady) { super.onDestroy(); return; } // initView 未完成：所有字段均未初始化，跳过清理
         Source.get().exit();
         App.removeCallbacks(mR1, mR2, mR3, mOrientRunnable);
         mViewModel.url().removeObserver(mObserveUrl);

@@ -45,6 +45,7 @@ import com.fongmi.android.tv.ui.adapter.CinemaPosterAdapter;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.FocusColor;
+import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.KeyUtil;
 import com.fongmi.android.tv.utils.Notify;
@@ -136,6 +137,8 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化
+        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理 smart play
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
         mBinding.loading.setVisibility(View.VISIBLE);
         mBinding.empty.setText(R.string.home_loading);
@@ -786,7 +789,7 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     protected void onDestroy() {
-        stopSmartPlay();
+        if (mConfigReady) stopSmartPlay(); // initView 未完成时 mViewModel/mSmartHandler 等尚未初始化，stopSmartPlay 内部访问它们会 NPE
         com.fongmi.android.tv.service.DLNARendererService.stop(this);
         if (isFinishing() || isChangingConfigurations()) {
             LiveConfig.get().clear();

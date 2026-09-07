@@ -100,6 +100,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
     private Clock mClockSs;
     private View mFocus2;
     private int count;
+    private boolean mConfigReady; // initView 是否已走完，onDestroy 据此决定是否清理 Clock/Observer
 
     public static void start(Context context) {
         context.startActivity(new Intent(context, LiveActivity.class).putExtra("empty", LiveConfig.isEmpty()));
@@ -161,6 +162,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
     protected void initView(Bundle savedInstanceState) {
         if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
+        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理
         PlayerSetting.applyControllerTransparency(mBinding.control.getRoot());
         mClockHhmm = Clock.create().view(mBinding.widget.clockHhmm).format("HH:mm");
         mClockSs = Clock.create().view(mBinding.widget.clockSs).format(":ss");
@@ -1160,6 +1162,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void onDestroy() {
+        if (!mConfigReady) { super.onDestroy(); return; } // initView 未完成：所有字段均未初始化，跳过清理
         mClockHhmm.release();
         mClockSs.release();
         Source.get().exit();
