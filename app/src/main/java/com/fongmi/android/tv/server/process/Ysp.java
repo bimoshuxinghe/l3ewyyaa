@@ -29,7 +29,7 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * <p>
  * 用法：
  * <pre>
- *   /ysp?id=cctv1                                直播：80s 内复用同一取址会话，实时拉上游滑动窗口 m3u8 补全 TS 输出（psy1.php 同款）
+ *   /ysp?id=cctv1                                直播：每次刷新重新取址拉新流，补全 TS 输出（psy1.php 同款）
  *   /ysp?id=cctv1&playseek=YYYYMMDDHHMMSS-...    回看：302 跳转
  *   /ysp?id=cctv1&debug=1                        调试：返回上游原始 JSON
  *   /ysp                                         频道列表
@@ -37,14 +37,18 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  * 算法链路：buildPacket(13 字段二进制包) → TEA-CBC(oi_symmetry_encrypt2) + 校验和 →
  * XOR(16字节循环) → 自定义 Base64 → cKey → 请求 bkliveinfo.ysp.cctv.cn → playurl。
  * <p>
- * 断流/超时修复要点（严格对齐 psy1.php）：
- * 1. 80s playurl 缓存：PHP 用 Cookie 存，这里用进程内 Map，80s 内只调一次取址 API，
- *    避免每 6~7s 刷新就重新取址触发服务端限流（最新版连接超时的根因）。
- * 2. 缓存 URL 拉 M3U8 失败 → 清缓存 → 重新取址重试（PHP 同款逻辑）。
- * 3. lastGood 兜底限 60s：全部失败时仅返回 60s 内最近一次成功列表（baseUrl token 实测 ≥5min，
- *    60s 内兜底切片必可拉；超时旧列表会 403 → Bad HTTP Status 停机，故超时给 placeholder 让播放器轮询自愈）。
- * 4. 无 keeper 保活线程：keeper 会让取址频率翻倍触发 CDN 按 IP 频控（88b140a5 实测教训）。
- * 5. API 10s / M3U8 15s 超时：避免 OkHttp 默认 30s 长超时阻塞 NanoHTTPD 工作线程。
+ * 断流修复要点（对齐手机版 v8a `88c4a1b6` + psy1.php，无任何本地缓存）：
+ * 1. 每次播放器刷新（约 6~7s 一次）都重新取址拉全新流，不做 80s/3s 本地缓存。
+ *    实测证明 403 全部发生在"复用旧 playurl"时（同一地址被高频反复请求触发 CDN 限流），
+ *    新取址后的首次拉取从不 403——每次都拉新的，从根上掐掉 Bad HTTP Status。
+ * 2. 取址 API 失败 → 立即返回 placeholder（EVENT 空列表），播放器视为直播等待、持续轮询自愈，
+ *    绝不等待/阻塞（对齐 PHP 版 die() 语义）。
+ * 3. 拉 M3U8 失败（CDN 间歇性 403/抖动，实测常态）→ 换新地址重试一轮（attempt 2），
+ *    新地址拉取从不 403；仍失败 → placeholder 让播放器下一轮自动重试。
+ * 4. 快速超时：API 8s / M3U8 10s（手机版用默认 30s，这里更短，快速失败避免播放器等超时），
+ *    正常路径每次响应 0.5~2s，播放器无感知。
+ * 5. 无 lastGood/keeper：任何"复用旧地址"的兜底都会把播放器带回过期列表导致 403 停机，
+ *    失败一律 placeholder，播放器自行重试自愈。
  */
 public class Ysp implements Process {
 
@@ -52,53 +56,14 @@ public class Ysp implements Process {
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
-    /** psy1.php: $cacheTimeoutLive = 80 —— 直播 playurl 缓存 80s */
-    private static final long CACHE_TIMEOUT = 80_000L;
-    /** 取址 API 超时：10s（PHP curl 15s，这里稍短避免阻塞） */
-    private static final long API_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
-    /** M3U8 拉取超时：15s */
-    private static final long M3U8_TIMEOUT = TimeUnit.SECONDS.toMillis(15);
-    /** lastGood 兜底最大年龄：超过该时长的旧列表切片的 baseUrl 可能已过期（实测 ≥5min），
-     *  播放器若拿到过期列表拉切片会 403 → Bad HTTP Status 停机；限时内 baseUrl 必有效 */
-    private static final long LAST_GOOD_TTL = 60_000L;
+    /** 取址 API 超时：8s（PHP curl 15s；快速失败立即 placeholder，播放器无感知） */
+    private static final long API_TIMEOUT = TimeUnit.SECONDS.toMillis(8);
+    /** M3U8 拉取超时：10s（快速失败，避免播放器等待超时报错） */
+    private static final long M3U8_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
 
     private final Random random = new Random();
-    /** 频道 id → playurl + 时间戳（PHP Cookie 缓存的 Java 等价物） */
-    private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
-    /** 每频道最近一次成功输出的完整 m3u8（已补全 TS），仅限 60s 内兜底用 */
-    private final Map<String, LastGood> lastGood = new ConcurrentHashMap<>();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
     private String guid = "";
-
-    /** psy1.php: $cache[$id] = ['url' => ..., 'time' => ...]，80s 内复用 */
-    private static final class CacheEntry {
-        final String url;
-        final long time;
-
-        CacheEntry(String url) {
-            this.url = url;
-            this.time = System.currentTimeMillis();
-        }
-
-        boolean valid() {
-            return System.currentTimeMillis() - time <= CACHE_TIMEOUT;
-        }
-    }
-
-    /** lastGood 带时间戳：只有 60s 内的旧列表才允许兜底（baseUrl 未过期，切片可拉） */
-    private static final class LastGood {
-        final String body;
-        final long time;
-
-        LastGood(String body) {
-            this.body = body;
-            this.time = System.currentTimeMillis();
-        }
-
-        boolean fresh() {
-            return System.currentTimeMillis() - time <= LAST_GOOD_TTL;
-        }
-    }
 
     /** 诊断日志（Logcat + 调试页环形缓冲），任何失败静默 */
     private static void diag(String msg) {
@@ -135,61 +100,31 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程——对齐 psy1.php + 修复"播放器拿到过期列表 403 停机"：
-            //   attempt 1: 80s 缓存命中则复用 URL，否则重新取址并写缓存
-            //   拉 M3U8 成功 → 更新 lastGood → 返回
-            //   拉 M3U8 失败(间歇性 403，实测常见) → 清缓存，attempt 2 重新取址（新 URL 大概率恢复）
-            //   取址失败 → 立即清缓存（下次刷新立刻重试），兜底仅允许 60s 内的 lastGood
-            //   （baseUrl token 实测 ≥5min 有效；超过 60s 的旧列表播放器拉切片必 403 → Bad HTTP Status 停机）
-            //   兜底超时 → placeholder(EVENT 空列表)，播放器视为直播等待、持续轮询自愈
-            //   —— 对齐 PHP 版"失败即让播放器重试"的语义，绝不给播放器过期列表
+            // 直播主流程——与 psy1.php / 手机版 v8a (88c4a1b6) 实际行为一致：
+            //   每次播放器刷新（约 6~7s 一次）都重新取址、拉一份全新的流，不做任何本地缓存。
+            //   实测证明 403 全部出现在"复用旧地址"时（同一地址被高频反复请求触发 CDN 限流），
+            //   而新取址后的首次拉取从不 403——所以每次都拉新的，从根上掐掉 Bad HTTP Status。
+            //   取址失败 → placeholder（播放器视为直播等待、持续轮询自愈，绝不阻塞/5xx）；
+            //   M3U8 拉取失败 → 换新地址重试一轮，仍失败 → placeholder。
             try {
-                String playurl = null;
-                boolean usedCache = false;
-                for (int attempt = 1; attempt <= 2; attempt++) {
-                    boolean needRefresh = true;
-                    if (attempt == 1) {
-                        CacheEntry entry = cache.get(id);
-                        if (entry != null && entry.valid()) {
-                            needRefresh = false;
-                            usedCache = true;
-                            playurl = entry.url;
-                        }
-                    }
-                    if (needRefresh) {
-                        playurl = getPlayUrl(cnlid, livepid, defn, null);
-                        if (playurl == null) {
-                            diag("API失败 id=" + id + " attempt=" + attempt);
-                            cache.remove(id); // 取址失败立即清缓存，下次播放器刷新立刻重试，不等 80s 过期
-                            break;
-                        }
-                        cache.put(id, new CacheEntry(playurl));
-                        usedCache = false;
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    String playurl = getPlayUrl(cnlid, livepid, defn, null);
+                    if (playurl == null) { // psy1.php: die("获取播放地址失败")；这里用占位列表替代
+                        diag("API失败 id=" + id);
+                        return placeholder(id);
                     }
                     String m3u8 = fetchM3u8(playurl);
-                    if (m3u8 != null) {
-                        String body = patchTs(m3u8, playurl);
-                        lastGood.put(id, new LastGood(body));
-                        return m3u8Response(body);
+                    if (m3u8 != null) { // 成功：补全 TS 路径后输出（psy1.php: preg_replace + print_r）
+                        return m3u8Response(patchTs(m3u8, playurl));
                     }
-                    if (attempt == 1) {
-                        cache.remove(id);
-                        diag("CDN拉取失败(缓存地址) id=" + id + "，清缓存换新地址重试");
-                    } else {
-                        diag("CDN拉取失败 id=" + id + " attempt=" + attempt);
-                    }
+                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
                 }
                 diag("无法获取M3U8 id=" + id);
-                LastGood stale = lastGood.get(id);
-                if (stale != null && stale.fresh()) {
-                    diag("返回 lastGood 兜底列表(60s内, baseUrl未过期) id=" + id);
-                    return m3u8Response(stale.body);
-                }
-                return placeholder(id);
+                return placeholder(id); // psy1.php 为 die，这里用占位列表替代，保证不断流、不收 5xx
             } catch (Throwable t) {
+                // 直播路径任何意外异常同样不允许 5xx
                 diag("直播处理异常: " + t);
-                LastGood stale = lastGood.get(id);
-                return stale != null && stale.fresh() ? m3u8Response(stale.body) : placeholder(id);
+                return placeholder(id);
             }
         } catch (Throwable e) {
             return Nano.error(e.getMessage());
@@ -759,7 +694,8 @@ public class Ysp implements Process {
 
     // ---------------- m3u8 处理 ----------------
 
-    /** 拉取 M3U8，15s 超时（UA 实测不影响 CDN 响应，OkHttp.string(url,timeout) 裸请求即可） */
+    /** 拉取 M3U8，10s 快速超时。UA 实测不影响 CDN 响应（裸请求/qqlive/ExoPlayer 均 200），
+     *  OkHttp 无 string(url,headers,timeout) 三参重载，用裸请求+快速超时优先防播放器等待超时 */
     private String fetchM3u8(String url) {
         try {
             String body = OkHttp.string(url, M3U8_TIMEOUT);
