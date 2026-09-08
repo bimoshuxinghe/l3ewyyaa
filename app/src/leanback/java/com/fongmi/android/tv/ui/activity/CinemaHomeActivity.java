@@ -137,7 +137,7 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     protected void initView(Bundle savedInstanceState) {
-        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化
+        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化（保持弹窗提示流程，onResume/onPause 已加空判防 NPE）
         mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理 smart play
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
         mBinding.loading.setVisibility(View.VISIBLE);
@@ -754,7 +754,7 @@ public class CinemaHomeActivity extends BaseActivity implements
     @Override
     protected void onResume() {
         super.onResume();
-        mClock.start();
+        if (mClock != null) mClock.start(); // Guard.enforce 失败提前 return 时 mClock 未初始化，空判防 NPE（崩溃弹窗根因）
         applyFocusColor();
         registerReceiver(mNetworkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         updateNetworkState();
@@ -763,7 +763,7 @@ public class CinemaHomeActivity extends BaseActivity implements
     @Override
     protected void onPause() {
         super.onPause();
-        mClock.stop();
+        if (mClock != null) mClock.stop();
         unregisterReceiver(mNetworkReceiver);
         stopBackdropRotation();
     }

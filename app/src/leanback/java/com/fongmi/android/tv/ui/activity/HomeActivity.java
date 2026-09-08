@@ -315,7 +315,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Override
     protected void initView(Bundle savedInstanceState) {
-        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化
+        if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化（保持弹窗提示流程，onResume/onPause 已加空判防 NPE）
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
         mBinding.progressLayout.showProgress();
         PermissionUtil.requestNotify(this);
@@ -1119,7 +1119,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     @Override
     protected void onResume() {
         super.onResume();
-        mClock.start();
+        if (mClock != null) mClock.start(); // Guard.enforce 失败提前 return 时 mClock 未初始化，空判防 NPE（崩溃弹窗根因）
         registerReceiver(mNetworkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         updateNetworkState();
     }
@@ -1127,7 +1127,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     @Override
     protected void onPause() {
         super.onPause();
-        mClock.stop();
+        if (mClock != null) mClock.stop();
         unregisterReceiver(mNetworkReceiver);
     }
 
