@@ -354,6 +354,20 @@ def _http_get(url, timeout):
 
 
 # ================= 核心逻辑（对齐 PHP + Java 版经验） =================
+try:
+    # Android Chaquopy 下回调 Java 侧写运行时诊断日志；非 Android 环境为空实现
+    from com.fongmi.chaquo import YspServer as _JLog
+
+    def _jlog(msg):
+        try:
+            _JLog.log(msg)
+        except Exception:
+            pass
+except Exception:
+    def _jlog(msg):
+        pass
+
+
 class YspCore:
     def __init__(self):
         self.cache = {}          # id -> (playurl, ts)
@@ -377,10 +391,11 @@ class YspCore:
                 pu = m.group(1).decode('utf-8', errors='ignore')
                 pu = pu.replace('\\/', '/').replace('\\u0026', '&')
                 return pu
+        _jlog('API取址失败 http=%s len=%d' % (code, len(body)))
         return None
 
     def get_playurl(self, cid):
-        """80s 缓存命中 → 直接返回；否则取址；失败 → lastGood 兜底"""
+        """playurl 缓存命中 → 直接返回；否则取址；失败 → lastGood 兜底"""
         now = time.time()
         c = self.cache.get(cid)
         if c and now - c[1] < PLAYURL_CACHE_SEC:
@@ -394,6 +409,7 @@ class YspCore:
             return pu
         lg = self.last_good.get(cid)
         if lg and now - lg[1] < LAST_GOOD_SEC:
+            _jlog('取址失败, 用lastGood兜底(age=%ds)' % int(now - lg[1]))
             return lg[0]
         return None
 
@@ -402,6 +418,7 @@ class YspCore:
         code, body = _http_get(url, M3U8_TIMEOUT)
         if code == 200 and b'#EXTM3U' in body:
             return body.decode('utf-8', errors='ignore')
+        _jlog('拉M3U8失败 http=%s len=%d' % (code, len(body)))
         return None
 
     @staticmethod
@@ -477,6 +494,7 @@ class YspCore:
         # 双失败 → lastGood M3U8 内容兜底（最优先：不再发任何外网请求）
         lg_m = self.last_good_m3u8.get(cid)
         if lg_m and time.time() - lg_m[1] < LAST_GOOD_SEC:
+            _jlog('双失败, lastGood M3U8 兜底(age=%ds)' % int(time.time() - lg_m[1]))
             return lg_m[0]
         # 再试 lastGood playurl 拉一次（旧 token 可能仍有短暂窗口）
         lg = self.last_good.get(cid)
@@ -486,6 +504,7 @@ class YspCore:
                 body = self.patch_ts(m3u8, lg[0]).encode('utf-8')
                 self.last_good_m3u8[cid] = (body, time.time())
                 return body
+        _jlog('全部兜底失败, 返回占位M3U8')
         return self.placeholder(cid)
 
     def serve_debug(self, cid):

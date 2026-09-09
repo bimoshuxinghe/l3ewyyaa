@@ -48,10 +48,27 @@ public class YspServer {
             Python.getInstance().getModule("ysp_server").callAttr("start");
             started = true;
             writeStatus("OK: YSP Python server http://127.0.0.1:9979/ysp?list=live");
+            log("启动成功 (9979)");
             Log.i(TAG, "YSP Python 代理已启动 (9979)");
         } catch (Throwable t) {
+            started = false;
             writeStatus("FAIL: " + t);
+            log("启动失败: " + t);
             Log.e(TAG, "YSP Python 代理启动失败", t);
+        }
+    }
+
+    /** Python 侧调用：追加一行运行时日志（取址/拉流失败诊断用）。 */
+    public static synchronized void log(String msg) {
+        try {
+            File dir = Init.context().getFilesDir();
+            if (dir != null) {
+                File f = new File(dir, "ysp_runtime.log");
+                try (PrintWriter w = new PrintWriter(new FileOutputStream(f, true), false, StandardCharsets.UTF_8)) {
+                    w.println(System.currentTimeMillis() + " " + msg);
+                }
+            }
+        } catch (Throwable ignored) {
         }
     }
 
