@@ -35,8 +35,8 @@ UA = "qqlive"
 API = "https://bkliveinfo.ysp.cctv.cn"
 PORT = 9979
 HOST = "127.0.0.1"
-PLAYURL_CACHE_SEC = 80      # PHP: $_COOKIE 80s
-LAST_GOOD_SEC = 120         # 上次成功 playurl 兜底时限（token 实测 ≥300s 有效，安全）
+PLAYURL_CACHE_SEC = 240     # token 实测 ≥301s 有效；盒子 IP 场景 240s 缓存把 API 频率压到 4 分钟/次（PHP 80s 是服务器场景保守值）
+LAST_GOOD_SEC = 240         # lastGood（playurl / M3U8 内容）兜底窗口，与 playurl 缓存对齐
 API_TIMEOUT = 8             # PHP curl TIMEOUT 5s，Java 版 8s 已验证
 M3U8_TIMEOUT = 10
 
@@ -358,6 +358,7 @@ class YspCore:
     def __init__(self):
         self.cache = {}          # id -> (playurl, ts)
         self.last_good = {}      # id -> (playurl, ts)
+        self.last_good_m3u8 = {} # id -> (patched_m3u8_bytes, ts)
         self.placeholder_ts = {} # id -> last placeholder ts
         self._rng = random.Random()
 
@@ -454,29 +455,58 @@ class YspCore:
                 "#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:EVENT\n").encode('utf-8')
 
     def serve_live(self, cid):
-        """直播主流程（严格对齐 PHP attempt<=2 + lastGood 兜底）"""
+        """直播主流程（盒子 IP 稳定性版）：
+        1) playurl 240s 缓存命中 → 拉 M3U8（失败不纠缠，直接走兜底）
+        2) 取址/M3U8 失败 → lastGood M3U8 内容缓存兜底（旧 token 切片 240s 内有效，播放器不断流）
+        3) lastGood playurl 再拉一次 → 仍失败 → 占位 M3U8（空 EVENT，播放器等刷新，不报 5xx）
+        """
         for attempt in range(2):
             playurl = self.get_playurl(cid)
             if playurl is None:
-                return self.placeholder(cid)
+                break
             m3u8 = self.fetch_m3u8(playurl)
             if m3u8 is not None:
+                body = self.patch_ts(m3u8, playurl).encode('utf-8')
                 self.last_good[cid] = (playurl, time.time())
-                return self.patch_ts(m3u8, playurl).encode('utf-8')
-            # M3U8 失败 → 清缓存，下一轮重取（PHP: unset cookie）
+                self.last_good_m3u8[cid] = (body, time.time())
+                return body
+            # M3U8 拉取失败 → 清缓存，短暂退避后下一轮重取（减少盒子 IP 连续取址触发限流）
             self.cache.pop(cid, None)
-        # 双失败 → lastGood 再试一次
+            if attempt == 0:
+                time.sleep(1.0)
+        # 双失败 → lastGood M3U8 内容兜底（最优先：不再发任何外网请求）
+        lg_m = self.last_good_m3u8.get(cid)
+        if lg_m and time.time() - lg_m[1] < LAST_GOOD_SEC:
+            return lg_m[0]
+        # 再试 lastGood playurl 拉一次（旧 token 可能仍有短暂窗口）
         lg = self.last_good.get(cid)
         if lg and time.time() - lg[1] < LAST_GOOD_SEC:
             m3u8 = self.fetch_m3u8(lg[0])
             if m3u8 is not None:
-                return self.patch_ts(m3u8, lg[0]).encode('utf-8')
+                body = self.patch_ts(m3u8, lg[0]).encode('utf-8')
+                self.last_good_m3u8[cid] = (body, time.time())
+                return body
         return self.placeholder(cid)
 
     def serve_debug(self, cid):
+        """诊断端点：返回当前缓存状态 + 取址结果，断流时便于定位"""
         ch = CHANNELS.get(cid)
         if not ch:
             return "频道不存在".encode('utf-8')
+        import json
+        now = time.time()
+        info = {'cid': cid, 'ts': int(now), 'host': HOST, 'port': PORT}
+        c = self.cache.get(cid)
+        info['playurl_cache'] = None if not c else {
+            'age_s': int(now - c[1]), 'ttl_s': max(0, int(PLAYURL_CACHE_SEC - (now - c[1]))),
+            'domain': c[0].split('/')[2] if '/' in c[0] else '?'}
+        lg = self.last_good.get(cid)
+        info['last_good_playurl'] = None if not lg else {
+            'age_s': int(now - lg[1]), 'domain': lg[0].split('/')[2] if '/' in lg[0] else '?'}
+        lg_m = self.last_good_m3u8.get(cid)
+        info['last_good_m3u8'] = None if not lg_m else {
+            'age_s': int(now - lg_m[1]), 'len': len(lg_m[0])}
+        # 实时取址一次（用于观察盒子出口是否被限流）
         guid = _generate_guid(self._rng)
         timestamp = int(time.time())
         params = _base_params(ch[0], ch[1], ch[2], timestamp, guid, self._rng)
@@ -484,7 +514,14 @@ class YspCore:
         params['playbacktime'] = '0'
         url = API + '?' + urllib.parse.urlencode(params)
         code, body = _http_get(url, API_TIMEOUT)
-        return body if code == 200 else ("HTTP %s" % code).encode('utf-8')
+        info['live_api'] = {'http': code, 'bytes': len(body)}
+        if code == 200 and b'"playurl"' in body:
+            m = re.search(rb'"playurl"\s*:\s*"([^"]+)"', body)
+            if m:
+                pu = m.group(1).decode('utf-8', errors='ignore').replace('\\/', '/').replace('\\u0026', '&')
+                info['live_api']['playurl'] = pu[:200]
+                info['live_api']['domain'] = pu.split('/')[2] if '://' in pu else '?'
+        return json.dumps(info, ensure_ascii=False).encode('utf-8')
 
     def list_live(self):
         sb = ["央视频,#genre#"]
