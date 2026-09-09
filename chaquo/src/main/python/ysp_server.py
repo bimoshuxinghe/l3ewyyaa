@@ -385,19 +385,25 @@ class YspCore:
         self.last_good_m3u8 = {} # id -> (patched_m3u8_bytes, ts)
         self.placeholder_ts = {} # id -> last placeholder ts
         self._rng = random.Random()
+        self.last_err = {}       # id -> 最近失败原因（显示在频道列表）
         self.stat = {'req': 0, 'api_ok': 0, 'api_fail': 0, 'm3u8_ok': 0, 'm3u8_fail': 0,
                      'probe_ok': 0, 'probe_fail': 0, 'renew': 0, 'fallback': 0}
 
     # ---- 取址 ----
     def request_api(self, cnlid, livepid, defn):
-        """严格对齐 PHP sendHttpRequest：双域名兜底 + iretcode==0 严格校验"""
+        """对齐 PHP sendHttpRequest：双域名兜底 + iretcode==0 严格校验。
+        域名轮换首选（CDN 按取址域名/IP 分配节点，轮换提高命中稳定节点概率）。"""
         guid = _generate_guid(self._rng)
         timestamp = int(time.time())
         params = _base_params(cnlid, livepid, defn, timestamp, guid, self._rng)
         params['cKey'] = _generate_ckey(cnlid, timestamp, self._rng, guid)
         params['playbacktime'] = '0'
         qs = urllib.parse.urlencode(params)
-        for api in API_URLS:
+        # 轮换首选：上次取址用的域名放末尾，另一域名做首选（保持双域名兜底）
+        start = getattr(self, '_api_round', 0) % len(API_URLS)
+        self._api_round = start + 1
+        for k in range(len(API_URLS)):
+            api = API_URLS[(start + k) % len(API_URLS)]
             url = api + '?' + qs
             code, body = _http_get(url, API_TIMEOUT, accept_json=True)
             # PHP: iretcode==0 且 playurl 非空才收；限流/错误提示 JSON 一律不收
@@ -407,8 +413,10 @@ class YspCore:
                     pu = m.group(1).decode('utf-8', errors='ignore')
                     pu = pu.replace('\\/', '/').replace('\\u0026', '&')
                     self.stat['api_ok'] += 1
+                    self.last_err.pop('cctv1', None)
                     return pu
             self.stat['api_fail'] += 1
+            self.last_err['cctv1'] = 'API取址失败(%s,http=%s)' % (api, code)
             _jlog('API取址失败 %s http=%s len=%d' % (api, code, len(body)))
         return None
 
@@ -438,6 +446,7 @@ class YspCore:
             self.stat['m3u8_ok'] += 1
             return body.decode('utf-8', errors='ignore')
         self.stat['m3u8_fail'] += 1
+        self.last_err['cctv1'] = '拉M3U8失败(http=%s)' % code
         _jlog('拉M3U8失败 http=%s len=%d' % (code, len(body)))
         return None
 
@@ -523,6 +532,7 @@ class YspCore:
                 segs = [l for l in body.decode('utf-8', errors='ignore').split('\n') if l.startswith('http')]
                 if segs and not YspCore._probe_segment(segs[0]):
                     self.stat['probe_fail'] += 1
+                    self.last_err['cctv1'] = '切片异常(已换流)'
                     _jlog('切片探测失败(第%d个切片), 换playurl重试' % (attempt + 1))
                     self.cache.pop(cid, None)
                     if attempt == 0:
@@ -590,7 +600,22 @@ class YspCore:
         return json.dumps(info, ensure_ascii=False).encode('utf-8')
 
     def list_live(self):
-        sb = ["央视频,#genre#"]
+        """频道列表：首行带服务运行状态（电视盒子无终端，刷新直播源即可看到诊断）"""
+        st = self.stat
+        total = st['req']
+        if st['probe_fail'] > 0:
+            status = '⚠切片异常x%d(已自愈)' % st['probe_fail']
+        elif st['api_fail'] > 0:
+            status = '⚠取址异常x%d(已兜底)' % st['api_fail']
+        elif st['m3u8_fail'] > 0:
+            status = '⚠拉流异常x%d(已兜底)' % st['m3u8_fail']
+        else:
+            status = 'OK'
+        last_err = self.last_err.get('cctv1', '')
+        if last_err:
+            status += ' | 最近: ' + last_err
+        sb = ["央视频,#genre#",
+              'YSP状态[%s,请求%d],http://%s:%d/ysp?id=cctv1&debug=1#' % (status, total, HOST, PORT)]
         for cid, (_, _, _, name) in CHANNELS.items():
             sb.append(f"{name},http://{HOST}:{PORT}/ysp?id={cid}#")
         return "\n".join(sb).encode('utf-8')
