@@ -48,7 +48,7 @@ abstract class BaseConfig {
     public synchronized void ensureLoaded() {
         try {
             if (isLoaded()) return;
-            // 先启动内置服务器：defaultConfig 可能需要生成指向内置服务的地址（如 /ysp?list=live）
+            // 先启动内置服务器：defaultConfig 可能需要生成指向内置服务的地址（如 /migu?list=live）
             Server.get().start();
             if (config == null) config = defaultConfig();
             load(config);

@@ -105,9 +105,9 @@ public class LiveConfig extends BaseConfig {
     @Override
     protected Config defaultConfig() {
         Config config = Config.live();
-        // 零配置默认直播源：内置央视频代理（/ysp?list=live 动态生成频道列表）
+        // 零配置默认直播源：内置咪咕代理（/migu?list=live 动态生成频道列表）
         if (TextUtils.isEmpty(config.getUrl())) {
-            config.url(Server.get().getAddress(true) + "/ysp?list=live").update();
+            config.url(Server.get().getAddress(true) + "/migu?list=live").update();
         }
         return config;
     }
@@ -149,9 +149,9 @@ public class LiveConfig extends BaseConfig {
 
     private void parseText(Config config, String text) {
         Live live = new Live(UrlUtil.getName(config.getUrl()), config.getUrl()).sync();
-        // 内置 YSP 直播源：注入默认 EPG 与频道台标。
+        // 内置咪咕直播源：注入默认 EPG 与频道台标。
         // 必须在 LiveParser.text 之前设置，否则频道无法继承 live 的 epg/logo 模板。
-        if (config.getUrl().contains("/ysp?list=live")) {
+        if (config.getUrl().contains("/migu?list=live")) {
             live.setEpg("https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz");
             live.setLogo("https://gcore.jsdelivr.net/gh/sparkssssssssss/epg/logo/{name}.png");
         }

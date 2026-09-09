@@ -11,18 +11,18 @@ import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 /**
- * YSP 央视频代理（Python 版）启动钩子。
- * 应用 onCreate 主线程调用 start()：Chaquopy 初始化 → import ysp_server → 启动 127.0.0.1:9979 HTTP 服务。
+ * 咪咕代理（Python 版）启动钩子。
+ * 应用 onCreate 主线程调用 start()：Chaquopy 初始化 → import migu_server → 启动 127.0.0.1:9979 HTTP 服务。
  * 失败自动后台重试（Chaquopy 首次初始化需解压 assets，慢设备可达数秒~十几秒）。
- * 启动状态写入 files/ysp_status.txt，便于诊断。
- * 播放器直播源地址：http://127.0.0.1:9979/ysp?list=live
+ * 启动状态写入 files/migu_status.txt，便于诊断。
+ * 播放器直播源地址：http://127.0.0.1:9979/migu?list=live
  */
-public class YspServer {
+public class MiguServer {
 
-    private static final String TAG = "YspServer";
+    private static final String TAG = "MiguServer";
     private static volatile boolean started = false;
 
-    private YspServer() {
+    private MiguServer() {
     }
 
     /** 幂等启动：主线程一次，失败转后台重试 2 次（间隔 3s）。 */
@@ -38,24 +38,24 @@ public class YspServer {
                     }
                     doStart();
                 }
-            }, "ysp-server-retry").start();
+            }, "migu-server-retry").start();
         }
     }
 
     private static void doStart() {
         try {
             if (!Python.isStarted()) Python.start(Platform.create());
-            Python.getInstance().getModule("ysp_server").callAttr("start");
+            Python.getInstance().getModule("migu_server").callAttr("start");
             started = true;
-            writeStatus("OK: YSP Python server http://127.0.0.1:9979/ysp?list=live");
+            writeStatus("OK: MIGU Python server http://127.0.0.1:9979/migu?list=live");
             log("启动成功 (9979)");
             appendBoot();
-            Log.i(TAG, "YSP Python 代理已启动 (9979)");
+            Log.i(TAG, "MIGU Python 代理已启动 (9979)");
         } catch (Throwable t) {
             started = false;
             writeStatus("FAIL: " + t);
             log("启动失败: " + t);
-            Log.e(TAG, "YSP Python 代理启动失败", t);
+            Log.e(TAG, "MIGU Python 代理启动失败", t);
         }
     }
 
@@ -64,7 +64,7 @@ public class YspServer {
         try {
             File dir = Init.context().getFilesDir();
             if (dir != null) {
-                try (PrintWriter w = new PrintWriter(new FileOutputStream(new File(dir, "ysp_boot.txt"), true), false, StandardCharsets.UTF_8)) {
+                try (PrintWriter w = new PrintWriter(new FileOutputStream(new File(dir, "migu_boot.txt"), true), false, StandardCharsets.UTF_8)) {
                     w.println(System.currentTimeMillis());
                 }
             }
@@ -77,7 +77,7 @@ public class YspServer {
         try {
             File dir = Init.context().getFilesDir();
             if (dir != null) {
-                File f = new File(dir, "ysp_boot.txt");
+                File f = new File(dir, "migu_boot.txt");
                 if (f.exists()) {
                     int n = 0;
                     java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(f));
@@ -99,7 +99,7 @@ public class YspServer {
         try {
             File dir = Init.context().getFilesDir();
             if (dir != null) {
-                File f = new File(dir, "ysp_runtime.log");
+                File f = new File(dir, "migu_runtime.log");
                 try (PrintWriter w = new PrintWriter(new FileOutputStream(f, true), false, StandardCharsets.UTF_8)) {
                     w.println(System.currentTimeMillis() + " " + msg);
                 }
@@ -112,7 +112,7 @@ public class YspServer {
         try {
             File dir = Init.context().getFilesDir();
             if (dir != null) {
-                try (PrintWriter w = new PrintWriter(new FileOutputStream(new File(dir, "ysp_status.txt")), false, StandardCharsets.UTF_8)) {
+                try (PrintWriter w = new PrintWriter(new FileOutputStream(new File(dir, "migu_status.txt")), false, StandardCharsets.UTF_8)) {
                     w.println(System.currentTimeMillis());
                     w.println(msg);
                 }
