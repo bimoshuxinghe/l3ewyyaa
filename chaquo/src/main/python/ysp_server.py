@@ -385,6 +385,8 @@ class YspCore:
         self.last_good_m3u8 = {} # id -> (patched_m3u8_bytes, ts)
         self.placeholder_ts = {} # id -> last placeholder ts
         self._rng = random.Random()
+        self.stat = {'req': 0, 'api_ok': 0, 'api_fail': 0, 'm3u8_ok': 0, 'm3u8_fail': 0,
+                     'probe_ok': 0, 'probe_fail': 0, 'renew': 0, 'fallback': 0}
 
     # ---- 取址 ----
     def request_api(self, cnlid, livepid, defn):
@@ -404,7 +406,9 @@ class YspCore:
                 if m:
                     pu = m.group(1).decode('utf-8', errors='ignore')
                     pu = pu.replace('\\/', '/').replace('\\u0026', '&')
+                    self.stat['api_ok'] += 1
                     return pu
+            self.stat['api_fail'] += 1
             _jlog('API取址失败 %s http=%s len=%d' % (api, code, len(body)))
         return None
 
@@ -431,9 +435,26 @@ class YspCore:
     def fetch_m3u8(self, url):
         code, body = _http_get(url, M3U8_TIMEOUT)
         if code == 200 and b'#EXTM3U' in body:
+            self.stat['m3u8_ok'] += 1
             return body.decode('utf-8', errors='ignore')
+        self.stat['m3u8_fail'] += 1
         _jlog('拉M3U8失败 http=%s len=%d' % (code, len(body)))
         return None
+
+    @staticmethod
+    def _probe_segment(url):
+        """Range 探测切片可达性：只拉 1KB，200/206 即通。"""
+        try:
+            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Range': 'bytes=0-1023'})
+            if _ssl_ctx is None:
+                with urllib.request.urlopen(req, timeout=6) as resp:
+                    return resp.getcode() in (200, 206)
+            with urllib.request.urlopen(req, timeout=6, context=_ssl_ctx) as resp:
+                return resp.getcode() in (200, 206)
+        except urllib.error.HTTPError as e:
+            return False
+        except Exception:
+            return False
 
     @staticmethod
     def _resolve_uri(uri, base_dir):
@@ -486,11 +507,12 @@ class YspCore:
                 "#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:EVENT\n").encode('utf-8')
 
     def serve_live(self, cid):
-        """直播主流程（盒子 IP 稳定性版）：
-        1) playurl 240s 缓存命中 → 拉 M3U8（失败不纠缠，直接走兜底）
-        2) 取址/M3U8 失败 → lastGood M3U8 内容缓存兜底（旧 token 切片 240s 内有效，播放器不断流）
-        3) lastGood playurl 再拉一次 → 仍失败 → 占位 M3U8（空 EVENT，播放器等刷新，不报 5xx）
+        """直播主流程（切片探测自愈版）：
+        1) playurl 80s 缓存 → 拉 M3U8 → patch → Range 探测首个切片
+        2) 切片探测失败（CDN 链路问题，播放器直连会断流）→ 清缓存 → 换新 playurl 重来（attempt<=2）
+        3) 双失败 → lastGood M3U8 兜底 → lastGood playurl 重拉 → 占位
         """
+        self.stat['req'] += 1
         for attempt in range(2):
             playurl = self.get_playurl(cid)
             if playurl is None:
@@ -498,6 +520,15 @@ class YspCore:
             m3u8 = self.fetch_m3u8(playurl)
             if m3u8 is not None:
                 body = self.patch_ts(m3u8, playurl).encode('utf-8')
+                segs = [l for l in body.decode('utf-8', errors='ignore').split('\n') if l.startswith('http')]
+                if segs and not YspCore._probe_segment(segs[0]):
+                    self.stat['probe_fail'] += 1
+                    _jlog('切片探测失败(第%d个切片), 换playurl重试' % (attempt + 1))
+                    self.cache.pop(cid, None)
+                    if attempt == 0:
+                        time.sleep(1.0)
+                    continue
+                self.stat['probe_ok'] += 1
                 self.last_good[cid] = (playurl, time.time())
                 self.last_good_m3u8[cid] = (body, time.time())
                 return body
@@ -508,6 +539,7 @@ class YspCore:
         # 双失败 → lastGood M3U8 内容兜底（最优先：不再发任何外网请求）
         lg_m = self.last_good_m3u8.get(cid)
         if lg_m and time.time() - lg_m[1] < LAST_GOOD_SEC:
+            self.stat['fallback'] += 1
             _jlog('双失败, lastGood M3U8 兜底(age=%ds)' % int(time.time() - lg_m[1]))
             return lg_m[0]
         # 再试 lastGood playurl 拉一次（旧 token 可能仍有短暂窗口）
@@ -528,7 +560,8 @@ class YspCore:
             return "频道不存在".encode('utf-8')
         import json
         now = time.time()
-        info = {'cid': cid, 'ts': int(now), 'host': HOST, 'port': PORT}
+        info = {'cid': cid, 'ts': int(now), 'host': HOST, 'port': PORT,
+                'stat': dict(self.stat)}
         c = self.cache.get(cid)
         info['playurl_cache'] = None if not c else {
             'age_s': int(now - c[1]), 'ttl_s': max(0, int(PLAYURL_CACHE_SEC - (now - c[1]))),
