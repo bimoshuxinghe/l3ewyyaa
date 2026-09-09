@@ -33,6 +33,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 # ================= 常量 =================
 UA = "qqlive"
 API = "https://bkliveinfo.ysp.cctv.cn"
+# PHP sendHttpRequest 双域名兜底：bkliveinfo 失败自动换 liveinfo（先 bkliveinfo 后 liveinfo，与 PHP 顺序一致）
+API_URLS = ["https://bkliveinfo.ysp.cctv.cn", "https://liveinfo.ysp.cctv.cn"]
 PORT = 9979
 HOST = "127.0.0.1"
 PLAYURL_CACHE_SEC = 80      # 严格对齐 PHP $_COOKIE 80s：盒子 IP 的 token 实测有效期≈90s（用户92s断流），缓存必须小于 token 有效期
@@ -386,20 +388,24 @@ class YspCore:
 
     # ---- 取址 ----
     def request_api(self, cnlid, livepid, defn):
+        """严格对齐 PHP sendHttpRequest：双域名兜底 + iretcode==0 严格校验"""
         guid = _generate_guid(self._rng)
         timestamp = int(time.time())
         params = _base_params(cnlid, livepid, defn, timestamp, guid, self._rng)
         params['cKey'] = _generate_ckey(cnlid, timestamp, self._rng, guid)
         params['playbacktime'] = '0'
-        url = API + '?' + urllib.parse.urlencode(params)
-        code, body = _http_get(url, API_TIMEOUT, accept_json=True)
-        if code == 200 and b'"playurl"' in body:
-            m = re.search(rb'"playurl"\s*:\s*"([^"]+)"', body)
-            if m:
-                pu = m.group(1).decode('utf-8', errors='ignore')
-                pu = pu.replace('\\/', '/').replace('\\u0026', '&')
-                return pu
-        _jlog('API取址失败 http=%s len=%d' % (code, len(body)))
+        qs = urllib.parse.urlencode(params)
+        for api in API_URLS:
+            url = api + '?' + qs
+            code, body = _http_get(url, API_TIMEOUT, accept_json=True)
+            # PHP: iretcode==0 且 playurl 非空才收；限流/错误提示 JSON 一律不收
+            if code == 200 and b'"iretcode":0' in body and b'"playurl"' in body:
+                m = re.search(rb'"playurl"\s*:\s*"([^"]+)"', body)
+                if m:
+                    pu = m.group(1).decode('utf-8', errors='ignore')
+                    pu = pu.replace('\\/', '/').replace('\\u0026', '&')
+                    return pu
+            _jlog('API取址失败 %s http=%s len=%d' % (api, code, len(body)))
         return None
 
     def get_playurl(self, cid):
