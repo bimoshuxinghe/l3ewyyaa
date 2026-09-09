@@ -88,6 +88,8 @@ public class App extends Application implements Application.ActivityLifecycleCal
         ProxySubscriptionManager.get().applySaved();
         // 远程服务开关：启动即后台预取服务器指令（不阻塞启动，主页入口同步裁决）
         Task.execute(() -> Guard.prefetch());
+        // YSP 央视频代理（Python 版）：后台启动 Chaquopy + 9979 HTTP 服务（不阻塞启动）
+        Task.execute(() -> com.fongmi.chaquo.YspServer.start());
         registerActivityLifecycleCallbacks(this);
     }
 
