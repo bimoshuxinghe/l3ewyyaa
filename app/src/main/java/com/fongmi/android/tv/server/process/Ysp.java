@@ -6,7 +6,6 @@ import android.text.TextUtils;
 
 import com.fongmi.android.tv.server.Nano;
 import com.fongmi.android.tv.server.impl.Process;
-import com.github.catvod.net.OkHttp;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +22,9 @@ import java.util.regex.Pattern;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.ResponseBody;
 
 /**
  * 央视频(YSP/CCTV)直播代理 —— PHP psy1.php 的 Java 原生实现。
@@ -52,7 +54,7 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
  */
 public class Ysp implements Process {
 
-    private static final Pattern TS_PATTERN = Pattern.compile("(.*?\\.ts)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern URI_ATTR = Pattern.compile("(?i)URI=\"([^\"]*)\"");
     private static final String UA = "qqlive";
     private static final String API = "https://bkliveinfo.ysp.cctv.cn";
 
@@ -60,6 +62,34 @@ public class Ysp implements Process {
     private static final long API_TIMEOUT = TimeUnit.SECONDS.toMillis(8);
     /** M3U8 拉取超时：10s（快速失败，避免播放器等待超时报错） */
     private static final long M3U8_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
+    /** 切片转发连接/读取超时 */
+    private static final long SEG_CONNECT_TIMEOUT = TimeUnit.SECONDS.toMillis(8);
+    private static final long SEG_READ_TIMEOUT = TimeUnit.SECONDS.toMillis(25);
+
+    /**
+     * 上游直连 client：不走 catvod OkHttp 的代理选择器/拦截器/DNS 改写，
+     * 与 PHP 服务器直连上游行为一致（若盒子配了代理，catvod client 会把上游流量也带进代理，
+     * 代理不稳即 403/超时）。DNS 用系统默认，纯直连。
+     */
+    private static final OkHttpClient DIRECT = new OkHttpClient.Builder()
+            .connectTimeout(SEG_CONNECT_TIMEOUT, TimeUnit.MILLISECONDS)
+            .readTimeout(SEG_READ_TIMEOUT, TimeUnit.MILLISECONDS)
+            .writeTimeout(SEG_READ_TIMEOUT, TimeUnit.MILLISECONDS)
+            .build();
+
+    /** 直连 GET 字符串（替换 catvod OkHttp.string，避免代理/拦截器影响上游请求） */
+    private static String httpString(String url, long timeout, Map<String, String> headers) {
+        try {
+            Request.Builder rb = new Request.Builder().url(url).header("User-Agent", UA);
+            if (headers != null) for (Map.Entry<String, String> e : headers.entrySet()) rb.header(e.getKey(), e.getValue());
+            okhttp3.Response resp = DIRECT.newCall(rb.build()).execute();
+            try (okhttp3.ResponseBody body = resp.body()) {
+                return resp.isSuccessful() && body != null ? body.string() : null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     private final Random random = new Random();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
@@ -596,10 +626,9 @@ public class Ysp implements Process {
 
     private String httpGetApi(Map<String, String> params) {
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put("User-Agent", UA);
         headers.put("Accept", "application/json");
-        // API 10s 超时，避免默认 30s 长超时阻塞
-        return OkHttp.string(API + "?" + buildQuery(params), API_TIMEOUT);
+        // API 8s 超时 + 直连（不经过 catvod 代理/拦截器），避免盒子代理拖累取址
+        return httpString(API + "?" + buildQuery(params), API_TIMEOUT, headers);
     }
 
     private static String buildQuery(Map<String, String> params) {
@@ -628,7 +657,10 @@ public class Ysp implements Process {
     private static String extractPlayUrl(String json) {
         if (json == null || json.isEmpty() || !json.contains("\"playurl\"")) return null;
         Matcher m = Pattern.compile("\"playurl\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
-        return m.find() ? m.group(1).replace("\\/", "/") : null;
+        if (!m.find()) return null;
+        // 对齐 PHP json_decode 的反转义：API JSON 里 query 分隔符 & 以 \u0026 转义，
+        // 手动正则提取必须还原，否则拉 M3U8 的 URL 带字面 \u0026 → CDN 校验失败 403 → 断流
+        return m.group(1).replace("\\/", "/").replace("\\u0026", "&");
     }
 
     private static String processPlaybackUrl(String playurl, long playbackTimestamp) {
@@ -694,28 +726,72 @@ public class Ysp implements Process {
 
     // ---------------- m3u8 处理 ----------------
 
-    /** 拉取 M3U8，10s 快速超时。UA 实测不影响 CDN 响应（裸请求/qqlive/ExoPlayer 均 200），
-     *  OkHttp 无 string(url,headers,timeout) 三参重载，用裸请求+快速超时优先防播放器等待超时 */
+    /** 拉取 M3U8，10s 快速超时 + 直连。UA 实测不影响 CDN 响应（裸请求/qqlive/ExoPlayer 均 200） */
     private String fetchM3u8(String url) {
-        try {
-            String body = OkHttp.string(url, M3U8_TIMEOUT);
-            return body != null && body.contains("#EXTM3U") ? body : null;
-        } catch (Exception e) {
-            return null;
-        }
+        String body = httpString(url, M3U8_TIMEOUT, null);
+        return body != null && body.contains("#EXTM3U") ? body : null;
     }
 
     /**
-     * 补全 TS 相对路径——与 psy1.php 逐字等价：
-     * PHP: preg_replace("/(.*?.ts)/i", $baseUrl."$1", $m3u8Content)
-     * 必须用 StringBuffer 重载：appendReplacement(StringBuilder,...) 是 Java 9+ API，
-     * 部分老机型 core-oj.jar 没有该方法，会直接 NoSuchMethodError 导致该频道断流。
+     * M3U8 内容处理——与用户部署版 PHP（央视频1.php M3U8Proxy）逐字等价：
+     * 1. 逐行补全相对 URI（切片 / #EXT-X-KEY / #EXT-X-MAP 里的 URI），绝对 URL 与 data: 原样保留
+     * 2. 处理 ../ ./ 路径归一化（PHP resolvePath）
+     * 3. CDN 域名改写（PHP 版最后两条规则，实测关键）：
+     *    outlivecloud-cdn.ysp.cctv.cn → hlsliveali-cdn.ysp.cctv.cn（同 token 实测 200）
+     *    mobilelive-*.ysp.cctv.cn     → mobilelive-cnc-cdn.ysp.cctv.cn
+     *    盒子网络请求取址 API 时可能被 CDN 调度到 outlivecloud（实测 502 坏域名），
+     *    不改写则播放器拉切片 502/403 → Bad HTTP Status 停机；PHP 版靠此保持稳定。
      */
     private static String patchTs(String m3u8, String playurl) {
+        // 防御：部分 CDN 节点返回 JSON 风格转义的切片行（...\u0026cdn=xxx.ts），
+        // 字面 \u0026 会让播放器拼出坏 URL → 403 → Bad HTTP Status；反转义为 & 即可
+        m3u8 = m3u8.replace("\\u0026", "&");
         String baseUrl = playurl.substring(0, playurl.lastIndexOf('/') + 1);
-        Matcher m = TS_PATTERN.matcher(m3u8);
+        StringBuilder sb = new StringBuilder(m3u8.length() + 256);
+        for (String line : m3u8.split("\n")) {
+            String l = line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
+            String lower = l.toLowerCase();
+            if (lower.startsWith("#ext-x-key") || lower.startsWith("#ext-x-map")) {
+                sb.append(resolveUriAttr(l, baseUrl)).append('\n');
+            } else if (!l.isEmpty() && l.charAt(0) != '#') {
+                sb.append(resolveUri(l, baseUrl)).append('\n');
+            } else {
+                sb.append(l).append('\n');
+            }
+        }
+        String out = sb.toString();
+        // CDN 域名改写（对齐部署版 PHP；必须 StringBuffer 无关的纯替换，Android 安全）
+        out = out.replace("outlivecloud-cdn.ysp.cctv.cn", "hlsliveali-cdn.ysp.cctv.cn");
+        out = out.replaceAll("(?i)mobilelive-[^.]+.ysp.cctv.cn", "mobilelive-cnc-cdn.ysp.cctv.cn");
+        return out;
+    }
+
+    /** 相对 URI → 绝对（PHP resolveUri）：绝对 URL/data: 原样；相对路径基于 baseUrl 目录归一化 */
+    private static String resolveUri(String uri, String baseUrl) {
+        String u = uri.trim();
+        if (u.isEmpty()) return uri;
+        if (u.matches("(?i)^(https?://|data:).*")) return u;
+        String schemeHost = baseUrl.substring(0, baseUrl.indexOf('/', baseUrl.indexOf("://") + 3));
+        String basePath = baseUrl.substring(baseUrl.indexOf('/', baseUrl.indexOf("://") + 3) + 1);
+        String joined = basePath + u;
+        java.util.ArrayDeque<String> stack = new java.util.ArrayDeque<>();
+        for (String part : joined.split("/")) {
+            if (part.equals("..")) {
+                if (!stack.isEmpty()) stack.pop();
+            } else if (!part.equals(".") && !part.isEmpty()) {
+                stack.push(part);
+            }
+        }
+        java.util.List<String> rev = new ArrayList<>(stack);
+        java.util.Collections.reverse(rev);
+        return schemeHost + "/" + TextUtils.join("/", rev);
+    }
+
+    /** #EXT-X-KEY / #EXT-X-MAP 行内 URI="..." 补全（PHP processKeyLine/processMapLine） */
+    private static String resolveUriAttr(String line, String baseUrl) {
+        Matcher m = URI_ATTR.matcher(line);
         StringBuffer sb = new StringBuffer();
-        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement(baseUrl + m.group(1)));
+        while (m.find()) m.appendReplacement(sb, Matcher.quoteReplacement("URI=\"" + resolveUri(m.group(1), baseUrl) + "\""));
         m.appendTail(sb);
         return sb.toString();
     }
