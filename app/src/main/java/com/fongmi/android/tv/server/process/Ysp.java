@@ -93,6 +93,12 @@ public class Ysp implements Process {
 
     private final Random random = new Random();
     private final Map<String, Long> placeholderTime = new ConcurrentHashMap<>();
+    /** playurl 80s 缓存（严格对齐部署版 PHP：$_COOKIE['ysp_playurl'] 80s）。
+     *  token 实测 ≥300s 有效，80s 缓存远小于 token 生命周期，切片永不过期；
+     *  缓存把 API 取址频率从"每 8s 一次"降到"每 80s 一次"，盒子 IP 高频请求 API 会被
+     *  CDN 限流（PHP 版请求源是服务器 IP 不受影响，Java 版请求源是盒子 IP 必须降频） */
+    private static final long PLAYURL_CACHE_MS = TimeUnit.SECONDS.toMillis(80);
+    private final Map<String, Object[]> playurlCache = new ConcurrentHashMap<>(); // id -> [playurl, ts]
     private String guid = "";
 
     /** 诊断日志（Logcat + 调试页环形缓冲），任何失败静默 */
@@ -130,27 +136,27 @@ public class Ysp implements Process {
                 return redirect(playurl);
             }
 
-            // 直播主流程——与 psy1.php / 手机版 v8a (88c4a1b6) 实际行为一致：
-            //   每次播放器刷新（约 6~7s 一次）都重新取址、拉一份全新的流，不做任何本地缓存。
-            //   实测证明 403 全部出现在"复用旧地址"时（同一地址被高频反复请求触发 CDN 限流），
-            //   而新取址后的首次拉取从不 403——所以每次都拉新的，从根上掐掉 Bad HTTP Status。
-            //   取址失败 → placeholder（播放器视为直播等待、持续轮询自愈，绝不阻塞/5xx）；
-            //   M3U8 拉取失败 → 换新地址重试一轮，仍失败 → placeholder。
+            // 直播主流程——严格对齐部署版 PHP（央视频1.php）：
+            //   playurl 80s 缓存（PHP: $_COOKIE 80s）+ M3U8 每次刷新重新拉取（PHP: curl 每请求拉）
+            //   + M3U8 拉取失败立即清缓存重取（PHP: attempt<=2）→ 仍失败 → PHP die() / Java placeholder
+            //   80s 缓存把 API 频率降 10 倍（播放器约 8s 刷新一次），避免盒子 IP 高频取址被 CDN 限流。
             try {
                 for (int attempt = 0; attempt < 2; attempt++) {
-                    String playurl = getPlayUrl(cnlid, livepid, defn, null);
-                    if (playurl == null) { // psy1.php: die("获取播放地址失败")；这里用占位列表替代
+                    String playurl = getCachedPlayUrl(cnlid, livepid, defn);
+                    if (playurl == null) { // PHP: die("获取播放地址失败")；这里用占位列表替代
                         diag("API失败 id=" + id);
                         return placeholder(id);
                     }
                     String m3u8 = fetchM3u8(playurl);
-                    if (m3u8 != null) { // 成功：补全 TS 路径后输出（psy1.php: preg_replace + print_r）
+                    if (m3u8 != null) { // 成功：补全 TS 路径后输出（PHP: M3U8Proxy + preg_replace）
                         return m3u8Response(patchTs(m3u8, playurl));
                     }
-                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，换新地址重试");
+                    // M3U8 拉取失败 → 清缓存，下一轮重取新地址（PHP: unset cookie 重取）
+                    playurlCache.remove(id);
+                    diag("CDN拉取失败 id=" + id + " attempt=" + attempt + "，清缓存重取");
                 }
                 diag("无法获取M3U8 id=" + id);
-                return placeholder(id); // psy1.php 为 die，这里用占位列表替代，保证不断流、不收 5xx
+                return placeholder(id); // PHP 为 die，这里用占位列表替代，保证不断流、不收 5xx
             } catch (Throwable t) {
                 // 直播路径任何意外异常同样不允许 5xx
                 diag("直播处理异常: " + t);
@@ -607,6 +613,19 @@ public class Ysp implements Process {
 
         params.put("playbacktime", "0");
         return extractPlayUrl(httpGetApi(params));
+    }
+
+    /** 取直播 playurl，80s 缓存（严格对齐部署版 PHP：$_COOKIE['ysp_playurl'] 80s）。
+     *  缓存命中直接返回，不调 API；缓存过期/未命中才取址并写缓存。 */
+    private String getCachedPlayUrl(String cnlid, String livepid, String defn) {
+        Object[] cached = playurlCache.get(cnlid);
+        long now = System.currentTimeMillis();
+        if (cached != null && now - (Long) cached[1] < PLAYURL_CACHE_MS) {
+            return (String) cached[0];
+        }
+        String playurl = getPlayUrl(cnlid, livepid, defn, null);
+        if (playurl != null) playurlCache.put(cnlid, new Object[]{playurl, now});
+        return playurl;
     }
 
     /** debug 模式：返回上游原始 JSON */
