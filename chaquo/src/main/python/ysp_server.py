@@ -35,8 +35,8 @@ UA = "qqlive"
 API = "https://bkliveinfo.ysp.cctv.cn"
 PORT = 9979
 HOST = "127.0.0.1"
-PLAYURL_CACHE_SEC = 240     # token 实测 ≥301s 有效；盒子 IP 场景 240s 缓存把 API 频率压到 4 分钟/次（PHP 80s 是服务器场景保守值）
-LAST_GOOD_SEC = 240         # lastGood（playurl / M3U8 内容）兜底窗口，与 playurl 缓存对齐
+PLAYURL_CACHE_SEC = 80      # 严格对齐 PHP $_COOKIE 80s：盒子 IP 的 token 实测有效期≈90s（用户92s断流），缓存必须小于 token 有效期
+LAST_GOOD_SEC = 80          # lastGood 兜底窗口必须 < token 有效期（返回已过期 token 的 M3U8 = 切片403 = 卡）
 API_TIMEOUT = 8             # PHP curl TIMEOUT 5s，Java 版 8s 已验证
 M3U8_TIMEOUT = 10
 
@@ -336,8 +336,16 @@ def _base_params(cnlid, livepid, defn, timestamp, guid, rng):
     }
 
 
-def _http_get(url, timeout):
-    req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
+def _http_get(url, timeout, accept_json=False):
+    """严格对齐 PHP curl 请求头：
+    取址: UA=qqlive + Connection: Keep-Alive + Accept: application/json
+    拉M3U8: 仅 UA=qqlive（PHP curl 无 Accept，CDN 对 Accept 敏感时会返回 JSON 而非 M3U8）
+    """
+    hdrs = {'User-Agent': UA}
+    if accept_json:
+        hdrs['Accept'] = 'application/json'
+        hdrs['Connection'] = 'Keep-Alive'
+    req = urllib.request.Request(url, headers=hdrs)
     try:
         if _ssl_ctx is None:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -384,7 +392,7 @@ class YspCore:
         params['cKey'] = _generate_ckey(cnlid, timestamp, self._rng, guid)
         params['playbacktime'] = '0'
         url = API + '?' + urllib.parse.urlencode(params)
-        code, body = _http_get(url, API_TIMEOUT)
+        code, body = _http_get(url, API_TIMEOUT, accept_json=True)
         if code == 200 and b'"playurl"' in body:
             m = re.search(rb'"playurl"\s*:\s*"([^"]+)"', body)
             if m:
@@ -532,7 +540,7 @@ class YspCore:
         params['cKey'] = _generate_ckey(ch[0], timestamp, self._rng, guid)
         params['playbacktime'] = '0'
         url = API + '?' + urllib.parse.urlencode(params)
-        code, body = _http_get(url, API_TIMEOUT)
+        code, body = _http_get(url, API_TIMEOUT, accept_json=True)
         info['live_api'] = {'http': code, 'bytes': len(body)}
         if code == 200 and b'"playurl"' in body:
             m = re.search(rb'"playurl"\s*:\s*"([^"]+)"', body)
