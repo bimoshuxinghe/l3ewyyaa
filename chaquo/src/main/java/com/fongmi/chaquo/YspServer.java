@@ -49,6 +49,7 @@ public class YspServer {
             started = true;
             writeStatus("OK: YSP Python server http://127.0.0.1:9979/ysp?list=live");
             log("启动成功 (9979)");
+            appendBoot();
             Log.i(TAG, "YSP Python 代理已启动 (9979)");
         } catch (Throwable t) {
             started = false;
@@ -56,6 +57,41 @@ public class YspServer {
             log("启动失败: " + t);
             Log.e(TAG, "YSP Python 代理启动失败", t);
         }
+    }
+
+    /** 启动成功计数（跨进程持久，用于在频道列表判断服务是否反复重启）。 */
+    private static void appendBoot() {
+        try {
+            File dir = Init.context().getFilesDir();
+            if (dir != null) {
+                try (PrintWriter w = new PrintWriter(new FileOutputStream(new File(dir, "ysp_boot.txt"), true), false, StandardCharsets.UTF_8)) {
+                    w.println(System.currentTimeMillis());
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Python 侧调用：返回累计启动成功次数（无文件时 0）。 */
+    public static synchronized int bootCount() {
+        try {
+            File dir = Init.context().getFilesDir();
+            if (dir != null) {
+                File f = new File(dir, "ysp_boot.txt");
+                if (f.exists()) {
+                    int n = 0;
+                    java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader(f));
+                    try {
+                        while (r.readLine() != null) n++;
+                    } finally {
+                        r.close();
+                    }
+                    return n;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return 0;
     }
 
     /** Python 侧调用：追加一行运行时日志（取址/拉流失败诊断用）。 */

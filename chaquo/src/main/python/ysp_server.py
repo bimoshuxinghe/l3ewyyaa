@@ -386,6 +386,7 @@ class YspCore:
         self.placeholder_ts = {} # id -> last placeholder ts
         self._rng = random.Random()
         self.last_err = {}       # id -> 最近失败原因（显示在频道列表）
+        self.boot_ts = time.time()
         self.stat = {'req': 0, 'api_ok': 0, 'api_fail': 0, 'm3u8_ok': 0, 'm3u8_fail': 0,
                      'probe_ok': 0, 'probe_fail': 0, 'renew': 0, 'fallback': 0}
 
@@ -603,6 +604,14 @@ class YspCore:
         """频道列表：首行带服务运行状态（电视盒子无终端，刷新直播源即可看到诊断）"""
         st = self.stat
         total = st['req']
+        # 运行秒数 + 累计启动次数：若服务反复重启，运行秒数会回落、启动次数会增长
+        run_s = int(time.time() - self.boot_ts)
+        boot = 0
+        try:
+            from com.fongmi.chaquo import YspServer as _J
+            boot = _J.bootCount()
+        except Exception:
+            pass
         if st['probe_fail'] > 0:
             status = '⚠切片异常x%d(已自愈)' % st['probe_fail']
         elif st['api_fail'] > 0:
@@ -615,7 +624,7 @@ class YspCore:
         if last_err:
             status += ' | 最近: ' + last_err
         sb = ["央视频,#genre#",
-              'YSP状态[%s,请求%d],http://%s:%d/ysp?id=cctv1&debug=1#' % (status, total, HOST, PORT)]
+              'YSP状态[%s,请求%d,运行%ds,启动x%d],http://%s:%d/ysp?id=cctv1&debug=1#' % (status, total, run_s, boot, HOST, PORT)]
         for cid, (_, _, _, name) in CHANNELS.items():
             sb.append(f"{name},http://{HOST}:{PORT}/ysp?id={cid}#")
         return "\n".join(sb).encode('utf-8')
