@@ -50,9 +50,18 @@ XOR_KEY = [0x84, 0x2E, 0xED, 0x08, 0xF0, 0x66, 0xE6, 0xEA, 0x48, 0xB4, 0xCA, 0xA
 STD_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
 CUS_ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-="
 
-_ssl_ctx = ssl.create_default_context()
-_ssl_ctx.check_hostname = False
-_ssl_ctx.verify_mode = ssl.CERT_NONE
+_ssl_ctx = None
+try:
+    _ctx = ssl.create_default_context()
+    _ctx.check_hostname = False
+    _ctx.verify_mode = ssl.CERT_NONE
+    _ssl_ctx = _ctx
+except Exception:
+    # Android Chaquopy 个别设备 CA 初始化异常时退化（不影响业务，无验证即可）
+    try:
+        _ssl_ctx = ssl._create_unverified_context()
+    except Exception:
+        _ssl_ctx = None
 
 # ================= 频道表（与 Java Channel.java 一致） =================
 CHANNELS = {
@@ -330,6 +339,9 @@ def _base_params(cnlid, livepid, defn, timestamp, guid, rng):
 def _http_get(url, timeout):
     req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
     try:
+        if _ssl_ctx is None:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.getcode(), resp.read()
         with urllib.request.urlopen(req, timeout=timeout, context=_ssl_ctx) as resp:
             return resp.getcode(), resp.read()
     except urllib.error.HTTPError as e:
