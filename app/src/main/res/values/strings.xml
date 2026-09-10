@@ -178,7 +178,8 @@
     <string name="setting_tmdb_api_key_label">API Key</string>
     <string name="setting_tmdb_api_hint">Enter TMDB API Key</string>
     <string name="setting_tmdb_api_set">TMDB API configured</string>
-    <string name="setting_tmdb_api_empty">Not set</string>
+        <string name="setting_tmdb_api_scan">Scan QR</string>
+<string name="setting_tmdb_api_empty">Not set</string>
     <string-array name="select_home_style">
         <item>Standard UI</item>
         <item>Large Screen UI</item>

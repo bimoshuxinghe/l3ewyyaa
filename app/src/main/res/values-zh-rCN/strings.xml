@@ -173,7 +173,8 @@
     <string name="setting_tmdb_api_key_label">API Key</string>
     <string name="setting_tmdb_api_hint">请输入TMDB API密钥</string>
     <string name="setting_tmdb_api_set">TMDB API已设置</string>
-    <string name="setting_tmdb_api_empty">未设置</string>
+        <string name="setting_tmdb_api_scan">扫码绑定</string>
+<string name="setting_tmdb_api_empty">未设置</string>
     <string-array name="select_home_style">
         <item>普通UI</item>
         <item>大屏UI</item>

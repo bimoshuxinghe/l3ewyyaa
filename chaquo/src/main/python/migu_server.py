@@ -434,6 +434,40 @@ def _bind_ok_token():
         return ''
 
 
+_TMDB_PAGE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TMDB API Key 绑定</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f1420;color:#fff;margin:0;padding:24px;max-width:420px}
+h1{font-size:19px;margin:4px 0 10px}.tip{color:#9aa4b5;font-size:13px;line-height:1.7;margin:0 0 8px}
+input{width:100%;box-sizing:border-box;padding:13px;margin:10px 0;border-radius:10px;border:1px solid #2a3446;background:#1a2230;color:#fff;font-size:16px;outline:none}
+input:focus{border-color:#3b82f6}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#3b82f6;color:#fff;font-size:16px;font-weight:600;margin-top:6px}
+.msg{color:#22c55e;font-size:15px;text-align:center;margin-top:14px}
+.err{color:#ef4444}
+</style></head><body>
+<h1>TMDB API Key 绑定</h1>
+<p class="tip">在 themoviedb.org 注册后，到 <b>Settings → API</b> 申请 API Key（v3），把 Key 填入即可。绑定后电视端刮削海报/简介自动生效。</p>
+<form id="f" onsubmit="return false;">
+<input id="key" placeholder="TMDB API Key" autocomplete="off">
+<button onclick="submit()">绑定到电视</button>
+</form>
+<p id="msg" class="msg"></p>
+<script>
+async function submit(){
+  var key=document.getElementById('key').value.trim(), m=document.getElementById('msg');
+  if(!key){m.textContent='请填写 API Key';m.className='msg err';return}
+  var fd=new FormData();fd.append('key',key);
+  try{
+    var r=await fetch('/bind/submit',{method:'POST',body:fd});
+    var d=await r.json();
+    if(d.ok){m.textContent='绑定成功！现在可以关闭本页，返回电视。';document.getElementById('f').style.display='none';}
+    else{m.textContent='绑定失败：'+(d.msg||'未知错误');m.className='msg err';}
+  }catch(e){m.textContent='网络错误：请确认手机和电视在同一个WiFi';m.className='msg err';}
+}
+</script></body></html>"""
+
+
 class BindHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
@@ -453,7 +487,8 @@ class BindHandler(BaseHTTPRequestHandler):
             if not self._token_ok(qs):
                 self.send_error(403)
                 return
-            body = _BIND_PAGE.encode('utf-8')
+            btype = (qs.get('type') or ['migu'])[0]
+            body = (_TMDB_PAGE if btype == 'tmdb' else _BIND_PAGE).encode('utf-8')
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(body)))
@@ -477,6 +512,20 @@ class BindHandler(BaseHTTPRequestHandler):
             form = urllib.parse.parse_qs(raw)
             if not self._token_ok({k: v for k, v in form.items() if k == 't'}):
                 self._json(403, {'ok': False, 'msg': 'token 校验失败，请重新扫码'})
+                return
+            btype = (form.get('type') or ['migu'])[0]
+            if btype == 'tmdb':
+                key = (form.get('key') or [''])[0].strip()
+                if not key:
+                    self._json(400, {'ok': False, 'msg': 'API Key 不能为空'})
+                    return
+                try:
+                    _J.saveTmdbKey(key)
+                    _jlog('扫码绑定TMDB成功 key=%s' % key[:8])
+                    self._json(200, {'ok': True})
+                except Exception as e:
+                    _jlog('扫码绑定TMDB失败 %s' % e)
+                    self._json(500, {'ok': False, 'msg': '保存失败，请重试'})
                 return
             uid = (form.get('uid') or [''])[0].strip()
             token = (form.get('token') or [''])[0].strip()

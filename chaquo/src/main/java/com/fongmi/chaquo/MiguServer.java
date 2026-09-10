@@ -137,6 +137,20 @@ public class MiguServer {
         }
     }
 
+    /** 扫码绑定写入 TMDB API Key（手机端网页 POST 到本机 9980，Python 回调此方法）。 */
+    public static synchronized String saveTmdbKey(String key) {
+        try {
+            if (key == null) return "EMPTY";
+            key = key.trim();
+            if (key.isEmpty()) return "EMPTY";
+            com.github.catvod.utils.Prefers.put("tmdb_api_key", key);
+            log("扫码绑定TMDB key=" + key.substring(0, Math.min(8, key.length())));
+            return "OK";
+        } catch (Throwable t) {
+            return "ERR:" + t;
+        }
+    }
+
     /** 本机局域网 IPv4（供二维码绑定页使用）；找不到时回退 127.0.0.1。 */
     public static synchronized String getLocalIp() {
         try {

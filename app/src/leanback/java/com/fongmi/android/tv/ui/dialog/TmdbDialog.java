@@ -54,6 +54,7 @@ public class TmdbDialog extends BaseAlertDialog {
     protected void initEvent() {
         binding.positive.setOnClickListener(this::onPositive);
         binding.negative.setOnClickListener(this::onNegative);
+        binding.scan.setOnClickListener(v -> MiguLoginDialog.showQr(requireActivity(), MiguLoginDialog.TYPE_TMDB));
         binding.apiKey.setOnEditorActionListener((textView, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) binding.positive.performClick();
             return true;
@@ -64,6 +65,8 @@ public class TmdbDialog extends BaseAlertDialog {
         String apiUrl = binding.apiUrl.getText().toString().trim();
         String imageUrl = binding.imageUrl.getText().toString().trim();
         String apiKey = binding.apiKey.getText().toString().trim();
+        // 扫码已写入 key 而输入框为空时，保留扫码结果
+        if (apiKey.isEmpty()) apiKey = Setting.getTmdbApiKey();
         ((TmdbListener) requireActivity()).setTmdbConfig(apiUrl, imageUrl, apiKey);
         dismiss();
     }
@@ -75,6 +78,6 @@ public class TmdbDialog extends BaseAlertDialog {
     @Override
     public void onStart() {
         super.onStart();
-        setWidth(0.5f);
+        setWidth(0.7f);
     }
 }

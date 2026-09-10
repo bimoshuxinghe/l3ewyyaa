@@ -27,6 +27,11 @@ public class MiguLoginDialog {
     /** 本次进程是否已弹过（未配置账号时只在打开直播后提示一次，避免骚扰）。 */
     private static volatile boolean shownOnce = false;
 
+    /** 扫码绑定类型：咪咕账号（UID/Token）。 */
+    public static final String TYPE_MIGU = "migu";
+    /** 扫码绑定类型：TMDB API Key。 */
+    public static final String TYPE_TMDB = "tmdb";
+
     public static void showIfNeeded(FragmentActivity activity) {
         if (shownOnce) return;
         String uid = Prefers.getString("migu_uid", "");
@@ -71,7 +76,7 @@ public class MiguLoginDialog {
         Button scanBtn = new Button(activity);
         scanBtn.setText("扫码绑定");
         scanBtn.setPadding(bpad, bpad / 2, bpad, bpad / 2);
-        scanBtn.setOnClickListener(v -> showQr(activity));
+        scanBtn.setOnClickListener(v -> showQr(activity, TYPE_MIGU));
         row.addView(scanBtn, marginParams(activity, 0, 14, 8, 0));
 
         Button clearBtn = new Button(activity);
@@ -92,30 +97,42 @@ public class MiguLoginDialog {
                 .show();
     }
 
-    /** 扫码绑定对话框：显示二维码 + 操作提示。 */
-    private static void showQr(FragmentActivity activity) {
+    /** 扫码绑定对话框：显示二维码 + 操作提示。type 见 TYPE_MIGU / TYPE_TMDB。 */
+    public static void showQr(FragmentActivity activity, String type) {
         if (activity == null || activity.isFinishing()) return;
-        String url = "http://" + MiguServer.getLocalIp() + ":9980/bind?t=" + MiguServer.getBindToken();
+        if (type == null) type = TYPE_MIGU;
+        boolean tmdb = TYPE_TMDB.equals(type);
+        String url = "http://" + MiguServer.getLocalIp() + ":9980/bind?t=" + MiguServer.getBindToken() + "&type=" + type;
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (activity.getResources().getDisplayMetrics().density * 20);
         root.setPadding(pad, pad, pad, pad);
 
+        // 二维码尺寸自适应屏幕（不挤掉下方按钮，也不会太小扫不出）
+        android.util.DisplayMetrics dm = activity.getResources().getDisplayMetrics();
+        int qrSize = Math.round(Math.min(dm.widthPixels, dm.heightPixels) * 0.42f / dm.density);
+        qrSize = Math.max(qrSize, 220);
+        qrSize = Math.min(qrSize, 400);
+
         ImageView qr = new ImageView(activity);
-        Bitmap bmp = QRCode.getBitmap(url, 320, 2);
+        Bitmap bmp = QRCode.getBitmap(url, qrSize, 2);
         qr.setImageBitmap(bmp);
         qr.setAdjustViewBounds(true);
         qr.setPadding(0, 8, 0, 8);
         root.addView(qr);
 
         TextView tip = new TextView(activity);
-        tip.setText("1. 用手机微信/浏览器扫上面的二维码\n2. 在手机页面上填 UID 和 Token，点「绑定到电视」\n3. 手机显示绑定成功后，按遥控器 OK 关闭本窗口\n\n提示：手机和电视需在同一 WiFi");
+        if (tmdb) {
+            tip.setText("1. 用手机微信/浏览器扫上面的二维码\n2. 在手机页面上填 TMDB API Key，点「绑定到电视」\n3. 手机显示绑定成功后，按遥控器 OK 关闭本窗口\n\n提示：手机和电视需在同一 WiFi");
+        } else {
+            tip.setText("1. 用手机微信/浏览器扫上面的二维码\n2. 在手机页面上填 UID 和 Token，点「绑定到电视」\n3. 手机显示绑定成功后，按遥控器 OK 关闭本窗口\n\n提示：手机和电视需在同一 WiFi");
+        }
         tip.setTextSize(14);
         tip.setLineSpacing(0, 1.2f);
         root.addView(tip);
 
         new AlertDialog.Builder(activity)
-                .setTitle("手机扫码绑定")
+                .setTitle(tmdb ? "手机扫码绑定 TMDB" : "手机扫码绑定")
                 .setView(root)
                 .setPositiveButton("完成", null)
                 .setNegativeButton("取消", null)
