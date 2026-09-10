@@ -415,8 +415,8 @@ async function submit(){
   var uid=document.getElementById('uid').value.trim(), token=document.getElementById('token').value.trim();
   var m=document.getElementById('msg');
   if(!uid||!token){m.textContent='请填写完整';m.className='msg err';return}
-  var t=new URLSearchParams(location.search).get('t')||'';
-  var fd=new FormData();fd.append('uid',uid);fd.append('token',token);fd.append('t',t);
+  var type=new URLSearchParams(location.search).get('type')||'migu';
+  var fd=new FormData();fd.append('uid',uid);fd.append('token',token);fd.append('type',type);
   try{
     var r=await fetch('/bind/submit',{method:'POST',body:fd});
     var d=await r.json();
@@ -425,18 +425,6 @@ async function submit(){
   }catch(e){m.textContent='网络错误：请确认手机和电视在同一个WiFi';m.className='msg err';}
 }
 </script></body></html>"""
-
-
-def _bind_ok_token():
-    """与 Java 侧同一进程内的一次性绑定 token（二维码里带，submit 时校验）。"""
-    try:
-        return _J.getBindToken()
-    except Exception as e:
-        try:
-            _jlog('getBindToken 异常: %s' % e)
-        except Exception:
-            pass
-        return ''
 
 
 _TMDB_PAGE = """<!doctype html><html><head><meta charset="utf-8">
@@ -462,8 +450,8 @@ button{width:100%;padding:14px;border:0;border-radius:10px;background:#3b82f6;co
 async function submit(){
   var key=document.getElementById('key').value.trim(), m=document.getElementById('msg');
   if(!key){m.textContent='请填写 API Key';m.className='msg err';return}
-  var t=new URLSearchParams(location.search).get('t')||'';
-  var fd=new FormData();fd.append('key',key);fd.append('t',t);
+  var type=new URLSearchParams(location.search).get('type')||'migu';
+  var fd=new FormData();fd.append('key',key);fd.append('type',type);
   try{
     var r=await fetch('/bind/submit',{method:'POST',body:fd});
     var d=await r.json();
@@ -515,12 +503,8 @@ class BindHandler(BaseHTTPRequestHandler):
             raw = self.rfile.read(ln).decode('utf-8', errors='ignore')
             form = urllib.parse.parse_qs(raw)
             qs = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
-            # t 双通道：form（页面 JS 自动带）或 URL query 均可
-            t_val = (form.get('t') or qs.get('t') or [''])[0]
-            if not self._token_ok({'t': [t_val]}):
-                self._json(403, {'ok': False, 'msg': 'token 校验失败，请重新扫码'})
-                return
-            btype = (form.get('type') or ['migu'])[0]
+            # 扫码只为填写方便：不做 token 校验（用户明确要求）
+            btype = (form.get('type') or qs.get('type') or ['migu'])[0]
             if btype == 'tmdb':
                 key = (form.get('key') or [''])[0].strip()
                 if not key:

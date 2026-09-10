@@ -102,7 +102,7 @@ public class MiguLoginDialog {
         if (activity == null || activity.isFinishing()) return;
         if (type == null) type = TYPE_MIGU;
         boolean tmdb = TYPE_TMDB.equals(type);
-        String url = "http://" + MiguServer.getLocalIp() + ":9980/bind?t=" + MiguServer.getBindToken() + "&type=" + type;
+        String url = "http://" + MiguServer.getLocalIp() + ":9980/bind?type=" + type;
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (activity.getResources().getDisplayMetrics().density * 20);
