@@ -16,6 +16,25 @@ from urllib.parse import urlparse, urljoin
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from com.github.catvod import Proxy
+
+# 模块级共享 session：内置环境每次请求都会 new Spider()，若每实例新建 session 会反复 TLS 全握手，
+# 既慢又容易被 CDN 风控。共享 session 保持 Keep-Alive 长连，贴近"一直保持拉流"。
+_SHARED_SESSION = None
+_SESSION_LOCK = threading.Lock()
+
+def _get_shared_session():
+    global _SHARED_SESSION
+    if _SHARED_SESSION is None:
+        with _SESSION_LOCK:
+            if _SHARED_SESSION is None:
+                _ses = requests.Session()
+                _retry = Retry(total=2, connect=2, read=2, backoff_factor=0.3,
+                               status_forcelist=[429, 500, 502, 503, 504])
+                _adapter = HTTPAdapter(max_retries=_retry, pool_connections=8, pool_maxsize=16)
+                _ses.mount("https://", _adapter)
+                _ses.mount("http://", _adapter)
+                _SHARED_SESSION = _ses
+    return _SHARED_SESSION
 from urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -670,21 +689,12 @@ class CKeyManager:
 class Spider(BaseSpider):
     def __init__(self):
         super().__init__()
-        self.session = None
-        self._init_session()
+        self.session = _get_shared_session()
         self._m3u8_cache = {}
         self._m3u8_cache_lock = threading.Lock()
         self._ts_history = {}
         self._ts_history_lock = threading.Lock()
 
-    def _init_session(self):
-        self.session = requests.Session()
-        adapter = HTTPAdapter(pool_connections=3, pool_maxsize=5,
-                              max_retries=Retry(total=2, backoff_factor=0.5,
-                                                status_forcelist=[429, 500, 502, 503, 504],
-                                                allowed_methods=["GET"]))
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
 
     def getName(self):
         return "央视频（直播+回看）"
@@ -822,14 +832,13 @@ class Spider(BaseSpider):
         try:
             lines = content.split('\n')
             ts_idx = [i for i, l in enumerate(lines) if l.strip().startswith('http') and '.ts' in l]
-            if len(ts_idx) >= 6:
-                return content
+            target = 9  # 播放器始终保有 9 切片（约 90s 缓冲），先播旧切片（200），最新切片 403 时缓冲兜底
             with self._ts_history_lock:
                 hist = self._ts_history.get(cache_key, [])
             if not hist:
                 return content
             cur = [lines[i].strip() for i in ts_idx]
-            extra = [u for u in hist if u not in cur][-8:]
+            extra = [u for u in hist if u not in cur][-target:]
             if not extra:
                 return content
             prefix = []
