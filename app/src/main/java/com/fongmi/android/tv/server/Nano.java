@@ -10,6 +10,7 @@ import com.fongmi.android.tv.server.process.M3u8;
 import com.fongmi.android.tv.server.process.Media;
 import com.fongmi.android.tv.server.process.Parse;
 import com.fongmi.android.tv.server.process.Proxy;
+import com.fongmi.android.tv.server.process.Ysp;
 import com.github.catvod.utils.Asset;
 
 import java.io.InputStream;
@@ -40,6 +41,7 @@ public class Nano extends NanoHTTPD {
         process.add(new Media());
         process.add(new Parse());
         process.add(new Proxy());
+        process.add(new Ysp());
     }
 
     public static Response ok() {
