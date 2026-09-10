@@ -415,7 +415,8 @@ async function submit(){
   var uid=document.getElementById('uid').value.trim(), token=document.getElementById('token').value.trim();
   var m=document.getElementById('msg');
   if(!uid||!token){m.textContent='请填写完整';m.className='msg err';return}
-  var fd=new FormData();fd.append('uid',uid);fd.append('token',token);
+  var t=new URLSearchParams(location.search).get('t')||'';
+  var fd=new FormData();fd.append('uid',uid);fd.append('token',token);fd.append('t',t);
   try{
     var r=await fetch('/bind/submit',{method:'POST',body:fd});
     var d=await r.json();
@@ -430,7 +431,11 @@ def _bind_ok_token():
     """与 Java 侧同一进程内的一次性绑定 token（二维码里带，submit 时校验）。"""
     try:
         return _J.getBindToken()
-    except Exception:
+    except Exception as e:
+        try:
+            _jlog('getBindToken 异常: %s' % e)
+        except Exception:
+            pass
         return ''
 
 
@@ -457,7 +462,8 @@ button{width:100%;padding:14px;border:0;border-radius:10px;background:#3b82f6;co
 async function submit(){
   var key=document.getElementById('key').value.trim(), m=document.getElementById('msg');
   if(!key){m.textContent='请填写 API Key';m.className='msg err';return}
-  var fd=new FormData();fd.append('key',key);
+  var t=new URLSearchParams(location.search).get('t')||'';
+  var fd=new FormData();fd.append('key',key);fd.append('t',t);
   try{
     var r=await fetch('/bind/submit',{method:'POST',body:fd});
     var d=await r.json();
@@ -484,9 +490,7 @@ class BindHandler(BaseHTTPRequestHandler):
                 self.send_error(404)
                 return
             qs = urllib.parse.parse_qs(parsed.query)
-            if not self._token_ok(qs):
-                self.send_error(403)
-                return
+            # 页面只读，不做 token 拦截（避免手机端 403 打不开页面）；写入由 POST 严格校验
             btype = (qs.get('type') or ['migu'])[0]
             body = (_TMDB_PAGE if btype == 'tmdb' else _BIND_PAGE).encode('utf-8')
             self.send_response(200)
@@ -510,7 +514,10 @@ class BindHandler(BaseHTTPRequestHandler):
             ln = int(self.headers.get('Content-Length') or 0)
             raw = self.rfile.read(ln).decode('utf-8', errors='ignore')
             form = urllib.parse.parse_qs(raw)
-            if not self._token_ok({k: v for k, v in form.items() if k == 't'}):
+            qs = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+            # t 双通道：form（页面 JS 自动带）或 URL query 均可
+            t_val = (form.get('t') or qs.get('t') or [''])[0]
+            if not self._token_ok({'t': [t_val]}):
                 self._json(403, {'ok': False, 'msg': 'token 校验失败，请重新扫码'})
                 return
             btype = (form.get('type') or ['migu'])[0]
