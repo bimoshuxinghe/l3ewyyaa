@@ -14,6 +14,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
@@ -47,20 +51,29 @@ public class Ysp implements Process {
         }
     }
 
-    /** 合并频道列表：央视频（内置 py）在上，咪咕（9979）在下。 */
+    /** 合并频道列表：央视频（内置 py）与咪咕（9979）并行拉取，各限 8s，任一失败不影响另一源。 */
     private String mergeList() {
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         StringBuilder sb = new StringBuilder();
-        String ysp = YspBridge.liveList();
-        if (ysp != null && !ysp.trim().isEmpty()) sb.append(ysp.trim()).append("\n\n");
+        Future<String> f1 = pool.submit(() -> { try { return YspBridge.liveList(); } catch (Throwable e) { return ""; } });
+        Future<String> f2 = pool.submit(() -> { try { return fetch(MIGU_LIST); } catch (Throwable e) { return ""; } });
         try {
-            String migu = fetch(MIGU_LIST);
+            String ysp = f1.get(8, TimeUnit.SECONDS);
+            if (ysp != null && !ysp.trim().isEmpty()) sb.append(ysp.trim()).append("\n\n");
+        } catch (Throwable ignored) {
+            f1.cancel(true);
+        }
+        try {
+            String migu = f2.get(8, TimeUnit.SECONDS);
             if (migu != null && !migu.trim().isEmpty()) {
                 String m3u = txtToM3u(migu);
                 if (!m3u.isEmpty()) sb.append(m3u);
             }
         } catch (Throwable ignored) {
+            f2.cancel(true);
         }
-        return sb.length() == 0 ? "#EXTM3U\n" : sb.toString();
+        pool.shutdownNow();
+        return sb.length() == 0 ? "#EXTM3U\n# 列表加载中，请稍后重试\n" : sb.toString();
     }
 
     /** 咪咕 TXT（组名,#genre# / 频道,url#）→ M3U 行。 */
