@@ -12,6 +12,21 @@ def spider(cache, api):
     src = api.strip()
     if src.startswith('py://'):
         src = src[len('py://'):]
+    # 0) ./py/ 前缀：用户文件优先（缓存/外部存储常见目录），内置模块 import 兜底
+    if src.startswith('./py/'):
+        mod = src[len('./py/'):]
+        mod = mod[:-3] if mod.endswith('.py') else mod
+        for base in (cache, '/sdcard/py', '/storage/emulated/0/py', '/sdcard/Download/py',
+                     '/storage/emulated/0/Download/py', '/sdcard/Android/data/xinghe.tv/cache/py'):
+            p = os.path.join(base, mod + '.py')
+            if os.path.exists(p):
+                return load_script(cache, p)
+        for cand in ('py.' + mod, mod):
+            try:
+                import importlib
+                return importlib.import_module(cand).Spider()
+            except ImportError:
+                continue
     # 1) 纯模块名（无路径分隔符）：先 import（内置模块/内置 py 包），失败按文件查找
     if not src.startswith('http') and '/' not in src and '\\' not in src and '\n' not in src:
         module_name = src[:-3] if src.endswith('.py') else src
