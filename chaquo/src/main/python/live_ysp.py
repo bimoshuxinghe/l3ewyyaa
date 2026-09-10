@@ -518,6 +518,19 @@ class CKeyManager:
         ckey = self.encrypt_data_to_ckey(buffer)
         return {'ckey': ckey, 'params': params}
 
+    def _spvcode(self, defn):
+        # 完全对齐 PHP 的 spvcode($defn)：fhd=1080p + 30/60/90/120fps；4k/8k/hdr=2160p
+        height = 1080
+        if re.search(r'(4k|8k|hdr)', defn, re.I):
+            height = 2160
+        frame_rates = [30, 60, 90, 120]
+        h264_parts = ["%d:%d" % (f, height) for f in frame_rates]
+        h265_parts = ["%d:%d" % (f, height) for f in frame_rates]
+        h264_str = ','.join(h264_parts)
+        h265_str = ','.join(h265_parts)
+        spvcode_raw = "H(%s|%s);2(%s|%s)" % (h264_str, h264_str, h265_str, h265_str)
+        return base64.b64encode(spvcode_raw.encode()).decode()
+
     def make_live_request(self, cnlid, livepid, defn):
         self.generate_guid()
         ckey_result = self.generate_ckey(cnlid)
@@ -525,8 +538,6 @@ class CKeyManager:
         params = ckey_result['params']
 
         flowid = f"{random.getrandbits(16):04X}{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}{random.getrandbits(16):04X}{random.getrandbits(16):04X}_4330403"
-
-        spvcode = "MSgzMDoyMTYwLDYwOjIxNjB8MzA6MjE2MCw2MDoyMTYwKTsyKDMwOjIxNjAsNjA6MjE2MHwzMDoyMTYwLDYwOjIxNjAp"
 
         request_params = {
             "atime": "120",
@@ -558,7 +569,7 @@ class CKeyManager:
             "spflvaudio": "1",
             "sphdrfps": "60",
             "sphttps": "0",
-            "spvcode": spvcode,
+            "spvcode": self._spvcode(defn),
             "spvideo": "4",
             "stream": "1",
             "system": "1",
@@ -580,7 +591,6 @@ class CKeyManager:
 
         flowid = f"{random.getrandbits(16):04X}{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}-{random.getrandbits(16):04X}{random.getrandbits(16):04X}{random.getrandbits(16):04X}_4330403"
 
-        spvcode = "MSgzMDoyMTYwLDYwOjIxNjB8MzA6MjE2MCw2MDoyMTYwKTsyKDMwOjIxNjAsNjA6MjE2MHwzMDoyMTYwLDYwOjIxNjAp"
 
         request_params = {
             "atime": "120",
@@ -612,7 +622,7 @@ class CKeyManager:
             "spflvaudio": "1",
             "sphdrfps": "60",
             "sphttps": "0",
-            "spvcode": spvcode,
+            "spvcode": self._spvcode(defn),
             "spvideo": "4",
             "stream": "1",
             "system": "1",
@@ -781,11 +791,8 @@ class Spider(BaseSpider):
         """获取m3u8，将TS相对路径转为绝对路径（不附加任何查询参数），并维护切片历史。"""
         try:
             headers = {
-                'connection': 'Keep-Alive',
-                'Range': 'bytes=0-',
-                'accept-encoding': 'gzip',
-                'user-agent': 'qqlive',
-                'Accept-Language': 'zh-CN,zh;q=0.9',
+                'User-Agent': 'qqlive',
+                'Connection': 'Keep-Alive',
             }
             resp = self.session.get(play_url, headers=headers, timeout=15, verify=False)
             if resp.status_code != 200:
