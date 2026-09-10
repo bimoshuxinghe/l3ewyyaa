@@ -8,6 +8,7 @@ import struct
 import binascii
 import hashlib
 import base64
+import re
 import requests
 import threading
 from datetime import datetime
@@ -635,25 +636,26 @@ class CKeyManager:
         return new_url
 
     def send_http_request(self, params):
-        url = "https://bkliveinfo.ysp.cctv.cn"
+        # 对齐 PHP：双域名轮询（bkliveinfo 失败/超时自动换 liveinfo），避免单域名抖动导致起播失败
+        urls = [
+            "https://bkliveinfo.ysp.cctv.cn",
+            "https://liveinfo.ysp.cctv.cn"
+        ]
         headers = {
             'User-Agent': 'qqlive',
             'Connection': 'Keep-Alive',
             'Accept': 'application/json'
         }
-        try:
-            resp = requests.get(url, params=params, headers=headers, timeout=15, verify=False)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get('iretcode') == 0:
-                    playurl = data.get('playurl')
-                    return {'success': True, 'playurl': playurl}
-                else:
-                    return {'success': False, 'iretcode': data.get('iretcode')}
-            else:
-                return {'success': False, 'http_code': resp.status_code}
-        except Exception:
-            return {'success': False, 'error': 'request failed'}
+        for url in urls:
+            try:
+                resp = requests.get(url, params=params, headers=headers, timeout=15, verify=False)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get('iretcode') == 0:
+                        return {'success': True, 'playurl': data.get('playurl')}
+            except Exception:
+                continue
+        return {'success': False, 'error': 'request failed'}
 
     def get_play_url(self, cnlid, livepid, defn, playback_timestamp=None):
         if playback_timestamp:
@@ -807,7 +809,11 @@ class Spider(BaseSpider):
                             hist.append(u)
                     self._ts_history[cache_key] = hist[-12:]  # 保留最近 12 个切片
 
-            return '\n'.join(fixed_lines)
+            content = '\n'.join(fixed_lines)
+            # 对齐 PHP：把切片 CDN 域名替换为更稳定节点（mobilelive→cnc-cdn / outlivecloud→hlsliveali）
+            content = re.sub(r'mobilelive-[^.]+\.ysp\.cctv\.cn', 'mobilelive-cnc-cdn.ysp.cctv.cn', content)
+            content = content.replace('outlivecloud-cdn.ysp.cctv.cn', 'hlsliveali-cdn.ysp.cctv.cn')
+            return content
         except Exception:
             return None
 
