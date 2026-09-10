@@ -77,8 +77,9 @@ public class MiguLoginDialog {
 
     private static LinearLayout.LayoutParams marginParams(FragmentActivity activity, int l, int t, int r, int b) {
         int d = (int) (activity.getResources().getDisplayMetrics().density);
-        return new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
-                l * d, t * d, r * d, b * d);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(l * d, t * d, r * d, b * d);
+        return lp;
     }
 }
