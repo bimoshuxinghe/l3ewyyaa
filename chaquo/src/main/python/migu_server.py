@@ -336,6 +336,66 @@ class MiguCore:
 _core = MiguCore()
 
 
+# ================= 央视频 /ysp（列表合并 + 取流，全 Python 内完成）=================
+# 合并列表：央视频（live_ysp.liveContent，73频道）在上 + 咪咕（list_live 转 M3U）在下。
+# 取流：/ysp?fun=cctv&id=xxx → live_ysp.localProxy。Java 侧 Nano /ysp 仅做 HTTP 转发，
+# 不经过 Java↔Python 桥，避免首次初始化慢/桥调用卡死导致列表超时。
+
+def _txt_to_m3u(txt):
+    """咪咕 TXT（组名,#genre# / 频道,url#）→ M3U 行。"""
+    sb, group = [], ''
+    for line in txt.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        idx = line.find(',')
+        if idx <= 0:
+            continue
+        name, rest = line[:idx].strip(), line[idx + 1:].strip()
+        if '#genre#' in rest:
+            group = name
+            continue
+        if rest.endswith('#'):
+            rest = rest[:-1]
+        if '://' not in rest:
+            continue
+        sb.append('#EXTINF:-1 group-title="%s",%s\n%s' % (group, name, rest))
+    return '\n'.join(sb)
+
+
+def _ysp_merge_list():
+    """央视频 + 咪咕合并 M3U（任一源失败不影响另一源）。"""
+    parts = []
+    try:
+        import live_ysp
+        sp = live_ysp.Spider()
+        ysp = sp.liveContent('')
+        if ysp and ysp.strip():
+            parts.append(ysp.strip())
+    except Exception as e:
+        _jlog('ysp列表失败: %s' % e)
+    try:
+        m3u = _txt_to_m3u(_core.list_live().decode('utf-8'))
+        if m3u:
+            parts.append(m3u)
+    except Exception as e:
+        _jlog('migu列表失败: %s' % e)
+    return '\n\n'.join(parts) if parts else '#EXTM3U\n# 列表加载中，请稍后重试\n'
+
+
+def _ysp_stream(qs):
+    """央视频取流/回看 → [status, mime, body]。"""
+    try:
+        import live_ysp
+        sp = live_ysp.Spider()
+        params = {k: v[0] for k, v in qs.items()}
+        res = sp.localProxy(params)
+        return int(res[0]), res[1] or 'application/vnd.apple.mpegurl', res[2]
+    except Exception as e:
+        _jlog('ysp取流失败: %s' % e)
+        return 200, 'application/vnd.apple.mpegurl', '#EXTM3U\n#EXT-X-ENDLIST\n# 央视频取流失败\n'
+
+
 # ================= HTTP 服务 =================
 class MiguHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -344,10 +404,28 @@ class MiguHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed = urllib.parse.urlsplit(self.path)
+            qs = urllib.parse.parse_qs(parsed.query)
+            if parsed.path == '/ysp':
+                if 'list' in qs:
+                    body = _ysp_merge_list()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/plain; charset=utf-8')
+                    self.send_header('Content-Length', str(len(body.encode('utf-8'))))
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    self.wfile.write(body.encode('utf-8'))
+                else:
+                    code, mime, body = _ysp_stream(qs)
+                    self.send_response(code)
+                    self.send_header('Content-Type', mime)
+                    self.send_header('Content-Length', str(len(body.encode('utf-8'))))
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    self.wfile.write(body.encode('utf-8'))
+                return
             if not parsed.path.startswith('/migu'):
                 self.send_error(404)
                 return
-            qs = urllib.parse.parse_qs(parsed.query)
             if 'list' in qs:
                 body = _core.list_live()
                 self.send_response(200)

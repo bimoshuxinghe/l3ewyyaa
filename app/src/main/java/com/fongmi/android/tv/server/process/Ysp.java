@@ -5,19 +5,15 @@ import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 
 import com.fongmi.android.tv.server.Nano;
 import com.fongmi.android.tv.server.impl.Process;
-import com.fongmi.chaquo.YspBridge;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
@@ -25,12 +21,14 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 /**
  * 内置央视频直播源（/ysp）：
- *  - /ysp?list=live   合并频道列表（央视频 M3U 在上 + 咪咕 9979 列表在下，均转 M3U）
- *  - /ysp?id=xxx      央视频取流/回看：转发到内置 py live_ysp.localProxy（经 chaquo YspBridge）
+ *  - /ysp?list=live   合并频道列表（央视频在上 + 咪咕在下）
+ *  - /ysp?fun=cctv&id=xxx  央视频取流/回看
+ * 列表合并与取流全部在 Python（migu_server 9979 的 /ysp 路由）内完成，
+ * Java 只做 HTTP 转发——不经过 Java↔Python 桥，避免首次初始化慢导致列表超时。
  */
 public class Ysp implements Process {
 
-    private static final String MIGU_LIST = "http://127.0.0.1:9979/migu?list=live";
+    private static final String YSP_BASE = "http://127.0.0.1:9979/ysp";
     private static final String MIME_M3U = "application/vnd.apple.mpegurl";
 
     @Override
@@ -42,77 +40,28 @@ public class Ysp implements Process {
     public Response doResponse(IHTTPSession session, String url, Map<String, String> files) {
         try {
             Map<String, String> params = session.getParms();
-            if ("list".equals(params.get("list"))) {
-                return newFixedLengthResponse(Status.OK, MIME_PLAINTEXT, mergeList());
+            StringBuilder q = new StringBuilder();
+            for (Map.Entry<String, String> e : params.entrySet()) {
+                if (q.length() > 0) q.append('&');
+                q.append(enc(e.getKey())).append('=').append(enc(e.getValue()));
             }
-            return stream(params);
+            String body = fetch(YSP_BASE + "?" + q);
+            if (body == null || body.isEmpty()) {
+                body = "#EXTM3U\n# 列表加载中，请稍后重试\n";
+            }
+            String mime = "list".equals(params.get("list")) ? MIME_PLAINTEXT : MIME_M3U;
+            return newFixedLengthResponse(Status.OK, mime, body);
         } catch (Throwable e) {
             return Nano.error(e.getMessage());
         }
     }
 
-    /** 合并频道列表：央视频（内置 py）与咪咕（9979）并行拉取，各限 8s，任一失败不影响另一源。 */
-    private String mergeList() {
-        ExecutorService pool = Executors.newFixedThreadPool(2);
-        StringBuilder sb = new StringBuilder();
-        Future<String> f1 = pool.submit(() -> { try { return YspBridge.liveList(); } catch (Throwable e) { return ""; } });
-        Future<String> f2 = pool.submit(() -> { try { return fetch(MIGU_LIST); } catch (Throwable e) { return ""; } });
+    private static String enc(String s) {
         try {
-            String ysp = f1.get(8, TimeUnit.SECONDS);
-            if (ysp != null && !ysp.trim().isEmpty()) sb.append(ysp.trim()).append("\n\n");
-        } catch (Throwable ignored) {
-            f1.cancel(true);
+            return URLEncoder.encode(s, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return s;
         }
-        try {
-            String migu = f2.get(8, TimeUnit.SECONDS);
-            if (migu != null && !migu.trim().isEmpty()) {
-                String m3u = txtToM3u(migu);
-                if (!m3u.isEmpty()) sb.append(m3u);
-            }
-        } catch (Throwable ignored) {
-            f2.cancel(true);
-        }
-        pool.shutdownNow();
-        return sb.length() == 0 ? "#EXTM3U\n# 列表加载中，请稍后重试\n" : sb.toString();
-    }
-
-    /** 咪咕 TXT（组名,#genre# / 频道,url#）→ M3U 行。 */
-    private String txtToM3u(String txt) {
-        StringBuilder sb = new StringBuilder();
-        String group = "";
-        for (String line : txt.split("\n")) {
-            line = line.trim();
-            if (line.isEmpty()) continue;
-            int idx = line.indexOf(',');
-            if (idx <= 0) continue;
-            String name = line.substring(0, idx).trim();
-            String rest = line.substring(idx + 1).trim();
-            if (rest.contains("#genre#")) {
-                group = name;
-                continue;
-            }
-            if (rest.endsWith("#")) rest = rest.substring(0, rest.length() - 1);
-            if (!rest.contains("://")) continue;
-            sb.append("#EXTINF:-1 group-title=\"").append(group).append("\",").append(name).append("\n").append(rest).append("\n");
-        }
-        return sb.toString();
-    }
-
-    /** 央视频取流：转发到内置 py live_ysp.localProxy。 */
-    private Response stream(Map<String, String> params) throws Exception {
-        Map<String, String> p = new HashMap<>(params);
-        p.putIfAbsent("fun", "cctv");
-        String[] rs = YspBridge.stream(p);
-        int status;
-        try {
-            status = Integer.parseInt(rs[0]);
-        } catch (Exception e) {
-            status = 200;
-        }
-        String mime = rs[1] == null || rs[1].isEmpty() ? MIME_M3U : rs[1];
-        String body = rs[2] == null ? "" : rs[2];
-        if (status >= 500) status = 200; // 绝不回 5xx 给播放器（杜绝 Bad HTTP Status），占位 m3u 内含错误注释
-        return newFixedLengthResponse(Status.lookup(status), mime, body);
     }
 
     private String fetch(String u) throws Exception {
