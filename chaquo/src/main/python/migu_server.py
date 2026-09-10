@@ -41,9 +41,24 @@ try:
             _J.log(msg)
         except Exception:
             pass
+
+    def _get_account():
+        """读 Java 侧保存的咪咕账号：'uid|token'，无账号返回 ('','')。"""
+        try:
+            s = _J.getAccount()
+            if s and '|' in s:
+                uid, tok = s.split('|', 1)
+                if uid and tok:
+                    return uid, tok
+        except Exception:
+            pass
+        return '', ''
 except Exception:
     def _jlog(msg):
         pass
+
+    def _get_account():
+        return '', ''
 
 
 def _md5(s):
@@ -125,6 +140,13 @@ class MiguCore:
 
     # ================= 取流 =================
     def play_url(self, pid):
+        """有账号 → 登录取流(1080p蓝光, 非会员自动降级)；无账号 → 免费720p。缓存3h。"""
+        uid, tok = _get_account()
+        if uid and tok:
+            return self.play_url_login(pid, uid, tok)
+        return self.play_url_720p(pid)
+
+    def play_url_720p(self, pid):
         """未登录 720p 取流（对齐 getAndroidURL720p + getddCalcuURL720p），缓存 3h。"""
         now = time.time()
         c = self.url_cache.get(pid)
@@ -172,6 +194,70 @@ class MiguCore:
         self.stat['play_ok'] += 1
         return purl
 
+    def play_url_login(self, pid, user_id, token, rate_type=4):
+        """登录取流（对齐 getAndroidURL + getddCalcuURL）：蓝光1080p，非会员自动降级。"""
+        now = time.time()
+        key = pid + ':' + user_id
+        c = self.url_cache.get(key)
+        if c and now - c[1] < URL_CACHE_SEC:
+            return c[0]
+        ts = str(int(time.time() * 1000))
+        app_version = '2600037000'
+        headers = {
+            'AppVersion': app_version,
+            'TerminalId': 'android',
+            'X-UP-CLIENT-CHANNEL-ID': '2600037000-99000-200300220100002',
+            'UserId': user_id,
+            'UserToken': token,
+            'User-Agent': UA,
+        }
+        if pid not in ('641886683', '641886773'):
+            headers['appCode'] = 'miguvideo_default_android'
+        m = _md5(ts + pid + app_version)
+        salt = '1230024'
+        sign = _md5(m + '3ce941cc3cbc40528bfd1c64f9fdf6c0migu0123')
+
+        def _req(rt):
+            qs = ('sign=%s&rateType=%s&contId=%s&timestamp=%s&salt=%s'
+                  '&flvEnable=true&super4k=true' % (sign, rt, pid, ts, salt))
+            if rt == '9':
+                qs += '&ott=true'
+            qs += '&h265N=true&4kvivid=true&2Kvivid=true&vivid=2'
+            code, body = _http_get(API_PLAY + '?' + qs, timeout=12, headers=headers)
+            if code != 200:
+                return None, 'http=%s' % code
+            try:
+                return json.loads(body.decode('utf-8', errors='ignore')), None
+            except Exception:
+                return None, 'json'
+
+        d, err = _req(rate_type)
+        if err is not None:
+            self.stat['play_fail'] += 1
+            self.last_err[pid] = '登录取流%s' % err
+            _jlog('MIGU登录取流失败 %s %s' % (pid, err))
+            return None
+        # 非会员降级（对齐原项目 TIPS_NEED_MEMBER 三级）
+        if d.get('rid') == 'TIPS_NEED_MEMBER':
+            rt2 = 4 if int((d.get('body') or {}).get('urlInfo') or {}).get('rateType', 0) > 4 else 3
+            d2, err = _req(rt2)
+            if d2 and d2.get('rid') == 'TIPS_NEED_MEMBER':
+                d2, err = _req(3)
+            if d2:
+                d = d2
+        ui = (d.get('body') or {}).get('urlInfo') or {}
+        purl = ui.get('url')
+        if not purl:
+            self.stat['play_fail'] += 1
+            rid = d.get('rid') or d.get('message') or '?'
+            self.last_err[pid] = '登录取流无url:%s' % rid
+            _jlog('MIGU登录取流无url %s %s' % (pid, rid))
+            return None
+        purl = purl + '&ddCalcu=' + self._dd_calcu(purl, pid, rate_type, user_id) + '&sv=10004&ct=android'
+        self.url_cache[key] = (purl, now)
+        self.stat['play_ok'] += 1
+        return purl
+
     def _dd_calcu_720p(self, purl, pid):
         """纯字符变换，对齐 getddCalcuURL720p（旧版无需 wasm）。"""
         if '&puData=' not in purl:
@@ -191,6 +277,35 @@ class MiguCore:
                 out.append(keys[int(pid[6])])
             elif i == 4:
                 out.append('a')
+        return ''.join(out)
+
+    def _dd_calcu(self, purl, pid, rate_type, user_id):
+        """登录版 ddCalcu（对齐 getddCalcuURL 纯字符变换，无需 wasm）。"""
+        if '&puData=' not in purl:
+            return ''
+        pu = purl.split('&puData=')[1]
+        keys = 'cdabyzwxkl'
+        words = ['v', 'a', '0', 'a']
+        third = 6
+        if user_id and len(user_id) > 7 and user_id[7].isdigit():
+            words[0] = keys[int(user_id[7])]
+        if rate_type == 2:
+            words[0] = 'v'
+        if user_id and 3 < len(user_id) <= 8:
+            words[0] = 'e'
+        date0 = time.strftime('%Y%m%d')[0]
+        out = []
+        for i in range(len(pu) // 2):
+            out.append(pu[len(pu) - i - 1])
+            out.append(pu[i])
+            if i == 1:
+                out.append(words[0])
+            elif i == 2:
+                out.append(keys[int(date0)])
+            elif i == 3:
+                out.append(keys[int(pid[third])])
+            elif i == 4:
+                out.append(words[3])
         return ''.join(out)
 
     # ================= 直播源列表 =================

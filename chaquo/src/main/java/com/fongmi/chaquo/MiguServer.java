@@ -94,6 +94,18 @@ public class MiguServer {
         return 0;
     }
 
+    /** Python 侧调用：读取咪咕账号（Prefers），格式 "uid|token"，无账号返回空串。 */
+    public static synchronized String getAccount() {
+        try {
+            String uid = com.github.catvod.utils.Prefers.getString("migu_uid", "");
+            String token = com.github.catvod.utils.Prefers.getString("migu_token", "");
+            if (uid.isEmpty() || token.isEmpty()) return "";
+            return uid + "|" + token;
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
     /** Python 侧调用：追加一行运行时日志（取址/拉流失败诊断用）。 */
     public static synchronized void log(String msg) {
         try {

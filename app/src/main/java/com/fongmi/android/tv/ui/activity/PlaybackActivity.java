@@ -28,6 +28,7 @@ import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.custom.CustomSeekView;
+import com.fongmi.android.tv.ui.dialog.MiguLoginDialog;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.player.DanmakuPlayerViewController;
 import com.fongmi.android.tv.setting.DanmakuSetting;
@@ -178,6 +179,10 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
         String realUrl = result.getRealUrl();
         if (realUrl.startsWith("pics://") || realUrl.startsWith("novel://")) {
             return;
+        }
+        // 内置咪咕源：未配置账号时弹出登录窗口（保存 UID/Token 后 Python 代理自动切蓝光1080p）
+        if (realUrl.contains("9979/migu")) {
+            MiguLoginDialog.showIfNeeded(this);
         }
         android.util.Log.d("AntigravityLive", "startPlayer: key=" + key + ", realUrl=" + realUrl + ", needParse=" + result.needParse() + ", useParse=" + useParse);
         if (result.getDrm() != null && !FrameworkMediaDrm.isCryptoSchemeSupported(result.getDrm().getUUID())) {
