@@ -88,6 +88,9 @@ public class Updater implements Download.Callback, UpdateListener {
 
     private void show(FragmentActivity activity, String version, String desc) {
         dismiss();
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        androidx.fragment.app.FragmentManager fm = activity.getSupportFragmentManager();
+        if (fm == null || fm.isStateSaved() || fm.isDestroyed()) return;
         dialog = UpdateDialog.create().title(ResUtil.getString(R.string.update_version, version)).desc(desc).listener(this).show(activity);
     }
 

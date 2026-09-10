@@ -38,7 +38,13 @@ public class UpdateDialog extends BaseAlertDialog {
     }
 
     public UpdateDialog show(FragmentActivity activity) {
-        show(activity.getSupportFragmentManager(), null);
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) return this;
+        androidx.fragment.app.FragmentManager fm = activity.getSupportFragmentManager();
+        if (fm == null || fm.isStateSaved() || fm.isDestroyed()) return this;
+        try {
+            show(activity.getSupportFragmentManager(), null);
+        } catch (Throwable ignored) {
+        }
         return this;
     }
 

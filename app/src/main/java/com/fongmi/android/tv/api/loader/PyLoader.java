@@ -45,8 +45,9 @@ public class PyLoader {
     }
 
     public Object[] proxy(Map<String, String> params) throws Exception {
-        if (recent == null) return null;
+        if (recent == null) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("py spider not loaded".getBytes()), null};
         Spider spider = spiders.get(recent);
-        return spider != null ? spider.proxy(params) : null;
+        if (spider == null) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("py spider not found".getBytes()), null};
+        return spider.proxy(params);
     }
 }

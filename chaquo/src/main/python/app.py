@@ -8,25 +8,74 @@ STREAM_PROXY_MIME = 'application/x-codex-stream-url'
 
 
 def spider(cache, api):
-    if not api.startswith('http') and not '/' in api and not '\\' in api and '\n' not in api:
-        module_name = api[:-3] if api.endswith('.py') else api
-        try:
-            import importlib
-            return importlib.import_module(module_name).Spider()
-        except ImportError:
-            pass
-    name = os.path.basename(api)
+    """通用 py 源加载：支持 py:// 协议、./py/ 及任意本地路径、file://、http(s) 下载、纯模块名。"""
+    src = api.strip()
+    if src.startswith('py://'):
+        src = src[len('py://'):]
+    # 1) 纯模块名（无路径分隔符）：先 import（内置模块/内置 py 包），失败按文件查找
+    if not src.startswith('http') and '/' not in src and '\\' not in src and '\n' not in src:
+        module_name = src[:-3] if src.endswith('.py') else src
+        for cand in (module_name, 'py.' + module_name):
+            try:
+                import importlib
+                return importlib.import_module(cand).Spider()
+            except ImportError:
+                continue
+        for p in (cache + '/' + src, cache + '/' + module_name + '.py'):
+            if os.path.exists(p):
+                return load_script(cache, p)
+        raise Exception('py script not found: ' + api)
+    # 2) http(s)：下载到 cache 后加载
+    if src.startswith('http'):
+        return load_script(cache, src)
+    # 3) file:// 前缀
+    if src.startswith('file://'):
+        src = src[len('file://'):]
+    # 4) 本地路径：./ 前缀归一 + 原样 + cache 相对，逐个探测
+    rel = src[len('./'):] if src.startswith('./') else src
+    candidates = []
+    for p in (src, rel, cache + '/' + src, cache + '/' + rel):
+        if p and p not in candidates:
+            candidates.append(p)
+    for p in list(candidates):
+        if p + '.py' not in candidates:
+            candidates.append(p + '.py')
+    for p in candidates:
+        if os.path.exists(p):
+            return load_script(cache, p)
+    raise Exception('py script not found: ' + api)
+
+
+def load_script(cache, src):
+    if not os.path.exists(cache):
+        os.makedirs(cache, exist_ok=True)
+    if src.startswith('http'):
+        name = os.path.basename(src.split('?')[0])
+        path = cache + '/' + name
+        download(path, src)
+        if os.path.getsize(path) == 0:
+            raise Exception('py download failed: ' + src)
+        module_name = name.split('.')[0]
+        return SourceFileLoader(module_name, path).load_module().Spider()
+    name = os.path.basename(src)
     path = cache + '/' + name
-    download(path, api)
-    name = name.split('.')[0]
-    return SourceFileLoader(name, path).load_module().Spider()
+    if os.path.abspath(src) != os.path.abspath(path):
+        try:
+            with open(src, 'rb') as f:
+                writeFile(path, f.read())
+        except OSError as e:
+            raise Exception('py read failed: ' + src)
+    else:
+        path = src
+    module_name = name.split('.')[0]
+    return SourceFileLoader(module_name, path).load_module().Spider()
 
 
 def download(path, api):
     if api.startswith('http'):
         writeFile(path, redirect(api).content)
     else:
-        writeFile(path, str.encode(api))
+        raise Exception('py not found: ' + api)
 
 
 def writeFile(path, content):
