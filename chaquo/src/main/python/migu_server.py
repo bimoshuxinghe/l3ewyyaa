@@ -383,21 +383,146 @@ class MiguHandler(BaseHTTPRequestHandler):
 
 
 _server = None
+_bind_server = None
+
+# ================= 局域网扫码绑定服务 =================
+# 手机扫电视上的二维码 → 打开 http://<电视IP>:9980/bind?t=<token> →
+# 在手机上填 UID/Token → POST /bind/submit → 写回 Prefers（蓝光1080p 立即生效）。
+# 9979 播放代理保持仅本机；9980 只对局域网开放且需一次性 token 校验。
+
+_BIND_PAGE = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>咪咕账号绑定</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f1420;color:#fff;margin:0;padding:24px;max-width:420px}
+h1{font-size:19px;margin:4px 0 10px}.tip{color:#9aa4b5;font-size:13px;line-height:1.7;margin:0 0 8px}
+input{width:100%;box-sizing:border-box;padding:13px;margin:10px 0;border-radius:10px;border:1px solid #2a3446;background:#1a2230;color:#fff;font-size:16px;outline:none}
+input:focus{border-color:#3b82f6}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#3b82f6;color:#fff;font-size:16px;font-weight:600;margin-top:6px}
+.msg{color:#22c55e;font-size:15px;text-align:center;margin-top:14px}
+.err{color:#ef4444}
+</style></head><body>
+<h1>咪咕账号绑定</h1>
+<p class="tip">登录 miguvideo.com 后，用浏览器开发者工具（F12 → Network）从任意请求的请求头里复制 <b>UserId</b> 和 <b>UserToken</b> 填入。绑定后电视端自动播放蓝光1080p，非会员自动降回高清。</p>
+<form id="f" onsubmit="return false;">
+<input id="uid" placeholder="咪咕 UID" autocomplete="off">
+<input id="token" placeholder="咪咕 Token" autocomplete="off">
+<button onclick="submit()">绑定到电视</button>
+</form>
+<p id="msg" class="msg"></p>
+<script>
+async function submit(){
+  var uid=document.getElementById('uid').value.trim(), token=document.getElementById('token').value.trim();
+  var m=document.getElementById('msg');
+  if(!uid||!token){m.textContent='请填写完整';m.className='msg err';return}
+  var fd=new FormData();fd.append('uid',uid);fd.append('token',token);
+  try{
+    var r=await fetch('/bind/submit',{method:'POST',body:fd});
+    var d=await r.json();
+    if(d.ok){m.textContent='绑定成功！现在可以关闭本页，返回电视播放。';document.getElementById('f').style.display='none';}
+    else{m.textContent='绑定失败：'+(d.msg||'未知错误');m.className='msg err';}
+  }catch(e){m.textContent='网络错误：请确认手机和电视在同一个WiFi';m.className='msg err';}
+}
+</script></body></html>"""
+
+
+def _bind_ok_token():
+    """与 Java 侧同一进程内的一次性绑定 token（二维码里带，submit 时校验）。"""
+    try:
+        return _J.getBindToken()
+    except Exception:
+        return ''
+
+
+class BindHandler(BaseHTTPRequestHandler):
+    def log_message(self, fmt, *args):
+        pass
+
+    def _token_ok(self, qs):
+        t = (qs.get('t') or [''])[0]
+        ok = _bind_ok_token()
+        return bool(t) and bool(ok) and t == ok
+
+    def do_GET(self):
+        try:
+            parsed = urllib.parse.urlsplit(self.path)
+            if parsed.path != '/bind':
+                self.send_error(404)
+                return
+            qs = urllib.parse.parse_qs(parsed.query)
+            if not self._token_ok(qs):
+                self.send_error(403)
+                return
+            body = _BIND_PAGE.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception:
+            try:
+                self.send_error(500)
+            except Exception:
+                pass
+
+    def do_POST(self):
+        try:
+            parsed = urllib.parse.urlsplit(self.path)
+            if parsed.path != '/bind/submit':
+                self.send_error(404)
+                return
+            ln = int(self.headers.get('Content-Length') or 0)
+            raw = self.rfile.read(ln).decode('utf-8', errors='ignore')
+            form = urllib.parse.parse_qs(raw)
+            if not self._token_ok({k: v for k, v in form.items() if k == 't'}):
+                self._json(403, {'ok': False, 'msg': 'token 校验失败，请重新扫码'})
+                return
+            uid = (form.get('uid') or [''])[0].strip()
+            token = (form.get('token') or [''])[0].strip()
+            if not uid or not token:
+                self._json(400, {'ok': False, 'msg': 'UID/Token 不能为空'})
+                return
+            try:
+                _J.saveAccount(uid, token)
+                _jlog('扫码绑定成功 uid=%s' % uid)
+                self._json(200, {'ok': True})
+            except Exception as e:
+                _jlog('扫码绑定写账号失败 %s' % e)
+                self._json(500, {'ok': False, 'msg': '保存失败，请重试'})
+        except Exception:
+            try:
+                self._json(500, {'ok': False, 'msg': '服务器错误'})
+            except Exception:
+                pass
+
+    def _json(self, code, obj):
+        body = json.dumps(obj).encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
 def start():
-    """Chaquopy 启动入口：绑定 9979 并常驻。"""
-    global _server
-    if _server is not None:
-        return
-    try:
-        _server = ThreadingHTTPServer((HOST, PORT), MiguHandler)
-        t = threading.Thread(target=_server.serve_forever, daemon=True)
-        t.start()
-        _jlog('MIGU代理启动成功 9979')
-    except Exception as e:
-        _jlog('MIGU代理启动失败 %s' % e)
-        raise
+    """Chaquopy 启动入口：绑定 9979 并常驻；同时启动局域网扫码绑定服务 9980。"""
+    global _server, _bind_server
+    if _server is None:
+        try:
+            _server = ThreadingHTTPServer((HOST, PORT), MiguHandler)
+            threading.Thread(target=_server.serve_forever, daemon=True).start()
+            _jlog('MIGU代理启动成功 9979')
+        except Exception as e:
+            _jlog('MIGU代理启动失败 %s' % e)
+            raise
+    if _bind_server is None:
+        try:
+            _bind_server = ThreadingHTTPServer(('0.0.0.0', 9980), BindHandler)
+            threading.Thread(target=_bind_server.serve_forever, daemon=True).start()
+            _jlog('扫码绑定服务启动成功 9980')
+        except Exception as e:
+            _jlog('扫码绑定服务启动失败 %s' % e)
 
 
 def _selftest():

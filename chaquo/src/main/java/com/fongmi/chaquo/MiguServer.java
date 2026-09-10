@@ -106,6 +106,60 @@ public class MiguServer {
         }
     }
 
+    private static volatile String bindToken = null;
+
+    /** 扫码绑定一次性 token（进程内生成一次，二维码携带、提交时校验）。 */
+    public static synchronized String getBindToken() {
+        if (bindToken == null) {
+            java.security.SecureRandom r = new java.security.SecureRandom();
+            byte[] b = new byte[8];
+            r.nextBytes(b);
+            StringBuilder sb = new StringBuilder();
+            for (byte x : b) sb.append(String.format("%02x", x));
+            bindToken = sb.toString();
+        }
+        return bindToken;
+    }
+
+    /** 扫码绑定写入账号（手机端网页 POST 到本机 9980，Python 回调此方法）。 */
+    public static synchronized String saveAccount(String uid, String token) {
+        try {
+            if (uid == null || token == null) return "EMPTY";
+            uid = uid.trim();
+            token = token.trim();
+            if (uid.isEmpty() || token.isEmpty()) return "EMPTY";
+            com.github.catvod.utils.Prefers.put("migu_uid", uid);
+            com.github.catvod.utils.Prefers.put("migu_token", token);
+            log("扫码绑定账号 uid=" + uid);
+            return "OK";
+        } catch (Throwable t) {
+            return "ERR:" + t;
+        }
+    }
+
+    /** 本机局域网 IPv4（供二维码绑定页使用）；找不到时回退 127.0.0.1。 */
+    public static synchronized String getLocalIp() {
+        try {
+            java.util.Enumeration<java.net.NetworkInterface> en = java.net.NetworkInterface.getNetworkInterfaces();
+            while (en != null && en.hasMoreElements()) {
+                java.net.NetworkInterface ni = en.nextElement();
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                java.util.Enumeration<java.net.InetAddress> ea = ni.getInetAddresses();
+                while (ea.hasMoreElements()) {
+                    java.net.InetAddress ia = ea.nextElement();
+                    if (ia instanceof java.net.Inet4Address && !ia.isLoopbackAddress()) {
+                        String h = ia.getHostAddress();
+                        if (h.startsWith("192.168.") || h.startsWith("10.") || h.startsWith("172.")) {
+                            return h;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return "127.0.0.1";
+    }
+
     /** Python 侧调用：追加一行运行时日志（取址/拉流失败诊断用）。 */
     public static synchronized void log(String msg) {
         try {
