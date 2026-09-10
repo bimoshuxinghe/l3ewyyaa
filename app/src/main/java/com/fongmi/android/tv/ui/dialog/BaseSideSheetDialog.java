@@ -53,6 +53,14 @@ public abstract class BaseSideSheetDialog extends AppCompatDialogFragment {
     protected void initEvent() {
     }
 
+    /** 安全 dismiss：防止多路径并发 dismiss 触发 "FragmentManager is already executing transactions"。 */
+    @Override
+    public void dismiss() {
+        if (!isRemoving() && isAdded() && getFragmentManager() != null && !getFragmentManager().isStateSaved()) {
+            dismissAllowingStateLoss();
+        }
+    }
+
     @Override
     public void onStart() {
         super.onStart();

@@ -138,9 +138,13 @@ public class ConfigDialog extends BaseAlertDialog {
         String text = binding.text.getText().toString().trim();
         if (edit) Config.find(url, type).url(text).update();
         if (text.isEmpty()) Config.delete(url, type);
-        if (name.isEmpty()) ((ConfigListener) requireActivity()).setConfig(Config.find(text, type));
-        else ((ConfigListener) requireActivity()).setConfig(Config.find(text, name, type));
+        Config config = name.isEmpty() ? Config.find(text, type) : Config.find(text, name, type);
         dismiss();
+        // 先关闭自身 Fragment 事务，再回调 setConfig（内部可能弹权限/进度/更新等 Fragment 事务），
+        // post 到 UI 队列尾部执行，避免 "FragmentManager is already executing transactions"
+        view.post(() -> {
+            if (isAdded() && getActivity() != null) ((ConfigListener) requireActivity()).setConfig(config);
+        });
     }
 
     private void onNegative(View view) {

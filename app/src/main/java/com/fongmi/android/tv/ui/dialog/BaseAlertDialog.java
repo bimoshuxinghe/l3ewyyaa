@@ -27,6 +27,14 @@ public abstract class BaseAlertDialog extends DialogFragment {
         return dialog;
     }
 
+    /** 安全 dismiss：防止多路径并发 dismiss 触发 "FragmentManager is already executing transactions"。 */
+    @Override
+    public void dismiss() {
+        if (!isRemoving() && isAdded() && getFragmentManager() != null && !getFragmentManager().isStateSaved()) {
+            dismissAllowingStateLoss();
+        }
+    }
+
     protected MaterialAlertDialogBuilder builder() {
         return new MaterialAlertDialogBuilder(requireActivity());
     }
