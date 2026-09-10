@@ -123,7 +123,8 @@ public class LiveConfig extends BaseConfig {
         // 老版本内置咪咕默认源 → 迁移到合并列表（央视频在上 + 咪咕在下），仅限本机内置源
         String url = config.getUrl();
         if (url != null && url.contains("127.0.0.1") && url.contains("/migu?list=live")) {
-            config.setUrl(Server.get().getAddress(true) + "/ysp?list=live").update();
+            config.setUrl(Server.get().getAddress(true) + "/ysp?list=live");
+            config.update();
         }
         String json = Decoder.getJson(UrlUtil.convert(config.getUrl()), TAG);
         if (Json.isObj(json)) checkJson(config, Json.parse(json).getAsJsonObject());
