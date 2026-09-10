@@ -8,3 +8,4 @@
 local.properties
 lib-*.aar
 /Release__pycache__/
+__pycache__/
