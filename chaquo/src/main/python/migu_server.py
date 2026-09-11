@@ -402,26 +402,6 @@ def _ysp_stream(qs):
 # ---------- 央视频合并列表 & 取流 ----------
 
 
-def _ysp_ts(qs):
-    """切片本地代理：缓存命中秒回；未命中多域名回退拉取后缓存（播放器永远 200）。"""
-    try:
-        raw = qs.get('u', [''])[0]
-        raw += '=' * (-len(raw) % 4)
-        url = base64.urlsafe_b64decode(raw.encode()).decode()
-    except Exception:
-        return 400, b'bad param'
-    if not url.startswith('http'):
-        return 400, b'bad url'
-    import hashlib
-    key = hashlib.md5(url.encode()).hexdigest()
-    import live_ysp
-    cached = live_ysp._get_ts_cached(url)
-    if cached is not None:
-        return 200, cached
-    body = live_ysp._cache_ts(url)
-    if body is not None:
-        return 200, body
-    return 403, b'ts unavailable'
 
 
 class MiguHandler(BaseHTTPRequestHandler):
@@ -432,15 +412,6 @@ class MiguHandler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
-            if parsed.path == '/ysp_ts':
-                code, body = _ysp_ts(qs)
-                self.send_response(code)
-                self.send_header('Content-Type', 'video/mp2t')
-                self.send_header('Content-Length', str(len(body)))
-                self.send_header('Cache-Control', 'no-store')
-                self.end_headers()
-                self.wfile.write(body)
-                return
             if parsed.path == '/ysp':
                 if 'list' in qs:
                     body = _ysp_merge_list()
