@@ -830,21 +830,9 @@ class Spider(BaseSpider):
             # 对齐 PHP：把切片 CDN 域名替换为更稳定节点（mobilelive→cnc-cdn / outlivecloud→hlsliveali）
             content = re.sub(r'mobilelive-[^.]+\.ysp\.cctv\.cn', 'mobilelive-cnc-cdn.ysp.cctv.cn', content)
             content = content.replace('outlivecloud-cdn.ysp.cctv.cn', 'hlsliveali-cdn.ysp.cctv.cn')
-            return self._proxy_ts_urls(content)
+            return content
         except Exception:
             return None
-
-    def _proxy_ts_urls(self, content):
-        """把 m3u8 里的切片 URL 替换为本地代理（9979/ysp_ts），播放器请求本地代理拿 200，
-        代理侧自动做多域名回退，根治播放器直连 CDN 起播/换台遇 403 的问题。"""
-        try:
-            def _rep(m):
-                u = m.group(0)
-                b = base64.urlsafe_b64encode(u.encode()).decode().rstrip('=')
-                return 'http://127.0.0.1:9979/ysp_ts?u=' + b
-            return re.sub(r'https?://[^\s\"\'<>]+?\.ts', _rep, content)
-        except Exception:
-            return content
 
     def _expand_ts_window(self, cache_key, content):
         """m3u8 切片不足时，向前补入历史切片（旧切片 CDN 保留期内 200，播放器先缓冲避免首切 403）。"""

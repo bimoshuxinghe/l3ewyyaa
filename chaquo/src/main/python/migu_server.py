@@ -399,43 +399,7 @@ def _ysp_stream(qs):
 
 
 # ================= HTTP 服务 =================
-# ---------- 央视频切片本地代理（根治播放器侧 403）----------
-# 播放器请求 /ysp_ts?u=<base64url切片URL>，代理拉切片：原域名 403/失败时自动回退
-# 其他 CDN 域名（ali/outlivecloud/mobilelive-cnc/tlivecloud）重试，200 才返回给播放器。
-_TS_DOMAINS = [
-    'hlslive-tx-cdn.ysp.cctv.cn',
-    'hlsliveali-cdn.ysp.cctv.cn',
-    'outlivecloud-cdn.ysp.cctv.cn',
-    'mobilelive-cnc-cdn.ysp.cctv.cn',
-    'tlivecloud-playback-cdn.ysp.cctv.cn',
-]
-_TS_HEADERS = {'User-Agent': 'qqlive', 'Connection': 'Keep-Alive'}
-
-
-def _ysp_ts(qs):
-    try:
-        raw = qs.get('u', [''])[0]
-        raw += '=' * (-len(raw) % 4)
-        url = base64.urlsafe_b64decode(raw.encode()).decode()
-    except Exception:
-        return 400, b'bad param'
-    if not url.startswith('http'):
-        return 400, b'bad url'
-    import re
-    try:
-        dom = re.sub(r'https?://([^/]+)/.*', r'\1', url)
-        candidates = [dom] + [d for d in _TS_DOMAINS if d != dom]
-        for cand in candidates:
-            cand_url = re.sub(r'https?://[^/]+', 'http://' + cand, url)
-            try:
-                r = requests.get(cand_url, headers=_TS_HEADERS, timeout=10, verify=False)
-                if r.status_code == 200:
-                    return 200, r.content
-            except Exception:
-                continue
-    except Exception:
-        pass
-    return 403, b'ts unavailable'
+# ---------- 央视频合并列表 & 取流 ----------
 
 
 class MiguHandler(BaseHTTPRequestHandler):
@@ -446,15 +410,6 @@ class MiguHandler(BaseHTTPRequestHandler):
         try:
             parsed = urllib.parse.urlsplit(self.path)
             qs = urllib.parse.parse_qs(parsed.query)
-            if parsed.path == '/ysp_ts':
-                code, body = _ysp_ts(qs)
-                self.send_response(code)
-                self.send_header('Content-Type', 'video/mp2t')
-                self.send_header('Content-Length', str(len(body)))
-                self.send_header('Cache-Control', 'no-store')
-                self.end_headers()
-                self.wfile.write(body)
-                return
             if parsed.path == '/ysp':
                 if 'list' in qs:
                     body = _ysp_merge_list()
