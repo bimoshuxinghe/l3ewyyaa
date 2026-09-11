@@ -39,6 +39,57 @@ from urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+# 模块级 TS 切片缓存（跨 Spider 实例共享）：{url_md5: (fetch_time, bytes)}
+_TS_CACHE = {}
+_TS_CACHE_LOCK = threading.Lock()
+# 预取线程表：{cache_key: thread}
+_PREFETCH = {}
+_PREFETCH_LOCK = threading.Lock()
+# 模块级 m3u8 内容缓存（跨实例共享：FongMi 每次请求 new Spider，实例缓存会让预取与播放器错位）
+_M3U8_CACHE = {}
+_M3U8_CACHE_LOCK = threading.Lock()
+_TS_HEADERS = {'User-Agent': 'qqlive', 'Connection': 'Keep-Alive'}
+_TS_FALLBACK_DOMAINS = [
+    'hlslive-tx-cdn.ysp.cctv.cn',
+    'hlsliveali-cdn.ysp.cctv.cn',
+    'outlivecloud-cdn.ysp.cctv.cn',
+    'mobilelive-cnc-cdn.ysp.cctv.cn',
+    'tlivecloud-playback-cdn.ysp.cctv.cn',
+]
+
+
+def _cache_ts(url):
+    """多域名回退拉取切片并存入模块级缓存；全部失败返回 None。"""
+    key = hashlib.md5(url.encode()).hexdigest()
+    with _TS_CACHE_LOCK:
+        hit = _TS_CACHE.get(key)
+        if hit and time.time() - hit[0] < 300:
+            return hit[1]
+    orig = re.sub(r'https?://([^/]+)/.*', r'\1', url)
+    order = [orig] + [d for d in _TS_FALLBACK_DOMAINS if d != orig]
+    for dom in order:
+        u = re.sub(r'https?://[^/]+', 'http://' + dom, url)
+        try:
+            r = requests.get(u, headers=_TS_HEADERS, timeout=8, verify=False)
+            if r.status_code == 200 and len(r.content) > 10000:
+                with _TS_CACHE_LOCK:
+                    if len(_TS_CACHE) > 200:
+                        _TS_CACHE.clear()
+                    _TS_CACHE[key] = (time.time(), r.content)
+                return r.content
+        except Exception:
+            continue
+    return None
+
+
+def _get_ts_cached(url):
+    key = hashlib.md5(url.encode()).hexdigest()
+    with _TS_CACHE_LOCK:
+        hit = _TS_CACHE.get(key)
+        if hit and time.time() - hit[0] < 300:
+            return hit[1]
+    return None
+
 try:
     from base.spider import Spider as BaseSpider
 except ImportError:
@@ -148,8 +199,8 @@ CHANNEL_GROUPS = {
     ]
 }
 
-# 缓存有效期：playurl 14分钟，m3u8内容 10秒
-CACHE_TTL = 300
+# 缓存有效期：playurl 80秒（对齐PHP央视频1.php cacheTimeoutLive=80），m3u8内容 10秒
+CACHE_TTL = 80
 M3U8_CONTENT_CACHE_TTL = 5
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
 try:
@@ -697,6 +748,13 @@ class CKeyManager:
         return None
 
 class Spider(BaseSpider):
+    # 智能 CDN 候选：按优先级，原域名 200 时零开销直接用
+    _CDN_CANDIDATES = [
+        'hlslive-tx-cdn.ysp.cctv.cn',
+        'hlsliveali-cdn.ysp.cctv.cn',
+        'outlivecloud-cdn.ysp.cctv.cn',
+    ]
+
     def __init__(self):
         super().__init__()
         self.session = _get_shared_session()
@@ -704,6 +762,9 @@ class Spider(BaseSpider):
         self._m3u8_cache_lock = threading.Lock()
         self._ts_history = {}
         self._ts_history_lock = threading.Lock()
+        # 智能 CDN 探测缓存（60s 内不重复探测）
+        self._probe_cache = {'domain': None, 'at': 0}
+        self._probe_lock = threading.Lock()
 
 
     def getName(self):
@@ -775,8 +836,8 @@ class Spider(BaseSpider):
             pass
 
     def _get_cached_m3u8(self, cache_key):
-        with self._m3u8_cache_lock:
-            entry = self._m3u8_cache.get(cache_key)
+        with _M3U8_CACHE_LOCK:
+            entry = _M3U8_CACHE.get(cache_key)
             if entry:
                 content, timestamp = entry['content'], entry['time']
                 if time.time() - timestamp < M3U8_CONTENT_CACHE_TTL:
@@ -784,8 +845,106 @@ class Spider(BaseSpider):
         return None, False
 
     def _set_cached_m3u8(self, cache_key, content):
-        with self._m3u8_cache_lock:
-            self._m3u8_cache[cache_key] = {'content': content, 'time': time.time()}
+        with _M3U8_CACHE_LOCK:
+            _M3U8_CACHE[cache_key] = {'content': content, 'time': time.time()}
+
+    def _probe_cdn(self, sample_url):
+        """快速探测哪个 CDN 域名当前可用（200 且能拉到数据），60s 缓存。
+        原域名优先：若原域名本身 200 则零开销直接命中；否则按候选顺序换域名探测。"""
+        with self._probe_lock:
+            now = time.time()
+            cached = self._probe_cache.get('domain')
+            if cached and now - self._probe_cache.get('at', 0) < 60:
+                return cached
+            orig = re.sub(r'https?://([^/]+)/.*', r'\1', sample_url)
+            order = [orig] + [d for d in self._CDN_CANDIDATES if d != orig]
+            good = None
+            for d in order:
+                u = re.sub(r'https?://[^/]+', 'http://' + d, sample_url)
+                try:
+                    r = self.session.get(u, headers={'User-Agent': 'qqlive'}, timeout=3, stream=True)
+                    ok = r.status_code == 200
+                    if ok:
+                        try:
+                            next(r.iter_content(1024))
+                        except Exception:
+                            ok = False
+                    r.close()
+                    if ok:
+                        good = d
+                        break
+                except Exception:
+                    continue
+            self._probe_cache['domain'] = good
+            self._probe_cache['at'] = now
+            return good
+
+    def _smart_domain(self, content):
+        """把 m3u8 里所有 .ts 行替换为探测出的可用 CDN 域名；探测失败则原样（PHP 行为）。"""
+        try:
+            ts_lines = [l for l in content.splitlines() if l.strip().startswith('http') and '.ts' in l]
+            if not ts_lines:
+                return content
+            good = self._probe_cdn(ts_lines[-1])
+            if not good:
+                return content
+            return re.sub(r'(https?://)[^/\s]+(?=/)', r'\1' + good, content)
+        except Exception:
+            return content
+
+    def _start_prefetch(self, cache_key):
+        """启动后台预取线程：持续把最新切片提前拉入本地缓存（换台自动切换线程）。"""
+        try:
+            with _PREFETCH_LOCK:
+                t = _PREFETCH.get(cache_key)
+                if t and t.is_alive():
+                    return
+                t = threading.Thread(target=self._prefetch_loop, args=(cache_key,), daemon=True)
+                _PREFETCH[cache_key] = t
+                t.start()
+        except Exception:
+            pass
+
+    def _prefetch_loop(self, cache_key):
+        """预取循环：每 3s 把当前 m3u8 缓存里的切片（播放器接下来要请求的）提前拉入本地缓存。"""
+        try:
+            while True:
+                with _PREFETCH_LOCK:
+                    if _PREFETCH.get(cache_key) is not threading.current_thread():
+                        break
+                m3u8 = None
+                with _M3U8_CACHE_LOCK:
+                    entry = _M3U8_CACHE.get(cache_key)
+                    if entry:
+                        m3u8 = entry.get('content')
+                if m3u8:
+                    for pl in [l for l in m3u8.splitlines() if 'ysp_ts?' in l]:
+                        try:
+                            raw = pl.split('u=')[1]
+                            raw += '=' * (-len(raw) % 4)
+                            real = base64.urlsafe_b64decode(raw.encode()).decode()
+                        except Exception:
+                            continue
+                        if _get_ts_cached(real) is None:
+                            _cache_ts(real)
+                time.sleep(3)
+        except Exception:
+            pass
+        finally:
+            with _PREFETCH_LOCK:
+                if _PREFETCH.get(cache_key) is threading.current_thread():
+                    _PREFETCH.pop(cache_key, None)
+
+    def _proxy_ts_urls(self, content):
+        """把 m3u8 里的切片 URL 替换为本地代理（9979/ysp_ts），播放器拉本地：缓存命中秒回，未命中代理多域名回退。"""
+        try:
+            def _rep(m):
+                u = m.group(0)
+                b = base64.urlsafe_b64encode(u.encode()).decode().rstrip('=')
+                return 'http://127.0.0.1:9979/ysp_ts?u=' + b
+            return re.sub(r"https?://[^\s\"'<>]+?\.ts", _rep, content)
+        except Exception:
+            return content
 
     def _fetch_and_fix_m3u8(self, play_url, cache_key=None):
         """获取m3u8，将TS相对路径转为绝对路径（不附加任何查询参数），并维护切片历史。"""
@@ -794,7 +953,7 @@ class Spider(BaseSpider):
                 'User-Agent': 'qqlive',
                 'Connection': 'Keep-Alive',
             }
-            resp = self.session.get(play_url, headers=headers, timeout=15, verify=False)
+            resp = self.session.get(play_url, headers=headers, timeout=5, verify=False)
             if resp.status_code != 200:
                 return None
 
@@ -830,7 +989,12 @@ class Spider(BaseSpider):
             # 对齐 PHP：把切片 CDN 域名替换为更稳定节点（mobilelive→cnc-cdn / outlivecloud→hlsliveali）
             content = re.sub(r'mobilelive-[^.]+\.ysp\.cctv\.cn', 'mobilelive-cnc-cdn.ysp.cctv.cn', content)
             content = content.replace('outlivecloud-cdn.ysp.cctv.cn', 'hlsliveali-cdn.ysp.cctv.cn')
-            return content
+            # 智能 CDN：探测可用域名 + 切片走本地代理（预取缓存+多域名回退），播放器永远 200
+            content = self._smart_domain(content)
+            proxied = self._proxy_ts_urls(content)
+            if cache_key and self._ts_history.get(cache_key):
+                self._start_prefetch(cache_key)
+            return proxied
         except Exception:
             return None
 
@@ -888,28 +1052,20 @@ class Spider(BaseSpider):
                 cached_m3u8 = self._expand_ts_window(cache_key, cached_m3u8)
                 return [200, "application/vnd.apple.mpegurl", cached_m3u8]
 
-            # 2. 获取playurl（可能缓存）
+            # 2. 获取playurl（可能缓存；对齐PHP：80s内复用，拉m3u8失败立即清缓存重新取流）
             playurl, valid = self._get_cached_playurl(cache_key)
             if valid and playurl:
-                for attempt in range(3):
-                    m3u8_content = self._fetch_and_fix_m3u8(playurl, cache_key)
-                    if m3u8_content:
-                        reset_fail_count(cache_key)
-                        m3u8_content = self._expand_ts_window(cache_key, m3u8_content)
-                        self._set_cached_m3u8(cache_key, m3u8_content)
-                        return [200, "application/vnd.apple.mpegurl", m3u8_content]
-                    else:
-                        fail_cnt = increment_fail_count(cache_key)
-                        if fail_cnt >= 3:
-                            self._clear_cache_file(cache_key)
-                            clear_fail_count(cache_key)
-                            break
-                        time.sleep(0.2)
-                # 降级：使用旧缓存（即使过期）
-                old_m3u8, _ = self._get_cached_m3u8(cache_key)
-                if old_m3u8:
-                    return [200, "application/vnd.apple.mpegurl", old_m3u8]
-                self._clear_cache_file(cache_key)
+                m3u8_content = self._fetch_and_fix_m3u8(playurl, cache_key)
+                if m3u8_content:
+                    reset_fail_count(cache_key)
+                    m3u8_content = self._expand_ts_window(cache_key, m3u8_content)
+                    self._set_cached_m3u8(cache_key, m3u8_content)
+                    return [200, "application/vnd.apple.mpegurl", m3u8_content]
+                # 缓存playurl拉取失败（playurl可能已过期）→ 清缓存，走下面重新取流（PHP attempt2）
+                fail_cnt = increment_fail_count(cache_key)
+                if fail_cnt >= 3:
+                    self._clear_cache_file(cache_key)
+                    clear_fail_count(cache_key)
 
             # 3. 重新获取playurl（失败自动重试，最多3次，避免启动/换台时偶发失败）
             manager = CKeyManager()
