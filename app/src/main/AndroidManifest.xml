@@ -79,6 +79,11 @@
             android:process=":error_activity"
             android:theme="@style/Theme.Crash" />
 
+        <activity
+            android:name=".ui.activity.SettingsActivity"
+            android:theme="@style/Theme.App"
+            android:exported="false" />
+
         <receiver
             android:name=".receiver.ActionReceiver"
             android:exported="false">

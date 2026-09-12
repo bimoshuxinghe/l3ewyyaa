@@ -23,9 +23,13 @@ public class BrowseTree {
     private static final String ROOT = "ROOT";
     private static final String VOD = "VOD";
     private static final String LIVE = "LIVE";
+    /** 设置入口：主界面浏览树「設置」→ 点击打开设置弹窗。 */
+    public static final String SETTINGS = "SETTINGS";
+    public static final String SETTINGS_ITEM = "SETTINGS/OPEN";
     private static final Map<String, Result> browseResultMap = new ConcurrentHashMap<>();
     private static final MediaItem ROOT_ITEM = folder(ROOT, "影視");
     private static final MediaItem VOD_FOLDER = folder(VOD, "點播");
+    private static final MediaItem SETTINGS_FOLDER = folder(SETTINGS, "設置");
     private static final MediaItem LIVE_FOLDER;
 
     static {
@@ -55,9 +59,10 @@ public class BrowseTree {
     @NonNull
     public static ImmutableList<MediaItem> getChildren(@NonNull String parentId) {
         return switch (parentId) {
-            case ROOT -> ImmutableList.of(VOD_FOLDER, LIVE_FOLDER);
+            case ROOT -> ImmutableList.of(VOD_FOLDER, LIVE_FOLDER, SETTINGS_FOLDER);
             case VOD -> VodBrowse.getHistory();
             case LIVE -> LiveBrowse.getGroups();
+            case SETTINGS -> ImmutableList.of(playable(SETTINGS_ITEM, "打開設置", "智能去广 / 咪咕账号 / TMDB", null));
             default -> {
                 if (parentId.startsWith(LiveBrowse.LIVE_GROUP)) yield LiveBrowse.getChannels(parentId);
                 yield ImmutableList.of();
@@ -71,6 +76,8 @@ public class BrowseTree {
             case ROOT -> ROOT_ITEM;
             case VOD -> VOD_FOLDER;
             case LIVE -> LIVE_FOLDER;
+            case SETTINGS -> SETTINGS_FOLDER;
+            case SETTINGS_ITEM -> playable(SETTINGS_ITEM, "打開設置", "智能去广 / 咪咕账号 / TMDB", null);
             default -> {
                 if (mediaId.startsWith(LiveBrowse.LIVE_GROUP)) yield folder(mediaId, mediaId.substring(LiveBrowse.LIVE_GROUP.length()));
                 yield null;

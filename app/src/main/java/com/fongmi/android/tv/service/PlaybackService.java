@@ -597,6 +597,13 @@ public class PlaybackService extends MediaLibraryService implements MediaLibrary
     @NonNull
     @Override
     public ListenableFuture<MediaSession.MediaItemsWithStartPosition> onSetMediaItems(@NonNull MediaSession session, @NonNull MediaSession.ControllerInfo controller, @NonNull List<MediaItem> mediaItems, int startIndex, long startPositionMs) {
+        // 主界面「設置」节点：不播放，直接打开设置页
+        if (mediaItems.stream().anyMatch(item -> BrowseTree.SETTINGS_ITEM.equals(item.mediaId))) {
+            Intent intent = new Intent(this, com.fongmi.android.tv.ui.activity.SettingsActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            return Futures.immediateFuture(new MediaSession.MediaItemsWithStartPosition(ImmutableList.<MediaItem>of(), 0, 0));
+        }
         saveProgress();
         return Task.executor().submit(() -> {
             List<MediaItem> resolved = mediaItems.stream().map(BrowseTree::resolveOrKeep).toList();
