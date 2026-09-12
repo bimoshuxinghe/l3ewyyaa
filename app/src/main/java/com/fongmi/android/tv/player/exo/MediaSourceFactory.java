@@ -123,7 +123,19 @@ public class MediaSourceFactory implements MediaSource.Factory {
     private HttpDataSource.Factory getHttpDataSourceFactory() {
         if (httpDataSourceFactory == null) {
             OkHttpDataSource.Factory ok = new OkHttpDataSource.Factory(OkHttp.player());
-            httpDataSourceFactory = () -> new FilteringHttpDataSource(ok.createDataSource());
+            HttpDataSource.Factory base = ok;
+            httpDataSourceFactory = new HttpDataSource.Factory() {
+                @Override
+                public HttpDataSource createDataSource() {
+                    return new FilteringHttpDataSource(base.createDataSource());
+                }
+
+                @Override
+                public HttpDataSource.Factory setDefaultRequestProperties(java.util.Map<String, String> defaultRequestProperties) {
+                    base.setDefaultRequestProperties(defaultRequestProperties);
+                    return this;
+                }
+            };
         }
         return httpDataSourceFactory;
     }

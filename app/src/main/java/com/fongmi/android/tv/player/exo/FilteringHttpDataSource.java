@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DataSpec;
 import androidx.media3.datasource.HttpDataSource;
+import androidx.media3.datasource.HttpDataSource.HttpDataSourceException;
 import androidx.media3.datasource.TransferListener;
 
 import com.fongmi.android.tv.setting.PlayerSetting;
@@ -39,11 +40,12 @@ public class FilteringHttpDataSource implements HttpDataSource {
     }
 
     @Override
-    public long open(@NonNull DataSpec dataSpec) throws IOException {
+    public long open(@NonNull DataSpec dataSpec) throws HttpDataSourceException {
         cached = null;
         cachedPos = 0;
-        long length = upstream.open(dataSpec);
+        long length = -1;
         try {
+            length = upstream.open(dataSpec);
             if (PlayerSetting.isAdFilter() && isPlaylist(dataSpec.uri, upstream.getResponseHeaders())) {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 byte[] buf = new byte[8192];
@@ -56,6 +58,10 @@ public class FilteringHttpDataSource implements HttpDataSource {
                 cachedPos = 0;
                 return cached.length;
             }
+        } catch (HttpDataSourceException e) {
+            throw e;
+        } catch (IOException e) {
+            throw HttpDataSourceException.createForIOException(e, dataSpec, HttpDataSourceException.TYPE_OPEN);
         } catch (Throwable ignored) {
             // 过滤失败退回原样（不阻塞播放）
             cached = null;
@@ -76,10 +82,16 @@ public class FilteringHttpDataSource implements HttpDataSource {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws HttpDataSourceException {
         cached = null;
         cachedPos = 0;
-        upstream.close();
+        try {
+            upstream.close();
+        } catch (HttpDataSourceException e) {
+            throw e;
+        } catch (IOException e) {
+            throw HttpDataSourceException.createForIOException(e, null, HttpDataSourceException.TYPE_CLOSE);
+        }
     }
 
     @Override
