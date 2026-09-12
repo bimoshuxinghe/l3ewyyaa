@@ -94,7 +94,6 @@ import com.fongmi.android.tv.ui.dialog.SkipDialog;
 import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
-import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
@@ -145,7 +144,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private Runnable mR4;
     private Clock mClock;
     private PiP mPiP;
-    private boolean mConfigReady; // initView 是否已走完，onDestroy 据此决定是否清理 Clock/Observer
     private int layoutMode = 0;
     private VodReader mReader;
     private boolean isReaderContent;
@@ -278,6 +276,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     @Override
     protected void onServiceConnected() {
+        player().setDanmakuPlayerViewController(mBinding.exo.getDanmakuPlayerViewController());
         player().setDanmakuEnabled(DanmakuSetting.isShow());
         checkLand();
         checkId();
@@ -298,9 +297,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     @Override
     protected void initView(Bundle savedInstanceState) {
-        if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
-        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.getRoot(), (v, insets) -> setStatusBar(insets));
         mKeyDown = CustomKeyDown.create(this, mBinding.exo);
         mFrameParams = mBinding.video.getLayoutParams();
@@ -2293,7 +2290,6 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     @Override
     protected void onDestroy() {
-        if (!mConfigReady) { super.onDestroy(); return; } // initView 未完成：所有字段均未初始化，跳过清理
         stopPlaybackIfLeaving();
         mClock.release();
         if (mReader != null) mReader.clear();

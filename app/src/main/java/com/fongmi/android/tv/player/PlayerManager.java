@@ -8,7 +8,6 @@ import com.github.catvod.crawler.SpiderDebug;
 import java.io.IOException;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -18,6 +17,8 @@ import androidx.media3.common.Player;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.VideoSize;
 import androidx.media3.ui.danmaku.DanmakuConfig;
+import androidx.media3.ui.danmaku.DanmakuController;
+import androidx.media3.ui.danmaku.DanmakuPlayerViewController;
 
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.Constant;
@@ -48,6 +49,7 @@ public class PlayerManager implements ParseCallback {
     private static final String TAG = "PlayerManager";
     private final Runnable runnable;
     private final Callback callback;
+    private DanmakuController danmakuController;
     private PlayerEngine engine;
     private VideoSize videoSize;
     private ParseJob parseJob;
@@ -75,6 +77,7 @@ public class PlayerManager implements ParseCallback {
     public void release() {
         try { if (player != null) player.removeListener(listener); } catch (Exception e) { e.printStackTrace(); }
         App.removeCallbacks(runnable);
+        releaseDanmakuController();
         if (engine == null) return;
         try { engine.release(); } catch (Exception e) { e.printStackTrace(); }
         engine = null;
@@ -240,16 +243,58 @@ public class PlayerManager implements ParseCallback {
         try { engine.setMetadata(data); } catch (Exception e) { e.printStackTrace(); }
     }
 
+    public void setDanmakuController(DanmakuController controller) {
+        releaseDanmakuController();
+        danmakuController = controller;
+        if (danmakuController == null) return;
+        danmakuController.setOkHttpClient(OkHttp.player());
+        danmakuController.setConfig(DanmakuSetting.getConfig());
+        danmakuController.setListener(new DanmakuController.Listener() {
+            @Override
+            public void onLoadCompleted(Uri uri, int count) {
+                logDanmakuLoad("completed", uri, count, null);
+                finishDanmakuLoad(uri);
+            }
+
+            @Override
+            public void onLoadError(Uri uri, IOException error) {
+                logDanmakuLoad("error", uri, -1, error);
+                finishDanmakuLoad(uri);
+            }
+        });
+    }
+
+    public void setDanmakuPlayerViewController(DanmakuPlayerViewController controller) {
+        releaseDanmakuController();
+        danmakuController = controller == null ? null : controller.getInternalController();
+        if (danmakuController == null) return;
+        danmakuController.setOkHttpClient(OkHttp.player());
+        danmakuController.setConfig(DanmakuSetting.getConfig());
+        danmakuController.setListener(new DanmakuController.Listener() {
+            @Override
+            public void onLoadCompleted(Uri uri, int count) {
+                logDanmakuLoad("completed", uri, count, null);
+                finishDanmakuLoad(uri);
+            }
+
+            @Override
+            public void onLoadError(Uri uri, IOException error) {
+                logDanmakuLoad("error", uri, -1, error);
+                finishDanmakuLoad(uri);
+            }
+        });
+    }
+
     public void setDanmakuConfig(DanmakuConfig config) {
-        if (config != null) callback.onDanmakuConfigChanged(config);
+        if (danmakuController != null) danmakuController.setConfig(config);
     }
 
     public void setDanmakuEnabled(boolean enabled) {
-        callback.onDanmakuEnabledChanged(enabled);
+        if (danmakuController != null) danmakuController.setEnabled(enabled);
     }
 
     public void sendDanmaku(String text) {
-        callback.onDanmakuSent(text);
+        if (danmakuController != null) danmakuController.sendNow(text);
     }
 
     public String setSpeed(float speed) {
@@ -504,11 +549,12 @@ public class PlayerManager implements ParseCallback {
     }
 
     private void setDanmaku(Danmaku item, boolean force) {
+        if (danmakuController == null) return;
         if (item.isEmpty()) {
             if (spec != null) spec.setDanmaku(item);
             SpiderDebug.log("danmaku", "clear current=%s", summarizeUrl(currentDanmakuUrl));
+            if (currentDanmakuUrl != null) danmakuController.clearItems();
             clearDanmakuState();
-            callback.onDanmakuSourceChanged(null);
             return;
         }
         String url = item.getRealUrl();
@@ -522,13 +568,14 @@ public class PlayerManager implements ParseCallback {
             return;
         }
         if (spec != null) spec.setDanmaku(item);
+        if (force && currentDanmakuUrl != null) danmakuController.clearItems();
         currentDanmakuUrl = url;
         currentDanmakuKey = key;
         loadingDanmakuKey = key;
         danmakuLoadStartedAtMs = SystemClock.elapsedRealtime();
         danmakuLoadInProgress = true;
         SpiderDebug.log("danmaku", "%s name=%s url=%s key=%s", force ? "reload" : "load", item.getName(), summarizeUrl(url), summarizeUrl(key));
-        callback.onDanmakuSourceChanged(Uri.parse(url));
+        danmakuController.setDataSource(Uri.parse(url));
     }
 
     private boolean shouldSkipForcedDanmakuReload(String key) {
@@ -538,7 +585,7 @@ public class PlayerManager implements ParseCallback {
         return elapsed >= 0 && elapsed < DANMAKU_FORCE_RELOAD_DEBOUNCE_MS;
     }
 
-    public void finishDanmakuLoad(Uri uri) {
+    private void finishDanmakuLoad(Uri uri) {
         String key = normalizeDanmakuKey(uri == null ? "" : uri.toString());
         if (!TextUtils.isEmpty(loadingDanmakuKey) && !TextUtils.equals(loadingDanmakuKey, key)) return;
         danmakuLoadInProgress = false;
@@ -553,7 +600,7 @@ public class PlayerManager implements ParseCallback {
         danmakuLoadInProgress = false;
     }
 
-    public void logDanmakuLoad(String event, Uri uri, int count, IOException error) {
+    private void logDanmakuLoad(String event, Uri uri, int count, IOException error) {
         long elapsed = danmakuLoadStartedAtMs <= 0 ? -1 : SystemClock.elapsedRealtime() - danmakuLoadStartedAtMs;
         if (error == null) {
             SpiderDebug.log("danmaku", "load %s count=%d elapsed=%dms url=%s", event, count, elapsed, summarizeUrl(uri == null ? "" : uri.toString()));
@@ -596,8 +643,15 @@ public class PlayerManager implements ParseCallback {
         return builder.toString();
     }
 
+    private void releaseDanmakuController() {
+        if (danmakuController == null) return;
+        danmakuController.release();
+        danmakuController = null;
+        clearDanmakuState();
+    }
+
     public void addDanmaku(Danmaku item) {
-        if (item.isEmpty()) return;
+        if (danmakuController == null || item.isEmpty()) return;
         if (spec != null) spec.addDanmaku(item);
     }
 
@@ -626,14 +680,6 @@ public class PlayerManager implements ParseCallback {
         void onError(String msg);
 
         void onPlayerRebuild(Player newPlayer);
-
-        void onDanmakuSourceChanged(@Nullable Uri uri);
-
-        void onDanmakuConfigChanged(DanmakuConfig config);
-
-        void onDanmakuEnabledChanged(boolean enabled);
-
-        void onDanmakuSent(String text);
     }
 
     private final Player.Listener listener = new Player.Listener() {

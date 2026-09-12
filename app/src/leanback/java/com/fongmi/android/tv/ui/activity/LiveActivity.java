@@ -61,7 +61,6 @@ import com.fongmi.android.tv.ui.dialog.LiveDialog;
 import com.fongmi.android.tv.ui.dialog.PassDialog;
 import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
-import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.Notify;
@@ -100,7 +99,6 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
     private Clock mClockSs;
     private View mFocus2;
     private int count;
-    private boolean mConfigReady; // initView 是否已走完，onDestroy 据此决定是否清理 Clock/Observer
 
     public static void start(Context context) {
         context.startActivity(new Intent(context, LiveActivity.class).putExtra("empty", LiveConfig.isEmpty()));
@@ -150,6 +148,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void onServiceConnected() {
+        player().setDanmakuPlayerViewController(mBinding.exo.getDanmakuPlayerViewController());
         mBinding.control.action.decode.setText(player().getDecodeText());
         mBinding.control.action.speed.setText(player().getSpeedText());
         if (player() != null && player().getPlayer() != null) {
@@ -160,9 +159,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void initView(Bundle savedInstanceState) {
-        if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
-        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理
         PlayerSetting.applyControllerTransparency(mBinding.control.getRoot());
         mClockHhmm = Clock.create().view(mBinding.widget.clockHhmm).format("HH:mm");
         mClockSs = Clock.create().view(mBinding.widget.clockSs).format(":ss");
@@ -716,7 +713,6 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     public void onItemClick(Channel item) {
-        if (item == null) return;
         if (!item.getData(mViewModel.getZoneId()).getList().isEmpty() && item.isSelected() && mChannel != null && mChannel.equals(item) && mChannel.getGroup().equals(mGroup)) {
             showEpg(item);
         } else if (mGroup != null) {
@@ -1006,7 +1002,6 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
     }
 
     private void checkNext() {
-        if (mChannel == null) return;
         int current = mChannel.getData(mViewModel.getZoneId()).getInRange();
         int position = mChannel.getData(mViewModel.getZoneId()).getSelected() + 1;
         boolean hasNext = position <= current && position > 0;
@@ -1164,7 +1159,6 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void onDestroy() {
-        if (!mConfigReady) { super.onDestroy(); return; } // initView 未完成：所有字段均未初始化，跳过清理
         mClockHhmm.release();
         mClockSs.release();
         Source.get().exit();
