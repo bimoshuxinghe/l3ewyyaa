@@ -116,11 +116,15 @@ public class MediaSourceFactory implements MediaSource.Factory {
     }
 
     private CacheDataSource.Factory getCacheDataSource(DataSource.Factory upstreamFactory) {
-        return new CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(upstreamFactory).setCacheWriteDataSinkFactory(null).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR);
+        // 缓存 key 带上「智能去广」开关状态：切换开关后旧缓存（未过滤/已过滤）自动失效，避免读到旧内容
+        return new CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(upstreamFactory).setCacheWriteDataSinkFactory(null).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR).setCacheKeyFactory(dataSpec -> (dataSpec.key != null ? dataSpec.key : dataSpec.uri.toString()) + (com.fongmi.android.tv.setting.PlayerSetting.isAdFilter() ? "#adf1" : "#adf0"));
     }
 
     private HttpDataSource.Factory getHttpDataSourceFactory() {
-        if (httpDataSourceFactory == null) httpDataSourceFactory = new OkHttpDataSource.Factory(OkHttp.player());
+        if (httpDataSourceFactory == null) {
+            OkHttpDataSource.Factory ok = new OkHttpDataSource.Factory(OkHttp.player());
+            httpDataSourceFactory = () -> new FilteringHttpDataSource(ok.createDataSource());
+        }
         return httpDataSourceFactory;
     }
 

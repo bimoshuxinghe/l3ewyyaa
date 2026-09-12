@@ -49,6 +49,14 @@ public class PlayerSetting {
     public static boolean isDv7Convert() { return getDv7HandlingMode() == DV7_CONVERT; }
     public static boolean isDv7Strip() { return getDv7HandlingMode() == DV7_STRIP; }
 
+    public static boolean isAdFilter() {
+        return Prefers.getBoolean("adblock", true);
+    }
+
+    public static void putAdFilter(boolean adFilter) {
+        Prefers.put("adblock", adFilter);
+    }
+
     public static boolean isPreload() {
         return Prefers.getBoolean("preload", false);
     }
