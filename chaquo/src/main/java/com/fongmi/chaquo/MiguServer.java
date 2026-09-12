@@ -25,12 +25,13 @@ public class MiguServer {
     private MiguServer() {
     }
 
-    /** 幂等启动：主线程一次，失败转后台重试 2 次（间隔 3s）。 */
+    /** 幂等启动：全异步（首次初始化解压 assets 慢设备可达数秒~十几秒，不能在主线程阻塞开屏）。
+     *  失败自动后台重试 2 次（间隔 3s）。请求侧用 {@link #awaitReady(long)} 等待就绪。 */
     public static synchronized void start() {
         if (started) return;
-        doStart();
-        if (!started) {
-            new Thread(() -> {
+        new Thread(() -> {
+            doStart();
+            if (!started) {
                 for (int i = 0; i < 2 && !started; i++) {
                     try {
                         Thread.sleep(3000);
@@ -38,8 +39,28 @@ public class MiguServer {
                     }
                     doStart();
                 }
-            }, "migu-server-retry").start();
+            }
+        }, "migu-server-start").start();
+    }
+
+    /** 是否已就绪（9979 可服务）。 */
+    public static boolean isReady() {
+        return started;
+    }
+
+    /** 等待服务就绪，最多 timeoutMs 毫秒；就绪返回 true。请求侧兜底用。 */
+    public static boolean awaitReady(long timeoutMs) {
+        if (started) return true;
+        start();
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (!started && System.currentTimeMillis() < deadline) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                return started;
+            }
         }
+        return started;
     }
 
     private static void doStart() {

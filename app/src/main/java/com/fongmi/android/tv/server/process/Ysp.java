@@ -39,6 +39,8 @@ public class Ysp implements Process {
     @Override
     public Response doResponse(IHTTPSession session, String url, Map<String, String> files) {
         try {
+            // 等待 Python 代理服务就绪（App 启动异步初始化；首启慢设备等待最多 8s，超时返回占位）
+            com.fongmi.chaquo.MiguServer.awaitReady(8000);
             Map<String, String> params = session.getParms();
             StringBuilder q = new StringBuilder();
             for (Map.Entry<String, String> e : params.entrySet()) {

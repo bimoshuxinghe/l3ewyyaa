@@ -52,6 +52,8 @@ public class PyLoader {
         // 内置央视频直播（/proxy?do=py&fun=cctv&id=xxx）：强制用内置 live_ysp，不依赖 recent。
         // app.py 的 spider() 支持纯模块名加载（import live_ysp → Spider()），首次懒加载并缓存。
         if ("cctv".equals(params.get("fun"))) {
+            // 等待 Python 环境就绪（App 启动异步初始化），避免播放时首次 Python.start() 竞争
+            com.fongmi.chaquo.MiguServer.awaitReady(8000);
             Spider spider = getSpider(YSP_KEY, "live_ysp", "");
             if (spider == null || spider instanceof SpiderNull) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("ysp spider not loaded".getBytes()), null};
             return spider.proxy(params);
