@@ -148,7 +148,6 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void onServiceConnected() {
-        player().setDanmakuPlayerViewController(mBinding.exo.getDanmakuPlayerViewController());
         mBinding.control.action.decode.setText(player().getDecodeText());
         mBinding.control.action.speed.setText(player().getSpeedText());
         if (player() != null && player().getPlayer() != null) {

@@ -51,6 +51,7 @@ public final class DanmakuPlayerViewController {
     detach();
     this.playerView = playerView;
     controller.setView(playerView.getDanmakuView());
+    controller.setPlayer(playerView.getPlayer());
   }
 
   /**

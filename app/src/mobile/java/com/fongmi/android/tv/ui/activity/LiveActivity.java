@@ -173,7 +173,6 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
 
     @Override
     protected void onServiceConnected() {
-        player().setDanmakuPlayerViewController(mBinding.exo.getDanmakuPlayerViewController());
         mBinding.control.action.decode.setText(player().getDecodeText());
         mBinding.control.action.speed.setText(player().getSpeedText());
         checkLive();

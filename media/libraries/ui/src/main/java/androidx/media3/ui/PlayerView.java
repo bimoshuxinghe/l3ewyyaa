@@ -77,12 +77,9 @@ import androidx.media3.common.text.CueGroup;
 import androidx.media3.common.util.RepeatModeUtil;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.ui.AspectRatioFrameLayout.ResizeMode;
-import androidx.media3.ui.danmaku.DanmakuConfig;
 import androidx.media3.ui.danmaku.DanmakuController;
-import androidx.media3.ui.danmaku.DanmakuPlayerViewController;
 import androidx.media3.ui.danmaku.DanmakuView;
 import android.net.Uri;
-import okhttp3.OkHttpClient;
 import com.google.common.collect.ImmutableList;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -317,9 +314,8 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
   @Nullable private final PlayerControlView controller;
   @Nullable private final FrameLayout adOverlayFrameLayout;
   @Nullable private final FrameLayout overlayFrameLayout;
-  @Nullable private final DanmakuView danmakuView;
-  private final DanmakuController danmakuController;
-  private final DanmakuPlayerViewController danmakuPlayerController;
+  @Nullable private DanmakuView danmakuView;
+  private final DanmakuController danmakuController = new DanmakuController();
   private final Handler mainLooperHandler;
   @Nullable private final Class<?> exoPlayerClazz;
   @Nullable private final Method setImageOutputMethod;
@@ -382,8 +378,6 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
       adOverlayFrameLayout = null;
       overlayFrameLayout = null;
       danmakuView = null;
-      danmakuController = new DanmakuController();
-      danmakuPlayerController = new DanmakuPlayerViewController();
       exoPlayerClazz = null;
       setImageOutputMethod = null;
       imageOutput = null;
@@ -583,7 +577,6 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
 
     // Danmaku view.
     danmakuView = findViewById(R.id.exo_danmaku);
-    danmakuController = new DanmakuController();
     danmakuController.setView(danmakuView);
 
     // Playback control view.
@@ -2102,44 +2095,5 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
   @Nullable
   public DanmakuView getDanmakuView() {
     return danmakuView;
-  }
-
-  @UnstableApi
-  public DanmakuController getDanmakuController() {
-    return danmakuController;
-  }
-
-  @UnstableApi
-  public DanmakuPlayerViewController getDanmakuPlayerViewController() {
-    return danmakuPlayerController;
-  }
-
-  @UnstableApi
-  public void setDanmakuOkHttpClient(@Nullable OkHttpClient client) {
-    danmakuController.setOkHttpClient(client);
-  }
-
-  @UnstableApi
-  public void setDanmakuSource(@Nullable Uri uri) {
-    if (danmakuView == null && uri != null) {
-      danmakuController.clearItems();
-      return;
-    }
-    danmakuController.setDataSource(uri);
-  }
-
-  @UnstableApi
-  public void setDanmakuConfig(DanmakuConfig config) {
-    danmakuController.setConfig(config);
-  }
-
-  @UnstableApi
-  public void setDanmakuEnabled(boolean enabled) {
-    danmakuController.setEnabled(enabled);
-  }
-
-  @UnstableApi
-  public void sendDanmaku(String text) {
-    danmakuController.sendNow(text);
   }
 }

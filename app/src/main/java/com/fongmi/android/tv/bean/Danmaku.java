@@ -52,6 +52,11 @@ public class Danmaku {
         return TextUtils.isEmpty(url) ? "" : url;
     }
 
+    @Nullable
+    public android.net.Uri getUri() {
+        return TextUtils.isEmpty(url) ? null : android.net.Uri.parse(url);
+    }
+
     public void setUrl(String url) {
         this.url = url;
     }

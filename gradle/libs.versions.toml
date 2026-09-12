@@ -124,8 +124,8 @@ media3-exoplayer-smoothstreaming = { group = "androidx.media3", name = "media3-e
 media3-extractor = { group = "androidx.media3", name = "media3-extractor", version.ref = "media3" }
 media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
-media3-decoder-ffmpeg = { group = "androidx.media3", name = "media3-decoder-ffmpeg", version.ref = "media3" }
 media3-ui-danmaku = { group = "androidx.media3", name = "media3-ui-danmaku", version.ref = "media3" }
+media3-decoder-ffmpeg = { group = "androidx.media3", name = "media3-decoder-ffmpeg", version.ref = "media3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -154,5 +154,5 @@ media3 = [
     "media3-session",
     "media3-ui",
     "media3-decoder-ffmpeg",
-    "media3-ui-danmaku"
+    "media3-ui-danmaku",
 ]
