@@ -6,15 +6,17 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DataSpec;
-import androidx.media3.datasource.ForwardingDataSource;
 import androidx.media3.datasource.HttpDataSource;
+import androidx.media3.datasource.TransferListener;
 
 import com.fongmi.android.tv.setting.PlayerSetting;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,14 +28,13 @@ import java.util.Map;
  * </ul>
  * 开关：{@link PlayerSetting#isAdFilter()}，关闭时完全透传。
  */
-public class FilteringHttpDataSource extends ForwardingDataSource implements HttpDataSource {
+public class FilteringHttpDataSource implements HttpDataSource {
 
     private final HttpDataSource upstream;
     private byte[] cached;
     private int cachedPos;
 
     public FilteringHttpDataSource(HttpDataSource upstream) {
-        super(upstream);
         this.upstream = upstream;
     }
 
@@ -74,7 +75,24 @@ public class FilteringHttpDataSource extends ForwardingDataSource implements Htt
         return upstream.read(buffer, offset, readLength);
     }
 
-    private static boolean isPlaylist(@Nullable Uri uri, Map<String, java.util.List<String>> headers) {
+    @Override
+    public void close() throws IOException {
+        cached = null;
+        cachedPos = 0;
+        upstream.close();
+    }
+
+    @Override
+    public @Nullable Uri getUri() {
+        return upstream.getUri();
+    }
+
+    @Override
+    public void addTransferListener(TransferListener transferListener) {
+        upstream.addTransferListener(transferListener);
+    }
+
+    private static boolean isPlaylist(@Nullable Uri uri, Map<String, List<String>> headers) {
         if (uri != null) {
             String path = uri.getPath();
             if (path != null) {
@@ -83,7 +101,7 @@ public class FilteringHttpDataSource extends ForwardingDataSource implements Htt
             }
         }
         try {
-            java.util.List<String> ct = headers.get("Content-Type");
+            List<String> ct = headers.get("Content-Type");
             if (ct != null && !ct.isEmpty()) {
                 String type = ct.get(0).toLowerCase();
                 if (type.contains("mpegurl") || type.contains("vnd.apple")) return true;
@@ -116,7 +134,7 @@ public class FilteringHttpDataSource extends ForwardingDataSource implements Htt
     }
 
     @Override
-    public @NonNull Map<String, java.util.List<String>> getResponseHeaders() {
+    public @NonNull Map<String, List<String>> getResponseHeaders() {
         return upstream.getResponseHeaders();
     }
 }

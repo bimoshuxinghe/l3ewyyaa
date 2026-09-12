@@ -146,16 +146,16 @@ public class M3u8AdFilter {
                     }
                     int theTsNameLen = lines[i + 2].indexOf(".ts");
                     if (theTsNameLen > 0) {
-                        // 文件名长度突变 → 广告块
-                        if (theTsNameLen - tsNameLen > TS_NAME_LEN_EXTEND) {
+                        // 文件名长度突变（变长/变短都算）→ 广告块；删除时不污染长度基准
+                        if (Math.abs(theTsNameLen - tsNameLen) > TS_NAME_LEN_EXTEND) {
                             if (i + 3 < lines.length && lines[i + 3].startsWith("#EXT-X-DISCONTINUITY")) i += 3;
                             else i += 2;
                             continue;
                         }
                         tsNameLen = theTsNameLen;
-                        // 序号断连 → 广告块
+                        // 序号断连或非数字命名 → 广告块（JS: undefined !== prev+1 恒真）
                         int theTsNameIndex = extractNumberBeforeTs(lines[i + 2]);
-                        if (theTsNameIndex >= 0 && theTsNameIndex != prevTsNameIndex + 1) {
+                        if (theTsNameIndex != prevTsNameIndex + 1) {
                             if (i + 3 < lines.length && lines[i + 3].startsWith("#EXT-X-DISCONTINUITY")) i += 3;
                             else i += 2;
                             continue;
@@ -165,14 +165,14 @@ public class M3u8AdFilter {
                 if (line.startsWith("#EXTINF") && i + 1 < lines.length) {
                     int theTsNameLen = lines[i + 1].indexOf(".ts");
                     if (theTsNameLen > 0) {
-                        if (theTsNameLen - tsNameLen > TS_NAME_LEN_EXTEND) {
+                        if (Math.abs(theTsNameLen - tsNameLen) > TS_NAME_LEN_EXTEND) {
                             if (i + 2 < lines.length && lines[i + 2].startsWith("#EXT-X-DISCONTINUITY")) i += 2;
                             else i += 1;
                             continue;
                         }
                         tsNameLen = theTsNameLen;
                         int theTsNameIndex = extractNumberBeforeTs(lines[i + 1]);
-                        if (theTsNameIndex >= 0 && theTsNameIndex == prevTsNameIndex + 1) {
+                        if (theTsNameIndex == prevTsNameIndex + 1) {
                             prevTsNameIndex++;
                         } else {
                             if (i + 2 < lines.length && lines[i + 2].startsWith("#EXT-X-DISCONTINUITY")) i += 2;
