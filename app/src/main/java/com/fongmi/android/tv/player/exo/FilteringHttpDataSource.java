@@ -70,7 +70,7 @@ public class FilteringHttpDataSource implements HttpDataSource {
     }
 
     @Override
-    public int read(@NonNull byte[] buffer, int offset, int readLength) {
+    public int read(@NonNull byte[] buffer, int offset, int readLength) throws HttpDataSourceException {
         if (cached != null) {
             int n = Math.min(readLength, cached.length - cachedPos);
             if (n <= 0) return RESULT_END_OF_INPUT;
@@ -78,7 +78,17 @@ public class FilteringHttpDataSource implements HttpDataSource {
             cachedPos += n;
             return n;
         }
-        return upstream.read(buffer, offset, readLength);
+        return readUpstream(buffer, offset, readLength);
+    }
+
+    private int readUpstream(@NonNull byte[] buffer, int offset, int readLength) throws HttpDataSourceException {
+        try {
+            return upstream.read(buffer, offset, readLength);
+        } catch (HttpDataSourceException e) {
+            throw e;
+        } catch (IOException e) {
+            throw HttpDataSourceException.createForIOException(e, null, HttpDataSourceException.TYPE_READ);
+        }
     }
 
     @Override
