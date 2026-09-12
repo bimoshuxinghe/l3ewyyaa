@@ -13,7 +13,9 @@ import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.utils.QRCode;
+import com.fongmi.android.tv.utils.Task;
 import com.fongmi.chaquo.MiguServer;
 import com.github.catvod.utils.Prefers;
 
@@ -115,11 +117,16 @@ public class MiguLoginDialog {
         qrSize = Math.min(qrSize, 400);
 
         ImageView qr = new ImageView(activity);
-        Bitmap bmp = QRCode.getBitmap(url, qrSize, 2);
-        qr.setImageBitmap(bmp);
         qr.setAdjustViewBounds(true);
         qr.setPadding(0, 8, 0, 8);
         root.addView(qr);
+
+        // 二维码后台生成，避免在 TV 盒子主线程上同步编码导致弹窗卡顿（接口加载后更明显）
+        final int fQrSize = qrSize;
+        Task.submit(() -> {
+            Bitmap bmp = QRCode.getBitmap(url, fQrSize, 2);
+            App.post(() -> qr.setImageBitmap(bmp));
+        });
 
         TextView tip = new TextView(activity);
         if (tmdb) {
