@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.player.engine;
 
+import androidx.annotation.Nullable;
 import android.net.Uri;
 
 import androidx.media3.common.MediaMetadata;
@@ -50,6 +51,18 @@ public class PlaySpec {
         this.headers = headers;
         this.danmakus = danmakus;
         this.metadata = metadata;
+        // 默认选中第一个非空弹幕源，确保接口自带弹幕能自动加载
+        if (this.danmakus != null && !this.danmakus.isEmpty()) {
+            boolean hasSelected = this.danmakus.stream().anyMatch(Danmaku::isSelected);
+            if (!hasSelected) {
+                for (Danmaku item : this.danmakus) {
+                    if (!item.isEmpty()) {
+                        item.setSelected(true);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     public String getKey() {
@@ -128,5 +141,16 @@ public class PlaySpec {
     public void addDanmaku(Danmaku item) {
         if (danmakus == null) danmakus = new ArrayList<>();
         if (!item.isEmpty() && !danmakus.contains(item)) danmakus.add(item);
+    }
+
+    @Nullable
+    public Danmaku getSelectedDanmaku() {
+        return danmakus == null ? null : danmakus.stream().filter(Danmaku::isSelected).findFirst().orElse(null);
+    }
+
+    public void toggleDanmaku(Danmaku item) {
+        if (item == null || item.isEmpty()) return;
+        if (item.equals(getSelectedDanmaku())) setDanmaku(Danmaku.empty());
+        else setDanmaku(item);
     }
 }

@@ -32,7 +32,6 @@ import com.bumptech.glide.request.transition.Transition;
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.Constant;
 import com.fongmi.android.tv.R;
-import com.fongmi.android.tv.api.DanmakuApi;
 import com.fongmi.android.tv.api.SiteApi;
 import com.fongmi.android.tv.api.config.VodConfig;
 import com.fongmi.android.tv.bean.Danmaku;
@@ -74,7 +73,6 @@ import com.fongmi.android.tv.ui.dialog.SkipDialog;
 import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
-import com.fongmi.android.tv.utils.Guard;
 import com.fongmi.android.tv.utils.Clock;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
@@ -126,7 +124,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private Clock mClock;
     private View mFocus1;
     private View mFocus2;
-    private boolean mConfigReady; // initView 是否已走完，onDestroy 据此决定是否清理 Clock/Observer
     private final Runnable mHideInfoRunnable = this::hideInfoLayout;
 
     public static void push(FragmentActivity activity, String text) {
@@ -270,9 +267,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     @Override
     protected void initView(Bundle savedInstanceState) {
-        if (!Guard.soft()) { finish(); return; } // 远程服务开关复核
         super.initView(savedInstanceState);
-        mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理
         PlayerSetting.applyControllerTransparency(mBinding.control.getRoot());
         mBinding.video.setForeground(null);
         mFrameParams = mBinding.video.getLayoutParams();
@@ -527,10 +522,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (result.hasPosition()) mHistory.setPosition(result.getPosition());
         mBinding.control.parse.setVisibility(isUseParse() ? View.VISIBLE : View.GONE);
         startPlayer(getHistoryKey(), result, isUseParse(), getSite().getTimeout(), buildMetadata(), getStartPosition());
-        if (DanmakuApi.canSearch()) DanmakuApi.search(mHistory.getVodName(), getEpisode().getName(), danmaku -> {
-            if (DanmakuSetting.isSpiderFirst() && !result.getDanmaku().isEmpty()) player().addDanmaku(danmaku);
-            else player().setDanmaku(danmaku);
-        });
     }
 
     @Override
@@ -653,20 +644,14 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.video.requestFocus();
         mBinding.video.setForeground(null);
         mBinding.video.setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-        mBinding.flag.setSelectedPosition(mFlagAdapter.getPosition());
         mKeyDown.setFull(true);
         setFullscreen(true);
-        mFocus2 = null;
     }
 
     private void exitFullscreen() {
-        mBinding.video.setForeground(ResUtil.getDrawable(R.drawable.selector_video));
         mBinding.video.setLayoutParams(mFrameParams);
-        getFocus1().requestFocus();
         mKeyDown.setFull(false);
         setFullscreen(false);
-        mFocus2 = null;
-        hideInfo();
     }
 
     private void showInfoLayout() {
@@ -1587,10 +1572,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     @Override
     protected void onDestroy() {
-        if (!mConfigReady) { super.onDestroy(); return; } // initView 未完成：所有字段均未初始化，跳过清理
         mClock.release();
         saveHistory(true);
-        DanmakuApi.cancel();
         RefreshEvent.keep();
         App.removeCallbacks(mR1, mR2, mR3, mR4, mClockRunnable);
         mViewModel.getResult().removeObserver(mObserveDetail);
