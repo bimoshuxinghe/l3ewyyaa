@@ -466,4 +466,12 @@ public class Setting {
         // 没有 Logo 时写入哨兵，避免后续重复请求却永远拿不到
         Prefers.put("tmdb_logo_v2_" + name, TextUtils.isEmpty(url) ? "none" : url);
     }
+
+    public static float getDetailScrimAlpha() {
+        return Prefers.getInt("detail_scrim_alpha", 50) / 100f;
+    }
+
+    public static void putDetailScrimAlpha(int percent) {
+        Prefers.put("detail_scrim_alpha", Math.max(0, Math.min(100, percent)));
+    }
 }

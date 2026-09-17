@@ -40,6 +40,7 @@ import com.fongmi.android.tv.bean.Flag;
 import com.fongmi.android.tv.bean.History;
 import com.fongmi.android.tv.bean.Keep;
 import com.fongmi.android.tv.bean.Parse;
+import com.fongmi.android.tv.bean.Person;
 import com.fongmi.android.tv.bean.Result;
 import com.fongmi.android.tv.bean.Site;
 import com.fongmi.android.tv.bean.Sub;
@@ -62,6 +63,7 @@ import com.fongmi.android.tv.ui.adapter.EpisodeAdapter;
 import com.fongmi.android.tv.ui.adapter.FlagAdapter;
 import com.fongmi.android.tv.ui.adapter.ParseAdapter;
 import com.fongmi.android.tv.ui.adapter.PartAdapter;
+import com.fongmi.android.tv.ui.adapter.PersonAdapter;
 import com.fongmi.android.tv.ui.adapter.QualityAdapter;
 import com.fongmi.android.tv.ui.adapter.QuickAdapter;
 import com.fongmi.android.tv.ui.custom.CustomKeyDownVod;
@@ -74,10 +76,12 @@ import com.fongmi.android.tv.ui.dialog.SubtitleDialog;
 import com.fongmi.android.tv.ui.dialog.TitleDialog;
 import com.fongmi.android.tv.ui.dialog.TrackDialog;
 import com.fongmi.android.tv.utils.Clock;
+import com.fongmi.android.tv.utils.CreditsResult;
 import com.fongmi.android.tv.utils.FileChooser;
 import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.KeyUtil;
 import com.fongmi.android.tv.utils.Notify;
+import com.fongmi.android.tv.utils.TmdbUtil;
 import com.fongmi.android.tv.utils.PartUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Sniffer;
@@ -109,6 +113,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private QuickAdapter mQuickAdapter;
     private FlagAdapter mFlagAdapter;
     private PartAdapter mPartAdapter;
+    private PersonAdapter mDirectorAdapter;
+    private PersonAdapter mCastAdapter;
     private CustomKeyDownVod mKeyDown;
     private SiteViewModel mViewModel;
     private List<String> mBroken;
@@ -363,6 +369,12 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.quick.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.quick.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.quick.setAdapter(mQuickAdapter = new QuickAdapter(this));
+        mBinding.directorList.setHorizontalSpacing(ResUtil.dp2px(8));
+        mBinding.directorList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        mBinding.directorList.setAdapter(mDirectorAdapter = new PersonAdapter(item -> initSearch(item.getName(), false)));
+        mBinding.castList.setHorizontalSpacing(ResUtil.dp2px(8));
+        mBinding.castList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> initSearch(item.getName(), false)));
         mBinding.control.parse.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.control.parse.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.control.parse.setAdapter(mParseAdapter = new ParseAdapter(this));
@@ -461,6 +473,53 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         setText(item);
         updateKeep();
         showInfoLayout();
+        loadTmdbInfo(item.getName());
+    }
+
+    private void loadTmdbInfo(String name) {
+        mDirectorAdapter.clear();
+        mCastAdapter.clear();
+        mBinding.directorTitle.setVisibility(View.GONE);
+        mBinding.directorList.setVisibility(View.GONE);
+        mBinding.castTitle.setVisibility(View.GONE);
+        mBinding.castList.setVisibility(View.GONE);
+        mBinding.titleLogo.setVisibility(View.GONE);
+        mBinding.name.setVisibility(View.VISIBLE);
+        TmdbUtil.searchAsync(name, result -> {
+            App.post(() -> {
+                if (result.hasBackdrop()) {
+                    ImgUtil.load(name, result.getBackdropUrl(), mBinding.detailBackdrop, false);
+                    mBinding.detailBackdrop.setVisibility(View.VISIBLE);
+                    mBinding.detailScrim.setVisibility(View.VISIBLE);
+                    mBinding.detailScrim.setAlpha(Setting.getDetailScrimAlpha());
+                }
+                if (result.hasLogoUrl()) {
+                    ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
+                    mBinding.titleLogo.setVisibility(View.VISIBLE);
+                    mBinding.name.setVisibility(View.GONE);
+                }
+            });
+            if (!result.hasId()) return;
+            TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
+                if (credits.isEmpty()) return;
+                App.post(() -> {
+                    List<Person> directors = credits.getDirectors();
+                    if (!directors.isEmpty()) {
+                        mBinding.directorTitle.setText("导演");
+                        mBinding.directorTitle.setVisibility(View.VISIBLE);
+                        mBinding.directorList.setVisibility(View.VISIBLE);
+                        mDirectorAdapter.addAll(directors);
+                    }
+                    List<Person> cast = credits.getTopCast(20);
+                    if (!cast.isEmpty()) {
+                        mBinding.castTitle.setText("演员");
+                        mBinding.castTitle.setVisibility(View.VISIBLE);
+                        mBinding.castList.setVisibility(View.VISIBLE);
+                        mCastAdapter.addAll(cast);
+                    }
+                });
+            });
+        });
     }
 
     private void setText(Vod item) {

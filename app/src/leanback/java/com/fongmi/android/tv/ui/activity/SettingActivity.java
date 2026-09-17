@@ -105,6 +105,7 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
         mBinding.searchThreadText.setText((searchThread = ResUtil.getStringArray(R.array.select_search_thread))[getSearchThreadIndex()]);
         mBinding.homeStyleText.setText((homeStyle = ResUtil.getStringArray(R.array.select_home_style))[Setting.getHomeStyle()]);
         mBinding.focusColorText.setText((focusColor = ResUtil.getStringArray(R.array.select_focus_color))[FocusColor.getIndex()]);
+        mBinding.detailScrimText.setText((int)(Setting.getDetailScrimAlpha() * 100) + "%");
         mBinding.proxySubText.setText(com.fongmi.android.tv.proxy.ProxySubscriptionManager.get().getSummary());
         setTmdbText();
     }
@@ -154,6 +155,7 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
         mBinding.searchThread.setOnClickListener(this::setSearchThread);
         mBinding.homeStyle.setOnClickListener(this::setHomeStyle);
         mBinding.focusColor.setOnClickListener(this::setFocusColor);
+        mBinding.detailScrim.setOnClickListener(this::setDetailScrim);
         mBinding.tmdbApi.setOnClickListener(this::setTmdbApi);
         mBinding.vodHistory.setOnClickListener(this::onVodHistory);
         mBinding.liveHistory.setOnClickListener(this::onLiveHistory);
@@ -346,6 +348,20 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
         int index = (FocusColor.getIndex() + 1) % focusColor.length;
         mBinding.focusColorText.setText(focusColor[index]);
         Setting.putFocusColor(index);
+    }
+
+    private void setDetailScrim(View view) {
+        int[] percents = {0, 25, 50, 75, 100};
+        int current = (int)(Setting.getDetailScrimAlpha() * 100);
+        int next = 50;
+        for (int i = 0; i < percents.length; i++) {
+            if (percents[i] == current) {
+                next = percents[(i + 1) % percents.length];
+                break;
+            }
+        }
+        Setting.putDetailScrimAlpha(next);
+        mBinding.detailScrimText.setText(next + "%");
     }
 
     private void setTmdbApi(View view) {

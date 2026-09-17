@@ -296,4 +296,91 @@ public class TmdbUtil {
     public interface BackdropCallback {
         void onResult(String backdropUrl);
     }
+
+    /**
+     * 获取影视的演员和导演列表（同步）
+     *
+     * @param id        TMDB 影视 ID
+     * @param mediaType 类型：movie 或 tv
+     * @return CreditsResult，包含 cast（演员）和 crew（主创，含导演）
+     */
+    public static CreditsResult getCredits(int id, String mediaType) {
+        if (id <= 0 || !Setting.hasTmdbApiKey()) return CreditsResult.empty();
+        String apiKey = Setting.getTmdbApiKey();
+        String baseUrl = getBaseUrl();
+        String type = "tv".equalsIgnoreCase(mediaType) ? "tv" : "movie";
+        try {
+            String url = baseUrl + "/" + type + "/" + id + "/credits?api_key=" + apiKey + "&language=zh-CN";
+            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            return parseCredits(json);
+        } catch (Exception e) {
+            Log.w(TAG, "getCredits failed: " + e.getMessage());
+            return CreditsResult.empty();
+        }
+    }
+
+    /**
+     * 异步获取演员和导演列表
+     */
+    public static void getCreditsAsync(int id, String mediaType, CreditsCallback callback) {
+        if (id <= 0 || !Setting.hasTmdbApiKey()) {
+            callback.onResult(CreditsResult.empty());
+            return;
+        }
+        new Thread(() -> {
+            CreditsResult result = getCredits(id, mediaType);
+            callback.onResult(result);
+        }, "tmdb-credits").start();
+    }
+
+    private static CreditsResult parseCredits(String json) {
+        try {
+            JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+            List<Person> cast = new ArrayList<>();
+            List<Person> crew = new ArrayList<>();
+            if (root.has("cast") && root.get("cast").isJsonArray()) {
+                JsonArray castArray = root.getAsJsonArray("cast");
+                for (JsonElement el : castArray) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject obj = el.getAsJsonObject();
+                    Person p = new Person();
+                    p.setId(obj.has("id") ? obj.get("id").getAsInt() : 0);
+                    p.setName(obj.has("name") ? obj.get("name").getAsString() : "");
+                    p.setProfilePath(obj.has("profile_path") && !obj.get("profile_path").isJsonNull() ? obj.get("profile_path").getAsString() : "");
+                    p.setCharacter(obj.has("character") && !obj.get("character").isJsonNull() ? obj.get("character").getAsString() : "");
+                    p.setKnownForDepartment(obj.has("known_for_department") && !obj.get("known_for_department").isJsonNull() ? obj.get("known_for_department").getAsString() : "");
+                    cast.add(p);
+                }
+            }
+            if (root.has("crew") && root.get("crew").isJsonArray()) {
+                JsonArray crewArray = root.getAsJsonArray("crew");
+                for (JsonElement el : crewArray) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject obj = el.getAsJsonObject();
+                    Person p = new Person();
+                    p.setId(obj.has("id") ? obj.get("id").getAsInt() : 0);
+                    p.setName(obj.has("name") ? obj.get("name").getAsString() : "");
+                    p.setProfilePath(obj.has("profile_path") && !obj.get("profile_path").isJsonNull() ? obj.get("profile_path").getAsString() : "");
+                    p.setDepartment(obj.has("department") && !obj.get("department").isJsonNull() ? obj.get("department").getAsString() : "");
+                    p.setJob(obj.has("job") && !obj.get("job").isJsonNull() ? obj.get("job").getAsString() : "");
+                    crew.add(p);
+                }
+            }
+            return new CreditsResult(cast, crew);
+        } catch (Exception e) {
+            Log.w(TAG, "parseCredits failed: " + e.getMessage());
+            return CreditsResult.empty();
+        }
+    }
+
+    /**
+     * 构建演员头像完整 URL
+     */
+    public static String buildProfileUrl(String profilePath) {
+        return buildImageUrl(profilePath);
+    }
+
+    public interface CreditsCallback {
+        void onResult(CreditsResult result);
+    }
 }
