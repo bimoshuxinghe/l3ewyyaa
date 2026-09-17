@@ -3,6 +3,7 @@ package com.fongmi.android.tv.utils;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.fongmi.android.tv.bean.Person;
 import com.fongmi.android.tv.setting.Setting;
 import com.github.catvod.net.OkHttp;
 import com.google.gson.JsonArray;
