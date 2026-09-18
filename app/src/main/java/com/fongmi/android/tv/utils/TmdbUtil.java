@@ -248,10 +248,11 @@ public class TmdbUtil {
         String cachedLogo = Setting.getTmdbLogo(name);
         boolean hasBackdropCache = !cachedBackdrops.isEmpty() || !cachedBackdrop.isEmpty();
         // 背景图已缓存且 Logo 是否已查询过（含“无 Logo”哨兵）：都满足则直接返回，否则重新请求补全 Logo
-        if (hasBackdropCache && Setting.isTmdbLogoDecided(name)) {
+        // 注意：必须同时缓存了id才能直接返回，否则需要重新搜索获取id（用于请求credits演员接口）
+        int cachedId = Setting.getTmdbId(name);
+        String cachedMediaType = Setting.getTmdbMediaType(name);
+        if (hasBackdropCache && Setting.isTmdbLogoDecided(name) && cachedId > 0) {
             Log.d(TAG, "Using cached result for: " + name);
-            int cachedId = Setting.getTmdbId(name);
-            String cachedMediaType = Setting.getTmdbMediaType(name);
             TmdbResult result = new TmdbResult(
                 cachedId, cachedMediaType,
                 cachedBackdrops.isEmpty() ? cachedBackdrop : cachedBackdrops.get(0),

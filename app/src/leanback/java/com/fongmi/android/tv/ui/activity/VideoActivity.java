@@ -524,6 +524,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                         mBinding.castList.setVisibility(View.VISIBLE);
                         mCastAdapter.addAll(cast);
                     }
+                    // 演员列表加载完成后更新焦点链路
+                    updateFocus();
                 });
             });
         });
@@ -545,6 +547,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 mBinding.castList.setVisibility(View.VISIBLE);
                 mCastAdapter.addAll(cast);
             }
+            // 备选方案加载完成后更新焦点链路
+            updateFocus();
         });
     }
 
@@ -695,22 +699,30 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private int findFocusDown(int index) {
-        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.array, R.id.part, R.id.quick);
+        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.array, R.id.part, R.id.quick);
         for (int i = 0; i < orders.size(); i++) if (i > index) if (isVisible(findViewById(orders.get(i)))) return orders.get(i);
         return 0;
     }
 
     private int findFocusUp(int index) {
-        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.array, R.id.part, R.id.quick);
+        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.array, R.id.part, R.id.quick);
         for (int i = orders.size() - 1; i >= 0; i--) if (i < index) if (isVisible(findViewById(orders.get(i)))) return orders.get(i);
         return 0;
     }
 
     private void updateFocus() {
-        mPartAdapter.setNextFocusUp(findFocusUp(4));
+        mPartAdapter.setNextFocusUp(findFocusUp(6));
         mEpisodeAdapter.setNextFocusUp(findFocusUp(2));
         mFlagAdapter.setNextFocusDown(findFocusDown(0));
         mEpisodeAdapter.setNextFocusDown(findFocusDown(2));
+        // 导演列表焦点：上=选集，下=演员列表
+        mBinding.directorList.setNextFocusUpId(findFocusUp(3));
+        mBinding.directorList.setNextFocusDownId(findFocusDown(3));
+        // 演员列表焦点：上=导演列表，下=相关推荐
+        mBinding.castList.setNextFocusUpId(findFocusUp(4));
+        mBinding.castList.setNextFocusDownId(findFocusDown(4));
+        // 相关推荐焦点：上=演员列表
+        mBinding.array.setNextFocusUpId(findFocusUp(5));
         notifyItemChanged(mBinding.episode, mEpisodeAdapter);
         notifyItemChanged(mBinding.part, mPartAdapter);
         notifyItemChanged(mBinding.flag, mFlagAdapter);
@@ -1642,6 +1654,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     protected void onStart() {
         super.onStart();
         mClock.stop().start();
+        // 从设置页返回时更新黑幕透明度
+        if (mBinding.detailScrim.getVisibility() == View.VISIBLE) {
+            mBinding.detailScrim.setAlpha(Setting.getDetailScrimAlpha());
+        }
     }
 
     @Override
