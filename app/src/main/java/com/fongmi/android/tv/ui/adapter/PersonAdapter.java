@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.bumptech.glide.Glide;
 import com.fongmi.android.tv.bean.Person;
 import com.fongmi.android.tv.databinding.AdapterPersonBinding;
 import com.fongmi.android.tv.utils.ImgUtil;
@@ -18,11 +17,11 @@ import java.util.List;
 
 public class PersonAdapter extends RecyclerView.Adapter<PersonAdapter.ViewHolder> {
 
-    private final OnClickListener listener;
+    private final OnClickListener mListener;
     private final List<Person> mItems;
 
     public PersonAdapter(OnClickListener listener) {
-        this.listener = listener;
+        this.mListener = listener;
         this.mItems = new ArrayList<>();
     }
 
@@ -69,21 +68,16 @@ public class PersonAdapter extends RecyclerView.Adapter<PersonAdapter.ViewHolder
         }
         String profileUrl = item.hasProfile() ? TmdbUtil.buildProfileUrl(item.getProfilePath()) : "";
         ImgUtil.load(item.getName(), profileUrl, holder.binding.avatar, false);
+        holder.binding.getRoot().setOnClickListener(v -> mListener.onItemClick(item));
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
 
         private final AdapterPersonBinding binding;
 
         public ViewHolder(@NonNull AdapterPersonBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
-            itemView.setOnClickListener(this);
-        }
-
-        @Override
-        public void onClick(View view) {
-            listener.onItemClick(mItems.get(getLayoutPosition()));
         }
     }
 }

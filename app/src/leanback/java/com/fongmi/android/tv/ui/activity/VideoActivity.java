@@ -489,10 +489,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         TmdbUtil.searchAsync(name, result -> {
             App.post(() -> {
                 if (result.hasBackdrop()) {
-                    ImgUtil.load(name, result.getBackdropUrl(), mBinding.detailBackdrop, false);
+                    ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
                     mBinding.detailBackdrop.setVisibility(View.VISIBLE);
                     mBinding.detailScrim.setVisibility(View.VISIBLE);
-                    mBinding.detailScrim.setAlpha(Setting.getDetailScrimAlpha());
+                    mBinding.detailScrim.setAlpha(0.3f);
                 }
                 if (result.hasLogoUrl()) {
                     ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
@@ -1654,10 +1654,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     protected void onStart() {
         super.onStart();
         mClock.stop().start();
-        // 从设置页返回时更新黑幕透明度
-        if (mBinding.detailScrim.getVisibility() == View.VISIBLE) {
-            mBinding.detailScrim.setAlpha(Setting.getDetailScrimAlpha());
-        }
     }
 
     @Override
