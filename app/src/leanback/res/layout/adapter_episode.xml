@@ -10,7 +10,7 @@
     android:focusableInTouchMode="true"
     android:gravity="center"
     android:nextFocusUp="@id/flag"
-    android:nextFocusDown="@id/array"
+    android:nextFocusDown="@id/directorList"
     android:singleLine="true"
     android:textColor="@color/text"
     android:textSize="16sp"
