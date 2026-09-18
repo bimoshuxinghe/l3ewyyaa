@@ -250,8 +250,10 @@ public class TmdbUtil {
         // 背景图已缓存且 Logo 是否已查询过（含“无 Logo”哨兵）：都满足则直接返回，否则重新请求补全 Logo
         if (hasBackdropCache && Setting.isTmdbLogoDecided(name)) {
             Log.d(TAG, "Using cached result for: " + name);
+            int cachedId = Setting.getTmdbId(name);
+            String cachedMediaType = Setting.getTmdbMediaType(name);
             TmdbResult result = new TmdbResult(
-                0, "",
+                cachedId, cachedMediaType,
                 cachedBackdrops.isEmpty() ? cachedBackdrop : cachedBackdrops.get(0),
                 cachedBackdrops,
                 cachedOverviews,
@@ -270,6 +272,9 @@ public class TmdbUtil {
             if (result.hasOverview()) {
                 Setting.putTmdbOverview(name, result.getOverview());
             }
+            // 缓存id和mediaType，方便后续请求credits接口
+            Setting.putTmdbId(name, result.getId());
+            Setting.putTmdbMediaType(name, result.getMediaType());
             // 无论是否有 Logo 都写入（无 Logo 时写入 none 哨兵），避免重复请求
             Setting.putTmdbLogo(name, result.getLogoUrl());
             callback.onResult(result);
@@ -375,11 +380,11 @@ public class TmdbUtil {
     }
 
     /**
-     * 构建演员头像完整 URL（用w185尺寸，加载更快）
+     * 构建演员头像完整 URL（直接用用户配置的图片地址拼接，不加尺寸）
      */
     public static String buildProfileUrl(String profilePath) {
         if (TextUtils.isEmpty(profilePath)) return "";
-        return getImageBase() + "/w185" + profilePath;
+        return getImageBase() + profilePath;
     }
 
     public interface CreditsCallback {

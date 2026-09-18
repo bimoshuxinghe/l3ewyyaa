@@ -467,6 +467,22 @@ public class Setting {
         Prefers.put("tmdb_logo_v2_" + name, TextUtils.isEmpty(url) ? "none" : url);
     }
 
+    public static int getTmdbId(String name) {
+        return Prefers.getInt("tmdb_id_v2_" + name, 0);
+    }
+
+    public static void putTmdbId(String name, int id) {
+        Prefers.put("tmdb_id_v2_" + name, id);
+    }
+
+    public static String getTmdbMediaType(String name) {
+        return Prefers.getString("tmdb_media_type_v2_" + name, "");
+    }
+
+    public static void putTmdbMediaType(String name, String type) {
+        Prefers.put("tmdb_media_type_v2_" + name, type);
+    }
+
     public static float getDetailScrimAlpha() {
         return Prefers.getInt("detail_scrim_alpha", 50) / 100f;
     }
