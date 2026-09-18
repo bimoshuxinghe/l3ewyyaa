@@ -380,11 +380,11 @@ public class TmdbUtil {
     }
 
     /**
-     * 构建演员头像完整 URL（直接用用户配置的图片地址拼接，不加尺寸）
+     * 构建演员头像完整 URL（用w185尺寸，加载更快）
      */
     public static String buildProfileUrl(String profilePath) {
         if (TextUtils.isEmpty(profilePath)) return "";
-        return getImageBase() + profilePath;
+        return getImageBase() + "/w185" + profilePath;
     }
 
     public interface CreditsCallback {
