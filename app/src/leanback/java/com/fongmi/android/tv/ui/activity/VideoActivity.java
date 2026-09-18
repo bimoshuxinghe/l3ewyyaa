@@ -371,10 +371,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.quick.setAdapter(mQuickAdapter = new QuickAdapter(this));
         mBinding.directorList.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.directorList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        mBinding.directorList.setAdapter(mDirectorAdapter = new PersonAdapter(item -> initSearch(item.getName(), false)));
+        mBinding.directorList.setAdapter(mDirectorAdapter = new PersonAdapter(item -> SearchActivity.start(this, item.getName())));
         mBinding.castList.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.castList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> initSearch(item.getName(), false)));
+        mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> SearchActivity.start(this, item.getName())));
         mBinding.control.parse.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.control.parse.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.control.parse.setAdapter(mParseAdapter = new ParseAdapter(this));
@@ -489,10 +489,12 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         TmdbUtil.searchAsync(name, result -> {
             App.post(() -> {
                 if (result.hasBackdrop()) {
-                    ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
+                    // 必须先让 view VISIBLE 再加载图片，否则 Glide 在 GONE 的 view 上不会发起加载
                     mBinding.detailBackdrop.setVisibility(View.VISIBLE);
                     mBinding.detailScrim.setVisibility(View.VISIBLE);
                     mBinding.detailScrim.setAlpha(0.3f);
+                    // loadBackdrop 用屏幕原始尺寸 override，加载 original 超清原图，保证 1080P
+                    ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
                 }
                 if (result.hasLogoUrl()) {
                     ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
