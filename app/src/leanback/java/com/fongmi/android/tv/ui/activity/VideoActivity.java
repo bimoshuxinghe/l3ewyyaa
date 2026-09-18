@@ -473,10 +473,11 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         setText(item);
         updateKeep();
         showInfoLayout();
-        loadTmdbInfo(item.getName());
+        loadTmdbInfo(item);
     }
 
-    private void loadTmdbInfo(String name) {
+    private void loadTmdbInfo(Vod item) {
+        String name = item.getName();
         mDirectorAdapter.clear();
         mCastAdapter.clear();
         mBinding.directorTitle.setVisibility(View.GONE);
@@ -499,9 +500,15 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                     mBinding.name.setVisibility(View.INVISIBLE);
                 }
             });
-            if (!result.hasId()) return;
+            if (!result.hasId()) {
+                showFallbackPersons(item);
+                return;
+            }
             TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
-                if (credits.isEmpty()) return;
+                if (credits.isEmpty()) {
+                    showFallbackPersons(item);
+                    return;
+                }
                 App.post(() -> {
                     List<Person> directors = credits.getDirectors();
                     if (!directors.isEmpty()) {
@@ -520,6 +527,36 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 });
             });
         });
+    }
+
+    private void showFallbackPersons(Vod item) {
+        App.post(() -> {
+            List<Person> directors = parsePersonNames(item.getDirector());
+            if (!directors.isEmpty()) {
+                mBinding.directorTitle.setText("导演");
+                mBinding.directorTitle.setVisibility(View.VISIBLE);
+                mBinding.directorList.setVisibility(View.VISIBLE);
+                mDirectorAdapter.addAll(directors);
+            }
+            List<Person> cast = parsePersonNames(item.getActor());
+            if (!cast.isEmpty()) {
+                mBinding.castTitle.setText("演员");
+                mBinding.castTitle.setVisibility(View.VISIBLE);
+                mBinding.castList.setVisibility(View.VISIBLE);
+                mCastAdapter.addAll(cast);
+            }
+        });
+    }
+
+    private List<Person> parsePersonNames(String text) {
+        List<Person> list = new ArrayList<>();
+        if (TextUtils.isEmpty(text)) return list;
+        String[] names = text.split("[,，、]");
+        for (String n : names) {
+            n = n.trim();
+            if (!n.isEmpty()) list.add(new Person(n));
+        }
+        return list;
     }
 
     private void setText(Vod item) {
