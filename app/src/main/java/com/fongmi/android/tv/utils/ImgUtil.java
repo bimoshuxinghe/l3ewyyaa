@@ -160,6 +160,8 @@ public class ImgUtil {
         if (url.contains("@Referer=")) builder.addHeader(HttpHeaders.REFERER, param = url.split("@Referer=")[1].split("@")[0]);
         if (url.contains("@User-Agent=")) builder.addHeader(HttpHeaders.USER_AGENT, param = url.split("@User-Agent=")[1].split("@")[0]);
         url = param == null ? url : url.split("@")[0];
+        // 豆瓣图床（doubanio）有防盗链：不带 Referer 会返回 418，自动补移动端 Referer
+        if (url.contains("doubanio.com")) builder.addHeader(HttpHeaders.REFERER, "https://m.douban.com/");
         return TextUtils.isEmpty(url) ? null : new GlideUrl(url, builder.build());
     }
 

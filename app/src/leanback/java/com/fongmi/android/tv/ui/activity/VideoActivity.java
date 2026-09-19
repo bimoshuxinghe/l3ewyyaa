@@ -82,6 +82,8 @@ import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.KeyUtil;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.TmdbUtil;
+import com.fongmi.android.tv.utils.TmdbResult;
+import com.fongmi.android.tv.utils.DoubanUtil;
 import com.fongmi.android.tv.utils.PartUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Sniffer;
@@ -496,57 +498,89 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         // 延迟加载：等详情页 UI、播放器先初始化完成，避免与详情请求/大图解码争抢 CPU 和带宽造成转圈卡顿
         App.post(() -> {
             if (token != mTmdbToken) return;
-            TmdbUtil.searchAsync(name, result -> {
-                if (token != mTmdbToken) return;
-                App.post(() -> {
+            if (Setting.hasTmdbApiKey()) {
+                // 已配置 TMDB key：优先 TMDB（国内可能需代理/镜像）；无结果或连不上时自动兜底豆瓣
+                TmdbUtil.searchAsync(name, result -> {
                     if (token != mTmdbToken) return;
-                    if (result.hasBackdrop()) {
-                        // 先 VISIBLE 再加载（Glide 对 GONE 的 view 不发起加载），并淡入避免突兀
-                        mBinding.detailBackdrop.setVisibility(View.VISIBLE);
-                        mBinding.detailBackdrop.setAlpha(0f);
-                        mBinding.detailScrim.setVisibility(View.VISIBLE);
-                        mBinding.detailScrim.setAlpha(0.3f);
-                        ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
-                        mBinding.detailBackdrop.animate().alpha(1f).setDuration(400).start();
+                    App.post(() -> applyBackdrop(name, result, token));
+                    if (!result.hasId()) {
+                        loadDouban(item, name, token);
+                        return;
                     }
-                    if (result.hasLogoUrl()) {
-                        ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
-                        mBinding.titleLogo.setVisibility(View.VISIBLE);
-                        mBinding.name.setVisibility(View.INVISIBLE);
-                    }
+                    TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
+                        if (token != mTmdbToken) return;
+                        if (credits.isEmpty()) {
+                            loadDouban(item, name, token);
+                            return;
+                        }
+                        App.post(() -> applyCredits(credits, token));
+                    });
                 });
-                if (!result.hasId()) {
+            } else {
+                // 未配置 key：直接走豆瓣（国产直连，无需 key/代理）
+                loadDouban(item, name, token);
+            }
+        }, 400);
+    }
+
+    // 豆瓣兜底：国产直连，提供横版剧照背景 + 导演/演员（含头像）
+    private void loadDouban(Vod item, String name, int token) {
+        DoubanUtil.searchAsync(name, result -> {
+            if (token != mTmdbToken) return;
+            App.post(() -> applyBackdrop(name, result, token));
+            if (!result.hasId()) {
+                showFallbackPersons(item, token);
+                return;
+            }
+            DoubanUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
+                if (token != mTmdbToken) return;
+                if (credits.isEmpty()) {
                     showFallbackPersons(item, token);
                     return;
                 }
-                TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
-                    if (token != mTmdbToken) return;
-                    if (credits.isEmpty()) {
-                        showFallbackPersons(item, token);
-                        return;
-                    }
-                    App.post(() -> {
-                        if (token != mTmdbToken) return;
-                        List<Person> directors = credits.getDirectors();
-                        if (!directors.isEmpty()) {
-                            mBinding.directorTitle.setText("导演");
-                            mBinding.directorTitle.setVisibility(View.VISIBLE);
-                            mBinding.directorList.setVisibility(View.VISIBLE);
-                            mDirectorAdapter.addAll(directors);
-                        }
-                        List<Person> cast = credits.getTopCast(20);
-                        if (!cast.isEmpty()) {
-                            mBinding.castTitle.setText("演员");
-                            mBinding.castTitle.setVisibility(View.VISIBLE);
-                            mBinding.castList.setVisibility(View.VISIBLE);
-                            mCastAdapter.addAll(cast);
-                        }
-                        // 演员列表加载完成后更新焦点链路
-                        updateFocus();
-                    });
-                });
+                App.post(() -> applyCredits(credits, token));
             });
-        }, 400);
+        });
+    }
+
+    // 应用背景剧照 + 标题 Logo（TMDB / 豆瓣共用；豆瓣无 Logo 时保持文字剧名）
+    private void applyBackdrop(String name, TmdbResult result, int token) {
+        if (token != mTmdbToken) return;
+        if (result.hasBackdrop()) {
+            // 先 VISIBLE 再加载（Glide 对 GONE 的 view 不发起加载），并淡入避免突兀
+            mBinding.detailBackdrop.setVisibility(View.VISIBLE);
+            mBinding.detailBackdrop.setAlpha(0f);
+            mBinding.detailScrim.setVisibility(View.VISIBLE);
+            mBinding.detailScrim.setAlpha(0.3f);
+            ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
+            mBinding.detailBackdrop.animate().alpha(1f).setDuration(400).start();
+        }
+        if (result.hasLogoUrl()) {
+            ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
+            mBinding.titleLogo.setVisibility(View.VISIBLE);
+            mBinding.name.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    // 应用导演/演员列表（TMDB / 豆瓣共用）
+    private void applyCredits(CreditsResult credits, int token) {
+        if (token != mTmdbToken) return;
+        List<Person> directors = credits.getDirectors();
+        if (!directors.isEmpty()) {
+            mBinding.directorTitle.setText("导演");
+            mBinding.directorTitle.setVisibility(View.VISIBLE);
+            mBinding.directorList.setVisibility(View.VISIBLE);
+            mDirectorAdapter.addAll(directors);
+        }
+        List<Person> cast = credits.getTopCast(20);
+        if (!cast.isEmpty()) {
+            mBinding.castTitle.setText("演员");
+            mBinding.castTitle.setVisibility(View.VISIBLE);
+            mBinding.castList.setVisibility(View.VISIBLE);
+            mCastAdapter.addAll(cast);
+        }
+        // 演职员列表加载完成后更新焦点链路
+        updateFocus();
     }
 
     private void showFallbackPersons(Vod item, int token) {

@@ -302,50 +302,64 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     private void updateCoverBg(Vod item) {
         String itemName = item.getName();
-        // 优先使用 TMDB API 获取横屏背景图、剧情简介和标题 Logo
+        final String fallbackUrl = getFallbackCoverUrl(item);
         if (Setting.hasTmdbApiKey()) {
-            final String fallbackUrl = getFallbackCoverUrl(item);
-            com.fongmi.android.tv.utils.TmdbUtil.searchAsync(itemName, result -> {
+            // 已配置 TMDB key：优先 TMDB；拿不到背景（无结果/连不上）时兜底豆瓣
+            com.fongmi.android.tv.utils.TmdbUtil.searchAsync(itemName, result ->
                 runOnUiThread(() -> {
                     if (!TextUtils.equals(mCurrentHeroName, itemName)) return;
-                    // 使用 TMDB 标题 Logo 替换左侧文字标题
-                    if (result.hasLogoUrl()) {
-                        loadTitleLogo(itemName, result.getLogoUrl());
+                    if (result.hasBackdrops() || result.hasBackdrop()) {
+                        applyMetaResult(itemName, result, fallbackUrl);
                     } else {
-                        showTitleText();
+                        loadDoubanCover(itemName, fallbackUrl);
                     }
-                    // 保存多张背景图并启动随机轮换
-                    if (result.hasBackdrops()) {
-                        mCurrentBackdrops = new ArrayList<>(result.getBackdrops());
-                    } else if (result.hasBackdrop()) {
-                        mCurrentBackdrops.clear();
-                        mCurrentBackdrops.add(result.getBackdropUrl());
-                    }
-                    if (!mCurrentBackdrops.isEmpty()) {
-                        mCurrentBackdropIndex = mRandom.nextInt(mCurrentBackdrops.size());
-                        loadCoverBg(itemName, mCurrentBackdrops.get(mCurrentBackdropIndex));
-                        startBackdropRotation(itemName);
-                    } else if (!TextUtils.isEmpty(fallbackUrl)) {
-                        loadCoverBg(itemName, fallbackUrl);
-                    } else {
-                        hideCoverBg();
-                    }
-                    // 使用 TMDB 剧情简介更新
-                    if (result.hasOverview()) {
-                        mBinding.tip.setText(result.getOverview());
-                    }
-                });
-            });
-            return;
+                }));
+        } else {
+            // 未配置 key：直接走豆瓣（国产直连，无需 key/代理）
+            loadDoubanCover(itemName, fallbackUrl);
         }
-        // 没有配置 TMDB API Key，使用站点提供的图片
-        showTitleText();
-        String coverUrl = getFallbackCoverUrl(item);
-        if (TextUtils.isEmpty(coverUrl)) {
+    }
+
+    // 豆瓣兜底：横版剧照背景（多张轮播）+ 简介；无 Logo（保持文字标题）
+    private void loadDoubanCover(String itemName, String fallbackUrl) {
+        com.fongmi.android.tv.utils.DoubanUtil.searchAsync(itemName, result ->
+            runOnUiThread(() -> {
+                if (!TextUtils.equals(mCurrentHeroName, itemName)) return;
+                if (result.hasBackdrops() || result.hasBackdrop()) {
+                    applyMetaResult(itemName, result, fallbackUrl);
+                } else {
+                    showTitleText();
+                    if (!TextUtils.isEmpty(fallbackUrl)) loadCoverBg(itemName, fallbackUrl);
+                    else hideCoverBg();
+                }
+            }));
+    }
+
+    // 应用元数据结果（TMDB / 豆瓣共用）：标题 Logo、背景轮播、简介
+    private void applyMetaResult(String itemName, com.fongmi.android.tv.utils.TmdbResult result, String fallbackUrl) {
+        if (result.hasLogoUrl()) {
+            loadTitleLogo(itemName, result.getLogoUrl());
+        } else {
+            showTitleText();
+        }
+        if (result.hasBackdrops()) {
+            mCurrentBackdrops = new ArrayList<>(result.getBackdrops());
+        } else if (result.hasBackdrop()) {
+            mCurrentBackdrops.clear();
+            mCurrentBackdrops.add(result.getBackdropUrl());
+        }
+        if (!mCurrentBackdrops.isEmpty()) {
+            mCurrentBackdropIndex = mRandom.nextInt(mCurrentBackdrops.size());
+            loadCoverBg(itemName, mCurrentBackdrops.get(mCurrentBackdropIndex));
+            startBackdropRotation(itemName);
+        } else if (!TextUtils.isEmpty(fallbackUrl)) {
+            loadCoverBg(itemName, fallbackUrl);
+        } else {
             hideCoverBg();
-            return;
         }
-        loadCoverBg(itemName, coverUrl);
+        if (result.hasOverview()) {
+            mBinding.tip.setText(result.getOverview());
+        }
     }
 
     private String getFallbackCoverUrl(Vod item) {

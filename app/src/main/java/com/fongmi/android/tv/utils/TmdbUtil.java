@@ -394,10 +394,12 @@ public class TmdbUtil {
     }
 
     /**
-     * 构建演员头像完整 URL（用w185尺寸，加载更快）
+     * 构建演员头像完整 URL（用w185尺寸，加载更快）。
+     * 兼容豆瓣等国产源：profilePath 若已是 http(s) 完整 URL（如豆瓣头像）则原样返回。
      */
     public static String buildProfileUrl(String profilePath) {
         if (TextUtils.isEmpty(profilePath)) return "";
+        if (profilePath.startsWith("http://") || profilePath.startsWith("https://")) return profilePath;
         return getImageBase() + "/w185" + profilePath;
     }
 
