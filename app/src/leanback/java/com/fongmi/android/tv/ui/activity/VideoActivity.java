@@ -373,10 +373,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.quick.setAdapter(mQuickAdapter = new QuickAdapter(this));
         mBinding.directorList.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.directorList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        mBinding.directorList.setAdapter(mDirectorAdapter = new PersonAdapter(item -> SearchActivity.start(this, item.getName())));
+        mBinding.directorList.setAdapter(mDirectorAdapter = new PersonAdapter(item -> jumpToPersonSearch(item.getName())));
         mBinding.castList.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.castList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> SearchActivity.start(this, item.getName())));
+        mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> jumpToPersonSearch(item.getName())));
         mBinding.control.parse.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.control.parse.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.control.parse.setAdapter(mParseAdapter = new ParseAdapter(this));
@@ -1529,6 +1529,13 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private void onPaused() {
         controller().pause();
         syncHistory(true);
+    }
+
+    // 点击导演/演员跳转搜索页：置 redirect 标记，基类 onPause 会暂停播放、onStop 保存进度，
+    // 与跳详情页/外部播放器一致，避免跳到搜索页后视频仍在后台出声播放
+    private void jumpToPersonSearch(String name) {
+        setRedirect(true);
+        SearchActivity.start(this, name);
     }
 
     private void onPlay() {
