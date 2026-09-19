@@ -150,6 +150,42 @@ public class ImgUtil {
         }
     }
 
+    /**
+     * 加载标题 Logo（透明 PNG，如 TMDb logo）。
+     * 与列表海报不同：不做 override(targetWidth)，按原始尺寸加载，
+     * 交由 ImageView 的 wrap_content + adjustViewBounds 按固定高度等比缩放，
+     * 避免被撑成屏幕 1/4 宽后 fitCenter 居中，导致左边缘与站源/导演/演员文字列错位。
+     */
+    public static void loadLogo(String url, ImageView view) {
+        if (TextUtils.isEmpty(url) || failed.contains(url)) {
+            view.setVisibility(View.GONE);
+            return;
+        }
+        try {
+            view.setVisibility(View.VISIBLE);
+            Glide.with(view)
+                .load(getUrl(url))
+                .override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL)
+                .fitCenter()
+                .listener(new RequestListener<>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
+                        failed.add(url);
+                        view.setVisibility(View.GONE);
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
+                        return false;
+                    }
+                })
+                .into(view);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
     public static Object getUrl(String url) {
         String param = null;
         url = UrlUtil.convert(url);

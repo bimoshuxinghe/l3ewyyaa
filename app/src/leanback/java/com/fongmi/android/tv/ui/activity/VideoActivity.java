@@ -556,7 +556,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             mBinding.detailBackdrop.animate().alpha(1f).setDuration(400).start();
         }
         if (result.hasLogoUrl()) {
-            ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
+            ImgUtil.loadLogo(result.getLogoUrl(), mBinding.titleLogo);
             mBinding.titleLogo.setVisibility(View.VISIBLE);
             mBinding.name.setVisibility(View.INVISIBLE);
         }

@@ -425,7 +425,7 @@ public class CinemaHomeActivity extends BaseActivity implements
         mLastTitleUrl = logoUrl;
         mBinding.appTitle.setVisibility(View.GONE);
         mBinding.appTitleLogo.setVisibility(View.VISIBLE);
-        ImgUtil.load(name, logoUrl, mBinding.appTitleLogo, false);
+        ImgUtil.loadLogo(logoUrl, mBinding.appTitleLogo);
     }
 
     private void showTitleText() {
