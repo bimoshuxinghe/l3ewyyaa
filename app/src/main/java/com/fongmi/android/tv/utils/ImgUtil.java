@@ -19,6 +19,7 @@ import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.fongmi.android.tv.App;
@@ -102,6 +103,47 @@ public class ImgUtil {
                 .override(ResUtil.getScreenWidth(), ResUtil.getScreenHeight())
                 .listener(getListener(text, url, view, true))
                 .error(R.drawable.artwork)
+                .into(view);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 加载全屏背景图，带“新图就绪”回调，并启用 crossFade。
+     * 切换背景时不要先把旧图淡出（旧图淡出 + 新图网络加载的间隙会黑屏），
+     * 而是保持旧图可见，Glide 加载到新图后通过 crossFade 从旧图平滑交叉淡入，全程不黑屏。
+     *
+     * @param onReady 新图成功加载并显示到 view 后回调（主线程）；可为 null。
+     */
+    public static void loadBackdrop(String text, String url, ImageView view, @Nullable Runnable onReady) {
+        view.setScaleType(CENTER_CROP);
+        if (TextUtils.isEmpty(url) || failed.contains(url)) {
+            view.setImageDrawable(getTextDrawable(text, true));
+            if (onReady != null) onReady.run();
+            return;
+        }
+        try {
+            Glide.with(view)
+                .load(getUrl(url))
+                .centerCrop()
+                .override(ResUtil.getScreenWidth(), ResUtil.getScreenHeight())
+                .transition(DrawableTransitionOptions.withCrossFade(300))
+                .error(R.drawable.artwork)
+                .listener(new RequestListener<>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
+                        view.setImageDrawable(getTextDrawable(text, true));
+                        failed.add(url);
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
+                        if (onReady != null) view.post(onReady);
+                        return false; // 返回 false 让 Glide 继续执行 crossFade 过渡
+                    }
+                })
                 .into(view);
         } catch (Throwable e) {
             e.printStackTrace();

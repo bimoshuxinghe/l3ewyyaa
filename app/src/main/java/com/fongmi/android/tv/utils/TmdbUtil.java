@@ -47,9 +47,22 @@ public class TmdbUtil {
         return url;
     }
 
-    private static String buildImageUrl(String path) {
+    /**
+     * 背景海报用 w1280（1280x720），而非 original（常为 1080P/4K，数 MB）。
+     * 低端电视盒子（安卓9）解码数 MB 大图会卡顿、占内存引发 GC；
+     * w1280 单张仅数百 KB，配合 30% 黑幕作为衬托，观感足够且加载/解码快很多。
+     */
+    private static String buildBackdropUrl(String path) {
         if (TextUtils.isEmpty(path)) return "";
-        return getImageBase() + "/original" + path;
+        return getImageBase() + "/w1280" + path;
+    }
+
+    /**
+     * 标题 Logo 用 w500，横向透明 PNG，宽度 500 在详情页已足够清晰，体积远小于 original。
+     */
+    private static String buildLogoUrl(String path) {
+        if (TextUtils.isEmpty(path)) return "";
+        return getImageBase() + "/w500" + path;
     }
 
     /**
@@ -181,7 +194,7 @@ public class TmdbUtil {
                     if (!o.has("file_path") || o.get("file_path").isJsonNull()) continue;
                     String path = o.get("file_path").getAsString();
                     if (TextUtils.isEmpty(path)) continue;
-                    String imageUrl = buildImageUrl(path);
+                    String imageUrl = buildBackdropUrl(path);
                     if (backdrops.isEmpty()) firstBackdrop = imageUrl;
                     backdrops.add(imageUrl);
                 }
@@ -209,7 +222,7 @@ public class TmdbUtil {
             if (o.has("iso_639_1") && !o.get("iso_639_1").isJsonNull()) {
                 iso = o.get("iso_639_1").getAsString();
             }
-            String url = buildImageUrl(path);
+            String url = buildLogoUrl(path);
             if (other.isEmpty()) other = url;
             // 识别无语言标识（通用）Logo，视为英文备选
             if (TextUtils.isEmpty(iso)) {

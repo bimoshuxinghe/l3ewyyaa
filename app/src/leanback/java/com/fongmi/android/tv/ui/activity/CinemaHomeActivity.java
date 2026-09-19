@@ -364,15 +364,16 @@ public class CinemaHomeActivity extends BaseActivity implements
         mLastCoverUrl = coverUrl;
         boolean isFirstLoad = mBinding.coverBg.getVisibility() != View.VISIBLE;
         if (isFirstLoad) {
+            // 首次：先透明，等新图真正加载完成再淡入，避免加载期间黑屏
             mBinding.coverBg.setVisibility(View.VISIBLE);
             mBinding.coverBg.setAlpha(0f);
-            ImgUtil.loadBackdrop(name, coverUrl, mBinding.coverBg);
-            mBinding.coverBg.animate().alpha(0.92f).setDuration(400).start();
+            ImgUtil.loadBackdrop(name, coverUrl, mBinding.coverBg,
+                () -> mBinding.coverBg.animate().alpha(0.92f).setDuration(400).start());
         } else {
-            mBinding.coverBg.animate().alpha(0f).setDuration(200).withEndAction(() -> {
-                ImgUtil.loadBackdrop(name, coverUrl, mBinding.coverBg);
-                mBinding.coverBg.animate().alpha(0.92f).setDuration(400).start();
-            }).start();
+            // 切换/轮播：保持旧背景可见，Glide 加载到新图后 crossFade 从旧图平滑交叉淡入，全程不黑屏
+            mBinding.coverBg.animate().cancel();
+            mBinding.coverBg.setAlpha(0.92f);
+            ImgUtil.loadBackdrop(name, coverUrl, mBinding.coverBg, null);
         }
     }
 

@@ -115,6 +115,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private PartAdapter mPartAdapter;
     private PersonAdapter mDirectorAdapter;
     private PersonAdapter mCastAdapter;
+    // TMDb 加载令牌：每次进详情页自增，回调时校验，避免快速换台时旧请求回填到新页面
+    private int mTmdbToken;
     private CustomKeyDownVod mKeyDown;
     private SiteViewModel mViewModel;
     private List<String> mBroken;
@@ -486,55 +488,70 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.castList.setVisibility(View.GONE);
         mBinding.titleLogo.setVisibility(View.GONE);
         mBinding.name.setVisibility(View.VISIBLE);
-        TmdbUtil.searchAsync(name, result -> {
-            App.post(() -> {
-                if (result.hasBackdrop()) {
-                    // 必须先让 view VISIBLE 再加载图片，否则 Glide 在 GONE 的 view 上不会发起加载
-                    mBinding.detailBackdrop.setVisibility(View.VISIBLE);
-                    mBinding.detailScrim.setVisibility(View.VISIBLE);
-                    mBinding.detailScrim.setAlpha(0.3f);
-                    // loadBackdrop 用屏幕原始尺寸 override，加载 original 超清原图，保证 1080P
-                    ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
-                }
-                if (result.hasLogoUrl()) {
-                    ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
-                    mBinding.titleLogo.setVisibility(View.VISIBLE);
-                    mBinding.name.setVisibility(View.INVISIBLE);
-                }
-            });
-            if (!result.hasId()) {
-                showFallbackPersons(item);
-                return;
-            }
-            TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
-                if (credits.isEmpty()) {
-                    showFallbackPersons(item);
+        // 重置上一部剧的背景，避免残留
+        mBinding.detailBackdrop.setVisibility(View.GONE);
+        mBinding.detailScrim.setVisibility(View.GONE);
+        // 令牌自增：快速换台时让上一次未完成的 TMDb 回调全部失效，防止回填错乱与无效图片解码
+        final int token = ++mTmdbToken;
+        // 延迟加载：等详情页 UI、播放器先初始化完成，避免与详情请求/大图解码争抢 CPU 和带宽造成转圈卡顿
+        App.post(() -> {
+            if (token != mTmdbToken) return;
+            TmdbUtil.searchAsync(name, result -> {
+                if (token != mTmdbToken) return;
+                App.post(() -> {
+                    if (token != mTmdbToken) return;
+                    if (result.hasBackdrop()) {
+                        // 先 VISIBLE 再加载（Glide 对 GONE 的 view 不发起加载），并淡入避免突兀
+                        mBinding.detailBackdrop.setVisibility(View.VISIBLE);
+                        mBinding.detailBackdrop.setAlpha(0f);
+                        mBinding.detailScrim.setVisibility(View.VISIBLE);
+                        mBinding.detailScrim.setAlpha(0.3f);
+                        ImgUtil.loadBackdrop(name, result.getBackdropUrl(), mBinding.detailBackdrop);
+                        mBinding.detailBackdrop.animate().alpha(1f).setDuration(400).start();
+                    }
+                    if (result.hasLogoUrl()) {
+                        ImgUtil.load(name, result.getLogoUrl(), mBinding.titleLogo, false);
+                        mBinding.titleLogo.setVisibility(View.VISIBLE);
+                        mBinding.name.setVisibility(View.INVISIBLE);
+                    }
+                });
+                if (!result.hasId()) {
+                    showFallbackPersons(item, token);
                     return;
                 }
-                App.post(() -> {
-                    List<Person> directors = credits.getDirectors();
-                    if (!directors.isEmpty()) {
-                        mBinding.directorTitle.setText("导演");
-                        mBinding.directorTitle.setVisibility(View.VISIBLE);
-                        mBinding.directorList.setVisibility(View.VISIBLE);
-                        mDirectorAdapter.addAll(directors);
+                TmdbUtil.getCreditsAsync(result.getId(), result.getMediaType(), credits -> {
+                    if (token != mTmdbToken) return;
+                    if (credits.isEmpty()) {
+                        showFallbackPersons(item, token);
+                        return;
                     }
-                    List<Person> cast = credits.getTopCast(20);
-                    if (!cast.isEmpty()) {
-                        mBinding.castTitle.setText("演员");
-                        mBinding.castTitle.setVisibility(View.VISIBLE);
-                        mBinding.castList.setVisibility(View.VISIBLE);
-                        mCastAdapter.addAll(cast);
-                    }
-                    // 演员列表加载完成后更新焦点链路
-                    updateFocus();
+                    App.post(() -> {
+                        if (token != mTmdbToken) return;
+                        List<Person> directors = credits.getDirectors();
+                        if (!directors.isEmpty()) {
+                            mBinding.directorTitle.setText("导演");
+                            mBinding.directorTitle.setVisibility(View.VISIBLE);
+                            mBinding.directorList.setVisibility(View.VISIBLE);
+                            mDirectorAdapter.addAll(directors);
+                        }
+                        List<Person> cast = credits.getTopCast(20);
+                        if (!cast.isEmpty()) {
+                            mBinding.castTitle.setText("演员");
+                            mBinding.castTitle.setVisibility(View.VISIBLE);
+                            mBinding.castList.setVisibility(View.VISIBLE);
+                            mCastAdapter.addAll(cast);
+                        }
+                        // 演员列表加载完成后更新焦点链路
+                        updateFocus();
+                    });
                 });
             });
-        });
+        }, 400);
     }
 
-    private void showFallbackPersons(Vod item) {
+    private void showFallbackPersons(Vod item, int token) {
         App.post(() -> {
+            if (token != mTmdbToken) return;
             List<Person> directors = parsePersonNames(item.getDirector());
             if (!directors.isEmpty()) {
                 mBinding.directorTitle.setText("导演");

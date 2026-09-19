@@ -412,11 +412,11 @@ public class Setting {
     }
 
     public static String getTmdbBackdrop(String name) {
-        return Prefers.getString("tmdb_backdrop_v2_" + name, "");
+        return Prefers.getString("tmdb_backdrop_v3_" + name, "");
     }
 
     public static void putTmdbBackdrop(String name, String url) {
-        Prefers.put("tmdb_backdrop_v2_" + name, url);
+        Prefers.put("tmdb_backdrop_v3_" + name, url);
     }
 
     public static String getTmdbOverview(String name) {
@@ -428,7 +428,7 @@ public class Setting {
     }
 
     public static List<String> getTmdbBackdrops(String name) {
-        String value = Prefers.getString("tmdb_backdrops_v2_" + name, "");
+        String value = Prefers.getString("tmdb_backdrops_v3_" + name, "");
         if (TextUtils.isEmpty(value)) return new ArrayList<>();
         String[] split = value.split("\\|");
         List<String> list = new ArrayList<>();
@@ -440,7 +440,7 @@ public class Setting {
 
     public static void putTmdbBackdrops(String name, List<String> urls) {
         if (urls == null || urls.isEmpty()) {
-            Prefers.put("tmdb_backdrops_v2_" + name, "");
+            Prefers.put("tmdb_backdrops_v3_" + name, "");
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -448,23 +448,23 @@ public class Setting {
             if (sb.length() > 0) sb.append("|");
             sb.append(url);
         }
-        Prefers.put("tmdb_backdrops_v2_" + name, sb.toString());
+        Prefers.put("tmdb_backdrops_v3_" + name, sb.toString());
     }
 
     public static String getTmdbLogo(String name) {
-        String value = Prefers.getString("tmdb_logo_v2_" + name, "");
+        String value = Prefers.getString("tmdb_logo_v3_" + name, "");
         // 哨兵 "none" 表示已查询过但确实没有 Logo，对外当作空处理
         return "none".equals(value) ? "" : value;
     }
 
     public static boolean isTmdbLogoDecided(String name) {
-        // 仅当曾经写入过 tmdb_logo_v2_ 时才认为已查询（含 none 哨兵）
-        return Prefers.getString("tmdb_logo_v2_" + name, null) != null;
+        // 仅当曾经写入过 tmdb_logo_v3_ 时才认为已查询（含 none 哨兵）
+        return Prefers.getString("tmdb_logo_v3_" + name, null) != null;
     }
 
     public static void putTmdbLogo(String name, String url) {
         // 没有 Logo 时写入哨兵，避免后续重复请求却永远拿不到
-        Prefers.put("tmdb_logo_v2_" + name, TextUtils.isEmpty(url) ? "none" : url);
+        Prefers.put("tmdb_logo_v3_" + name, TextUtils.isEmpty(url) ? "none" : url);
     }
 
     public static int getTmdbId(String name) {
