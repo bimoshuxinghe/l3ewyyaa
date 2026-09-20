@@ -13,7 +13,7 @@
         android:adjustViewBounds="true"
         android:scaleType="fitCenter" />
 
-    <LinearLayoutCompat
+    <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -51,6 +51,6 @@
             android:textColor="#99FFFFFF"
             android:textSize="14sp" />
 
-    </LinearLayoutCompat>
+    </androidx.appcompat.widget.LinearLayoutCompat>
 
 </FrameLayout>
