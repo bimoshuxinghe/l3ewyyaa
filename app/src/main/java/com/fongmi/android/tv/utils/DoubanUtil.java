@@ -27,7 +27,9 @@ import java.util.regex.Pattern;
  * 豆瓣不提供透明标题 Logo，故 logoUrl 恒为空，UI 会自动降级为文字剧名。
  *
  * 接口（m.douban.com rexxar，仅需移动端 UA + Referer）：
- * - 搜索建议：https://movie.douban.com/j/subject_suggest?q=
+ * - 搜索（首选，数据中心 IP 下也稳定）：/rexxar/api/v2/search/movie?q=
+ * - 搜索（备1，偶发 need_login）：      /rexxar/api/v2/search?q=
+ * - 搜索（备2，家宽环境可用）：         https://movie.douban.com/j/subject_suggest?q=
  * - 详情：    /rexxar/api/v2/{tv|movie}/{id}
  * - 壁纸剧照：/rexxar/api/v2/{tv|movie}/{id}/photos?type=W
  * - 演职员：  /rexxar/api/v2/{tv|movie}/{id}/credits
@@ -36,8 +38,11 @@ public class DoubanUtil {
 
     private static final String TAG = "DoubanUtil";
     private static final String UA = "Mozilla/5.0 (Linux; Android 10; Pixel 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36";
-    private static final String SUGGEST_URL = "https://movie.douban.com/j/subject_suggest?q=";
     private static final String REXXAR = "https://m.douban.com/rexxar/api/v2";
+    // 搜索源按稳定性排序：search/movie 在数据中心 IP 下也稳定；search 偶发 need_login；suggest 仅家宽稳定
+    private static final String SEARCH_MOVIE_URL = REXXAR + "/search/movie?start=0&limit=10&q=";
+    private static final String SEARCH_URL = REXXAR + "/search?start=0&limit=10&q=";
+    private static final String SUGGEST_URL = "https://movie.douban.com/j/subject_suggest?q=";
     // 统一走稳定的 img9 域名，去掉会过期的 qnmob*-sign 签名参数
     private static final String IMG_BASE = "https://img9.doubanio.com";
     // 匹配 doubanio 图片路径：/view/(photo|celebrity|personage)/<尺寸>/public/<文件名>
@@ -126,53 +131,106 @@ public class DoubanUtil {
         }
     }
 
-    /** 搜索建议取最匹配的 subject id（带一次重试） */
+    /**
+     * 剧名 -> subject id，多源容错。
+     * 1) rexxar /search/movie（首选，数据中心 IP 下也稳定，items[].target）
+     * 2) rexxar /search（subjects.items[].target，偶发 need_login）
+     * 3) movie.douban.com/j/subject_suggest（数组，家宽环境可用）
+     * 每个源失败重试一次；候选统一按标题相关度 + 上映年份评分，规避同名山寨/未上映条目。
+     */
     private static String suggestId(String name) {
-        for (int attempt = 0; attempt < 2; attempt++) {
-            try {
-                String url = SUGGEST_URL + URLEncoder.encode(name, StandardCharsets.UTF_8.name());
-                String json = get(url, "https://movie.douban.com/");
-                if (TextUtils.isEmpty(json) || !json.startsWith("[")) {
-                    sleep(300);
-                    continue;
+        try {
+            String enc = URLEncoder.encode(name, StandardCharsets.UTF_8.name());
+            String[][] sources = {
+                    {SEARCH_MOVIE_URL + enc, "https://m.douban.com/search/?query=" + enc},
+                    {SEARCH_URL + enc, "https://m.douban.com/search/?query=" + enc},
+                    {SUGGEST_URL + enc, "https://movie.douban.com/"}
+            };
+            for (String[] src : sources) {
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    String id = pickCandidate(name, get(src[0], src[1]));
+                    if (!TextUtils.isEmpty(id)) return id;
+                    if (attempt == 0) sleep(350);
                 }
-                JsonArray arr = JsonParser.parseString(json).getAsJsonArray();
-                String best = "";
-                int bestScore = -1;
-                for (JsonElement el : arr) {
-                    if (!el.isJsonObject()) continue;
-                    JsonObject o = el.getAsJsonObject();
-                    String title = optString(o, "title");
-                    String sub = optString(o, "sub_title");
-                    String type = optString(o, "type");
-                    // 排除书籍、音乐、游戏等非影视条目（豆瓣剧集也常标 movie）
-                    if (!TextUtils.isEmpty(type) && !"movie".equals(type) && !"tv".equals(type)) continue;
-                    if (TextUtils.isEmpty(title) || !o.has("id") || o.get("id").isJsonNull()) continue;
-                    int score = matchScore(name, title, sub);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        best = o.get("id").getAsString();
-                    }
-                }
-                if (!TextUtils.isEmpty(best)) return best;
-            } catch (Throwable e) {
-                Log.w(TAG, "suggestId attempt " + attempt + " failed: " + e.getMessage());
             }
-            sleep(300);
+        } catch (Throwable e) {
+            Log.w(TAG, "suggestId failed: " + e.getMessage());
         }
         return "";
+    }
+
+    /** 递归收集搜索结果里所有含 id+title 的候选条目，兼容三种搜索接口的不同包裹结构 */
+    private static void collectCandidates(JsonElement el, List<JsonObject> out) {
+        if (el == null) return;
+        if (el.isJsonArray()) {
+            for (JsonElement x : el.getAsJsonArray()) collectCandidates(x, out);
+        } else if (el.isJsonObject()) {
+            JsonObject o = el.getAsJsonObject();
+            if (o.has("id") && o.has("title")) out.add(o);
+            for (Map.Entry<String, JsonElement> en : o.entrySet()) collectCandidates(en.getValue(), out);
+        }
+    }
+
+    private static String pickCandidate(String name, String json) {
+        if (TextUtils.isEmpty(json) || (!json.startsWith("{") && !json.startsWith("["))) return "";
+        if (json.contains("need_login") || json.contains("traversal_error")) return "";
+        List<JsonObject> cand = new ArrayList<>();
+        try {
+            JsonElement root = JsonParser.parseString(json);
+            if (root.isJsonArray()) {
+                for (JsonElement x : root.getAsJsonArray()) if (x.isJsonObject()) cand.add(x.getAsJsonObject());
+            } else {
+                collectCandidates(root, cand);
+            }
+        } catch (Throwable e) {
+            return "";
+        }
+        int thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR);
+        String best = "";
+        int bestScore = -1, bestYear = Integer.MAX_VALUE;
+        for (JsonObject o : cand) {
+            String title = optString(o, "title");
+            if (TextUtils.isEmpty(title) || !o.has("id") || o.get("id").isJsonNull()) continue;
+            String type = optString(o, "type");
+            // 排除书籍、音乐等非影视条目（豆瓣剧集也常标 movie）
+            if (!TextUtils.isEmpty(type) && !"movie".equals(type) && !"tv".equals(type)) continue;
+            int y = parseYear(optString(o, "year"));
+            int s = matchScore(name, title, y, thisYear);
+            if (s > bestScore || (s == bestScore && y > 0 && y < bestYear)) {
+                bestScore = s;
+                bestYear = y;
+                best = o.get("id").getAsString();
+            }
+        }
+        return best;
+    }
+
+    private static int parseYear(String y) {
+        Matcher m = Pattern.compile("(\\d{4})").matcher(y == null ? "" : y);
+        try { return m.find() ? Integer.parseInt(m.group(1)) : 0; } catch (Throwable e) { return 0; }
     }
 
     private static void sleep(long ms) {
         try { Thread.sleep(ms); } catch (InterruptedException ignore) { Thread.currentThread().interrupt(); }
     }
 
-    private static int matchScore(String query, String title, String sub) {
+    /**
+     * 标题相关度评分，结合上映年份：
+     * - 完全同名但年份在未来（未上映/占位条目）降权；
+     * - 用户未指定季时，非首季（第二/三季…）略降，含“第一季”略升，使裸剧名命中第一季；
+     * - 同分时优先上映更早、信息更确定的条目。
+     */
+    private static int matchScore(String query, String title, int year, int thisYear) {
         String q = query.replaceAll("\\s+", "");
         String t = title.replaceAll("\\s+", "");
-        String s = sub.replaceAll("\\s+", "");
-        if (t.equals(q) || (!TextUtils.isEmpty(s) && s.equals(q))) return 100;
-        if (t.contains(q) || q.contains(t) || (!TextUtils.isEmpty(s) && s.contains(q))) return 80;
+        boolean future = year > thisYear + 1;
+        if (t.equals(q)) return future ? 70 : 100;
+        if (t.contains(q) || q.contains(t)) {
+            boolean queryNoLaterSeason = !q.matches(".*第[二三四五六七八九十2-9].*");
+            if (queryNoLaterSeason && t.matches(".*第[二三四五六七八九十2-9]季.*")) return 75;
+            if (t.contains("第一季")) return 85;
+            return 80;
+        }
         // 去掉“第x季”后再比，处理“庆余年”匹配“庆余年 第一季”
         String base = q.replaceAll("第[0-9一二三四五六七八九十]+季.*", "");
         if (base.length() >= 2 && (t.contains(base) || base.contains(t))) return 60;

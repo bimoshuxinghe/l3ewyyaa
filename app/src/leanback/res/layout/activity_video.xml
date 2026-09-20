@@ -338,6 +338,31 @@
                 android:clipToPadding="false"
                 android:focusable="true"
                 android:nextFocusUp="@id/directorList"
+                android:nextFocusDown="@id/stillList"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:visibility="gone" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/stillTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="剧照"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <androidx.leanback.widget.HorizontalGridView
+                android:id="@+id/stillList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:focusable="true"
+                android:nextFocusUp="@id/castList"
                 android:nextFocusDown="@id/array"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
@@ -350,7 +375,7 @@
                 android:layout_marginBottom="16dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
-                android:nextFocusUp="@id/castList"
+                android:nextFocusUp="@id/stillList"
                 android:paddingStart="24dp"
                 android:paddingEnd="24dp"
                 android:visibility="gone" />

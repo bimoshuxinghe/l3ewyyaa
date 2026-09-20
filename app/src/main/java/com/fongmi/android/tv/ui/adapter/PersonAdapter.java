@@ -7,9 +7,12 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.Person;
 import com.fongmi.android.tv.databinding.AdapterPersonBinding;
 import com.fongmi.android.tv.utils.ImgUtil;
+import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.TmdbUtil;
 
 import java.util.ArrayList;
@@ -67,7 +70,18 @@ public class PersonAdapter extends RecyclerView.Adapter<PersonAdapter.ViewHolder
             holder.binding.character.setVisibility(View.GONE);
         }
         String profileUrl = item.hasProfile() ? TmdbUtil.buildProfileUrl(item.getProfilePath()) : "";
-        ImgUtil.load(item.getName(), profileUrl, holder.binding.avatar, false);
+        if (profileUrl == null || profileUrl.isEmpty()) {
+            holder.binding.avatar.setImageResource(R.drawable.artwork);
+        } else {
+            // 强制圆形裁剪，并按头像实际尺寸小图解码，避免全尺寸图拉大列表滚动/进详情页的卡顿
+            Glide.with(holder.binding.avatar)
+                    .load(ImgUtil.getUrl(profileUrl))
+                    .circleCrop()
+                    .override(ResUtil.dp2px(72) * 2, ResUtil.dp2px(72) * 2)
+                    .placeholder(R.drawable.artwork)
+                    .error(R.drawable.artwork)
+                    .into(holder.binding.avatar);
+        }
         holder.binding.getRoot().setOnClickListener(v -> mListener.onItemClick(item));
     }
 

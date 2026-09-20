@@ -64,6 +64,7 @@ import com.fongmi.android.tv.ui.adapter.FlagAdapter;
 import com.fongmi.android.tv.ui.adapter.ParseAdapter;
 import com.fongmi.android.tv.ui.adapter.PartAdapter;
 import com.fongmi.android.tv.ui.adapter.PersonAdapter;
+import com.fongmi.android.tv.ui.adapter.StillAdapter;
 import com.fongmi.android.tv.ui.adapter.QualityAdapter;
 import com.fongmi.android.tv.ui.adapter.QuickAdapter;
 import com.fongmi.android.tv.ui.custom.CustomKeyDownVod;
@@ -117,6 +118,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private PartAdapter mPartAdapter;
     private PersonAdapter mDirectorAdapter;
     private PersonAdapter mCastAdapter;
+    private StillAdapter mStillAdapter;
     // TMDb 加载令牌：每次进详情页自增，回调时校验，避免快速换台时旧请求回填到新页面
     private int mTmdbToken;
     private CustomKeyDownVod mKeyDown;
@@ -379,6 +381,9 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.castList.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.castList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.castList.setAdapter(mCastAdapter = new PersonAdapter(item -> jumpToPersonSearch(item.getName())));
+        mBinding.stillList.setHorizontalSpacing(ResUtil.dp2px(8));
+        mBinding.stillList.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
+        mBinding.stillList.setAdapter(mStillAdapter = new StillAdapter(this::openStill));
         mBinding.control.parse.setHorizontalSpacing(ResUtil.dp2px(8));
         mBinding.control.parse.setRowHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
         mBinding.control.parse.setAdapter(mParseAdapter = new ParseAdapter(this));
@@ -484,10 +489,13 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         String name = item.getName();
         mDirectorAdapter.clear();
         mCastAdapter.clear();
+        if (mStillAdapter != null) mStillAdapter.clear();
         mBinding.directorTitle.setVisibility(View.GONE);
         mBinding.directorList.setVisibility(View.GONE);
         mBinding.castTitle.setVisibility(View.GONE);
         mBinding.castList.setVisibility(View.GONE);
+        mBinding.stillTitle.setVisibility(View.GONE);
+        mBinding.stillList.setVisibility(View.GONE);
         mBinding.titleLogo.setVisibility(View.GONE);
         mBinding.name.setVisibility(View.VISIBLE);
         // 重置上一部剧的背景，避免残留
@@ -560,6 +568,21 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             mBinding.titleLogo.setVisibility(View.VISIBLE);
             mBinding.name.setVisibility(View.INVISIBLE);
         }
+        // 剧照横向列表（可点开大图并设为桌面壁纸）；getItemCount 判断避免 TMDB/豆瓣重复回填
+        if (result.hasBackdrops() && mStillAdapter != null && mStillAdapter.getItemCount() == 0) {
+            mStillAdapter.addAll(new ArrayList<>(result.getBackdrops()));
+            mBinding.stillTitle.setVisibility(View.VISIBLE);
+            mBinding.stillList.setVisibility(View.VISIBLE);
+            updateFocus();
+        }
+    }
+
+    // 打开剧照大图预览页（左右切换、可设为桌面壁纸）
+    private void openStill(int index) {
+        if (mStillAdapter == null || mStillAdapter.getItems().isEmpty()) return;
+        ArrayList<String> urls = new ArrayList<>(mStillAdapter.getItems());
+        if (index < 0 || index >= urls.size()) index = 0;
+        startActivity(StillActivity.intentOf(this, urls, index));
     }
 
     // 应用导演/演员列表（TMDB / 豆瓣共用）
@@ -752,30 +775,33 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private int findFocusDown(int index) {
-        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.array, R.id.part, R.id.quick);
+        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.stillList, R.id.array, R.id.part, R.id.quick);
         for (int i = 0; i < orders.size(); i++) if (i > index) if (isVisible(findViewById(orders.get(i)))) return orders.get(i);
         return 0;
     }
 
     private int findFocusUp(int index) {
-        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.array, R.id.part, R.id.quick);
+        List<Integer> orders = Arrays.asList(R.id.flag, R.id.quality, R.id.episode, R.id.directorList, R.id.castList, R.id.stillList, R.id.array, R.id.part, R.id.quick);
         for (int i = orders.size() - 1; i >= 0; i--) if (i < index) if (isVisible(findViewById(orders.get(i)))) return orders.get(i);
         return 0;
     }
 
     private void updateFocus() {
-        mPartAdapter.setNextFocusUp(findFocusUp(6));
+        mPartAdapter.setNextFocusUp(findFocusUp(7));
         mEpisodeAdapter.setNextFocusUp(findFocusUp(2));
         mFlagAdapter.setNextFocusDown(findFocusDown(0));
         mEpisodeAdapter.setNextFocusDown(findFocusDown(2));
         // 导演列表焦点：上=选集，下=演员列表
         mBinding.directorList.setNextFocusUpId(findFocusUp(3));
         mBinding.directorList.setNextFocusDownId(findFocusDown(3));
-        // 演员列表焦点：上=导演列表，下=相关推荐
+        // 演员列表焦点：上=导演列表，下=剧照列表
         mBinding.castList.setNextFocusUpId(findFocusUp(4));
         mBinding.castList.setNextFocusDownId(findFocusDown(4));
-        // 相关推荐焦点：上=演员列表
-        mBinding.array.setNextFocusUpId(findFocusUp(5));
+        // 剧照列表焦点：上=演员列表，下=相关推荐
+        mBinding.stillList.setNextFocusUpId(findFocusUp(5));
+        mBinding.stillList.setNextFocusDownId(findFocusDown(5));
+        // 相关推荐焦点：上=剧照列表
+        mBinding.array.setNextFocusUpId(findFocusUp(6));
         notifyItemChanged(mBinding.episode, mEpisodeAdapter);
         notifyItemChanged(mBinding.part, mPartAdapter);
         notifyItemChanged(mBinding.flag, mFlagAdapter);
