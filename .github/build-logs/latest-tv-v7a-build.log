@@ -12,240 +12,1278 @@ Daemon will be stopped at the end of the build
 > Task :media:build-logic-settings:compileJava NO-SOURCE
 > Task :media:build-logic-settings:classes
 > Task :media:build-logic-settings:jar
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1790091673081.json
+> Task :media:buildSrc:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :media:buildSrc:compileKotlin NO-SOURCE
+> Task :media:buildSrc:compileJava NO-SOURCE
+> Task :media:buildSrc:compileGroovy NO-SOURCE
+> Task :media:buildSrc:pluginDescriptors
+> Task :media:buildSrc:processResources NO-SOURCE
+> Task :media:buildSrc:classes UP-TO-DATE
+
+> Task :media:buildSrc:jar
+:jar: No valid plugin descriptors were found in META-INF/gradle-plugins
+
+> Task :media:build-logic:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :media:build-logic:generateExternalPluginSpecBuilders
+> Task :media:build-logic:extractPrecompiledScriptPluginPlugins
+> Task :media:build-logic:generateScriptPluginAdapters
+> Task :media:build-logic:pluginDescriptors
+> Task :media:build-logic:processResources
+> Task :media:build-logic:compilePluginsBlocks
+> Task :media:build-logic:generatePrecompiledScriptPluginAccessors
+> Task :media:build-logic:compileKotlin
+> Task :media:build-logic:compileJava NO-SOURCE
+> Task :media:build-logic:classes
+> Task :media:build-logic:jar
+> Task :forcetech:preBuild UP-TO-DATE
+> Task :catvod:preBuild UP-TO-DATE
+> Task :catvod:preReleaseBuild UP-TO-DATE
+> Task :forcetech:preReleaseBuild UP-TO-DATE
+> Task :media:lib-exoplayer-rtsp:preBuild UP-TO-DATE
+> Task :media:lib-exoplayer-rtsp:preReleaseBuild UP-TO-DATE
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preLeanbackArmeabi_v7aReleaseBuild UP-TO-DATE
+> Task :hook:preBuild UP-TO-DATE
+> Task :hook:preReleaseBuild UP-TO-DATE
+> Task :hook:mergeReleaseJniLibFolders
+> Task :media:lib-exoplayer-rtsp:mergeReleaseJniLibFolders
+> Task :catvod:mergeReleaseJniLibFolders
+> Task :catvod:mergeReleaseNativeLibs NO-SOURCE
+> Task :hook:mergeReleaseNativeLibs NO-SOURCE
+> Task :media:lib-exoplayer-rtsp:mergeReleaseNativeLibs NO-SOURCE
+> Task :forcetech:mergeReleaseJniLibFolders
+> Task :catvod:copyReleaseJniLibsProjectOnly
+> Task :jianpian:preBuild UP-TO-DATE
+> Task :jianpian:preReleaseBuild UP-TO-DATE
+> Task :media:lib-exoplayer-rtsp:copyReleaseJniLibsProjectOnly
+> Task :media:lib-datasource-rtmp:preBuild UP-TO-DATE
+> Task :media:lib-datasource-rtmp:preReleaseBuild UP-TO-DATE
+> Task :forcetech:mergeReleaseNativeLibs
+> Task :media:lib-datasource-rtmp:mergeReleaseJniLibFolders
+> Task :forcetech:copyReleaseJniLibsProjectOnly
+> Task :quickjs:preBuild UP-TO-DATE
+> Task :media:lib-datasource-rtmp:mergeReleaseNativeLibs NO-SOURCE
+> Task :quickjs:preReleaseBuild UP-TO-DATE
+> Task :media:lib-datasource-rtmp:copyReleaseJniLibsProjectOnly
+> Task :media:lib-database:preBuild UP-TO-DATE
+> Task :media:lib-database:preReleaseBuild UP-TO-DATE
+> Task :quickjs:mergeReleaseJniLibFolders
+> Task :quickjs:mergeReleaseNativeLibs NO-SOURCE
+> Task :hook:copyReleaseJniLibsProjectOnly
+> Task :thunder:preBuild UP-TO-DATE
+> Task :thunder:preReleaseBuild UP-TO-DATE
+> Task :quickjs:copyReleaseJniLibsProjectOnly
+> Task :tvbus:preBuild UP-TO-DATE
+> Task :tvbus:preReleaseBuild UP-TO-DATE
+> Task :media:lib-database:mergeReleaseJniLibFolders
+> Task :media:lib-database:mergeReleaseNativeLibs NO-SOURCE
+> Task :jianpian:mergeReleaseJniLibFolders
+> Task :media:lib-database:copyReleaseJniLibsProjectOnly
+> Task :media:lib-decoder:preBuild UP-TO-DATE
+> Task :media:lib-decoder:preReleaseBuild UP-TO-DATE
+> Task :tvbus:mergeReleaseJniLibFolders
+> Task :tvbus:mergeReleaseNativeLibs NO-SOURCE
+> Task :tvbus:copyReleaseJniLibsProjectOnly
+> Task :zlive:preBuild UP-TO-DATE
+> Task :media:lib-decoder:mergeReleaseJniLibFolders
+> Task :zlive:preReleaseBuild UP-TO-DATE
+> Task :media:lib-decoder:mergeReleaseNativeLibs NO-SOURCE
+> Task :thunder:mergeReleaseJniLibFolders
+> Task :media:lib-decoder:copyReleaseJniLibsProjectOnly
+> Task :media:lib-exoplayer-hls:preBuild UP-TO-DATE
+> Task :media:lib-exoplayer-hls:preReleaseBuild UP-TO-DATE
+> Task :zlive:mergeReleaseJniLibFolders
+> Task :media:lib-exoplayer-hls:mergeReleaseJniLibFolders
+> Task :media:lib-exoplayer-hls:mergeReleaseNativeLibs NO-SOURCE
+> Task :thunder:mergeReleaseNativeLibs
+> Task :zlive:mergeReleaseNativeLibs
+> Task :media:lib-exoplayer-hls:copyReleaseJniLibsProjectOnly
+> Task :media:lib-exoplayer:preBuild UP-TO-DATE
+> Task :media:lib-exoplayer:preReleaseBuild UP-TO-DATE
+> Task :thunder:copyReleaseJniLibsProjectOnly
+> Task :catvod:prepareReleaseArtProfile
+> Task :forcetech:prepareReleaseArtProfile
+> Task :hook:prepareReleaseArtProfile
+> Task :app:mergeLeanbackArmeabi_v7aReleaseJniLibFolders
+> Task :thunder:prepareReleaseArtProfile
+> Task :quickjs:prepareReleaseArtProfile
+> Task :tvbus:prepareReleaseArtProfile
+> Task :media:lib-exoplayer:mergeReleaseJniLibFolders
+> Task :media:lib-exoplayer:mergeReleaseNativeLibs NO-SOURCE
+> Task :jianpian:prepareReleaseArtProfile
+> Task :zlive:copyReleaseJniLibsProjectOnly
+> Task :catvod:generateReleaseResources
+> Task :zlive:prepareReleaseArtProfile
+> Task :forcetech:generateReleaseResources
+> Task :media:lib-exoplayer:copyReleaseJniLibsProjectOnly
+> Task :media:lib-common:preBuild UP-TO-DATE
+> Task :media:lib-common:preReleaseBuild UP-TO-DATE
+> Task :jianpian:generateReleaseResources
+> Task :jianpian:mergeReleaseNativeLibs
+> Task :jianpian:packageReleaseResources
+> Task :forcetech:packageReleaseResources
+> Task :quickjs:generateReleaseResources
+> Task :media:lib-common:mergeReleaseJniLibFolders
+> Task :forcetech:processReleaseNavigationResources
+> Task :media:lib-common:mergeReleaseNativeLibs NO-SOURCE
+> Task :quickjs:packageReleaseResources
+> Task :jianpian:processReleaseNavigationResources
+> Task :media:lib-common:copyReleaseJniLibsProjectOnly
+> Task :media:lib-container:preBuild UP-TO-DATE
+> Task :media:lib-container:preReleaseBuild UP-TO-DATE
+> Task :jianpian:copyReleaseJniLibsProjectOnly
+> Task :quickjs:processReleaseNavigationResources
+> Task :catvod:packageReleaseResources
+> Task :catvod:processReleaseNavigationResources
+> Task :media:lib-container:mergeReleaseJniLibFolders
+> Task :media:lib-container:mergeReleaseNativeLibs NO-SOURCE
+> Task :media:lib-container:copyReleaseJniLibsProjectOnly
+> Task :media:lib-effect:preBuild UP-TO-DATE
+> Task :media:lib-effect:preReleaseBuild UP-TO-DATE
+> Task :quickjs:parseReleaseLocalResources
+> Task :forcetech:parseReleaseLocalResources
+> Task :jianpian:parseReleaseLocalResources
+> Task :media:lib-effect:mergeReleaseJniLibFolders
+> Task :catvod:parseReleaseLocalResources
+> Task :catvod:javaPreCompileRelease
+> Task :media:lib-effect:mergeReleaseNativeLibs NO-SOURCE
+> Task :media:lib-effect:copyReleaseJniLibsProjectOnly
+> Task :media:lib-exoplayer-dash:preBuild UP-TO-DATE
+> Task :media:lib-exoplayer-dash:preReleaseBuild UP-TO-DATE
+> Task :catvod:generateReleaseRFile
+> Task :jianpian:generateReleaseRFile
+> Task :quickjs:generateReleaseRFile
+> Task :forcetech:generateReleaseRFile
+> Task :quickjs:javaPreCompileRelease
+> Task :media:lib-exoplayer-dash:mergeReleaseJniLibFolders
+> Task :jianpian:javaPreCompileRelease
+> Task :catvod:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-exoplayer-dash:mergeReleaseNativeLibs NO-SOURCE
+> Task :thunder:generateReleaseResources
+> Task :tvbus:generateReleaseResources
+> Task :media:lib-exoplayer-dash:copyReleaseJniLibsProjectOnly
+> Task :media:lib-ui-danmaku:preBuild UP-TO-DATE
+> Task :forcetech:javaPreCompileRelease
+> Task :media:lib-ui-danmaku:preReleaseBuild UP-TO-DATE
+> Task :hook:generateReleaseResources
+> Task :tvbus:packageReleaseResources
+> Task :tvbus:processReleaseNavigationResources
+> Task :thunder:packageReleaseResources
+> Task :thunder:processReleaseNavigationResources
+> Task :media:lib-ui-danmaku:mergeReleaseJniLibFolders
+> Task :media:lib-ui-danmaku:mergeReleaseNativeLibs NO-SOURCE
+> Task :hook:packageReleaseResources
+> Task :media:lib-ui-danmaku:copyReleaseJniLibsProjectOnly
+> Task :media:lib-extractor:preBuild UP-TO-DATE
+> Task :media:lib-extractor:preReleaseBuild UP-TO-DATE
+> Task :thunder:javaPreCompileRelease
+> Task :tvbus:parseReleaseLocalResources
+> Task :hook:processReleaseNavigationResources
+> Task :thunder:parseReleaseLocalResources
+> Task :tvbus:generateReleaseRFile
+> Task :media:lib-extractor:mergeReleaseJniLibFolders
+> Task :media:lib-extractor:mergeReleaseNativeLibs NO-SOURCE
+> Task :hook:parseReleaseLocalResources
+> Task :media:lib-extractor:copyReleaseJniLibsProjectOnly
+> Task :tvbus:javaPreCompileRelease
+> Task :media:lib-datasource-okhttp:preBuild UP-TO-DATE
+> Task :media:lib-datasource-okhttp:preReleaseBuild UP-TO-DATE
+> Task :zlive:generateReleaseResources
+> Task :hook:javaPreCompileRelease
+> Task :media:lib-datasource-okhttp:mergeReleaseJniLibFolders
+> Task :media:lib-datasource-okhttp:mergeReleaseNativeLibs NO-SOURCE
+> Task :thunder:generateReleaseRFile
+> Task :media:lib-datasource-okhttp:copyReleaseJniLibsProjectOnly
+> Task :media:lib-datasource:preBuild UP-TO-DATE
+> Task :media:lib-datasource:preReleaseBuild UP-TO-DATE
+> Task :zlive:packageReleaseResources
+> Task :hook:generateReleaseRFile
+> Task :zlive:processReleaseNavigationResources
+> Task :hook:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-datasource:mergeReleaseJniLibFolders
+> Task :media:lib-datasource:mergeReleaseNativeLibs NO-SOURCE
+> Task :media:lib-datasource:copyReleaseJniLibsProjectOnly
+> Task :media:lib-ui:preBuild UP-TO-DATE
+> Task :media:lib-ui:preReleaseBuild UP-TO-DATE
+> Task :zlive:parseReleaseLocalResources
+> Task :media:lib-ui:mergeReleaseJniLibFolders
+> Task :media:lib-ui:mergeReleaseNativeLibs NO-SOURCE
+> Task :zlive:generateReleaseRFile
+> Task :zlive:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-ui:copyReleaseJniLibsProjectOnly
+> Task :media:lib-session:preBuild UP-TO-DATE
+> Task :media:lib-session:preReleaseBuild UP-TO-DATE
+> Task :media:lib-session:mergeReleaseJniLibFolders
+> Task :zlive:javaPreCompileRelease
+> Task :media:lib-session:mergeReleaseNativeLibs NO-SOURCE
+> Task :media:lib-session:copyReleaseJniLibsProjectOnly
+> Task :media:lib-exoplayer-smoothstreaming:preBuild UP-TO-DATE
+> Task :media:lib-exoplayer-smoothstreaming:preReleaseBuild UP-TO-DATE
+> Task :app:checkLeanbackArmeabi_v7aReleaseDuplicateClasses
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseJniLibFolders
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseNativeLibs NO-SOURCE
+> Task :zlive:compileReleaseJavaWithJavac
+> Task :zlive:mergeReleaseGeneratedProguardFiles
+> Task :zlive:exportReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-smoothstreaming:copyReleaseJniLibsProjectOnly
+> Task :media:lib-decoder-ffmpeg:preBuild UP-TO-DATE
+> Task :media:lib-decoder-ffmpeg:preReleaseBuild UP-TO-DATE
+> Task :media:lib-decoder-ffmpeg:mergeReleaseJniLibFolders
+> Task :media:lib-decoder-ffmpeg:mergeReleaseNativeLibs NO-SOURCE
+> Task :zlive:bundleLibCompileToJarRelease
+> Task :media:lib-decoder-ffmpeg:copyReleaseJniLibsProjectOnly
+> Task :forcetech:writeReleaseAarMetadata
+> Task :media:lib-datasource-rtmp:prepareReleaseArtProfile
+> Task :media:lib-exoplayer-smoothstreaming:prepareReleaseArtProfile
+> Task :media:lib-common:prepareReleaseArtProfile
+
+> Task :hook:compileReleaseJavaWithJavac
+Note: /home/runner/work/l3ewyyaa/l3ewyyaa/hook/src/main/java/com/fongmi/hook/Hook.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-session:prepareReleaseArtProfile
+> Task :media:lib-container:prepareReleaseArtProfile
+> Task :media:lib-ui-danmaku:prepareReleaseArtProfile
+> Task :media:lib-datasource:prepareReleaseArtProfile
+> Task :media:lib-exoplayer-hls:prepareReleaseArtProfile
+> Task :media:lib-extractor:prepareReleaseArtProfile
+> Task :media:lib-ui:prepareReleaseArtProfile
+> Task :media:lib-effect:prepareReleaseArtProfile
+> Task :media:lib-database:prepareReleaseArtProfile
+> Task :media:lib-decoder-ffmpeg:prepareReleaseArtProfile
+> Task :media:lib-exoplayer-rtsp:prepareReleaseArtProfile
+> Task :media:lib-datasource-okhttp:prepareReleaseArtProfile
+> Task :media:lib-decoder:prepareReleaseArtProfile
+> Task :media:lib-exoplayer-dash:prepareReleaseArtProfile
+> Task :media:lib-exoplayer:prepareReleaseArtProfile
+> Task :media:lib-common:generateReleaseResources
+> Task :hook:mergeReleaseGeneratedProguardFiles
+> Task :hook:exportReleaseConsumerProguardFiles
+> Task :jianpian:writeReleaseAarMetadata
+> Task :quickjs:writeReleaseAarMetadata
+> Task :hook:bundleLibCompileToJarRelease
+> Task :thunder:writeReleaseAarMetadata
+> Task :media:lib-common:packageReleaseResources
+> Task :media:lib-common:processReleaseNavigationResources
+> Task :tvbus:writeReleaseAarMetadata
+> Task :hook:writeReleaseAarMetadata
+> Task :forcetech:extractDeepLinksRelease
+> Task :zlive:writeReleaseAarMetadata
+> Task :hook:extractDeepLinksRelease
+> Task :forcetech:processReleaseManifest
+> Task :hook:processReleaseManifest
+> Task :jianpian:extractDeepLinksRelease
+> Task :quickjs:extractDeepLinksRelease
+> Task :media:lib-common:parseReleaseLocalResources
+> Task :jianpian:processReleaseManifest
+> Task :quickjs:processReleaseManifest
+> Task :tvbus:extractDeepLinksRelease
+> Task :thunder:extractDeepLinksRelease
+> Task :thunder:processReleaseManifest
+> Task :zlive:extractDeepLinksRelease
+> Task :zlive:processReleaseManifest
+> Task :forcetech:mapReleaseSourceSetPaths
+> Task :media:lib-common:generateReleaseRFile
+> Task :media:lib-common:compileReleaseKotlin NO-SOURCE
+> Task :tvbus:processReleaseManifest
+> Task :hook:mapReleaseSourceSetPaths
+> Task :media:lib-common:javaPreCompileRelease
+> Task :hook:compileReleaseLibraryResources
+> Task :forcetech:compileReleaseLibraryResources
+> Task :quickjs:mapReleaseSourceSetPaths
+> Task :jianpian:mapReleaseSourceSetPaths
+> Task :jianpian:compileReleaseLibraryResources
+> Task :quickjs:compileReleaseLibraryResources
+> Task :thunder:mapReleaseSourceSetPaths
+> Task :tvbus:mapReleaseSourceSetPaths
+> Task :thunder:compileReleaseLibraryResources
+> Task :tvbus:compileReleaseLibraryResources
+> Task :zlive:mapReleaseSourceSetPaths
+> Task :zlive:compileReleaseLibraryResources
+> Task :hook:bundleLibRuntimeToJarRelease
+> Task :hook:processReleaseJavaRes NO-SOURCE
+> Task :app:dataBindingMergeDependencyArtifactsLeanbackArmeabi_v7aRelease
+> Task :zlive:bundleLibRuntimeToJarRelease
+> Task :forcetech:generateReleaseAssets UP-TO-DATE
+> Task :zlive:processReleaseJavaRes NO-SOURCE
+> Task :hook:generateReleaseAssets UP-TO-DATE
+> Task :forcetech:mergeReleaseAssets
+> Task :jianpian:generateReleaseAssets UP-TO-DATE
+> Task :jianpian:mergeReleaseAssets
+> Task :quickjs:generateReleaseAssets UP-TO-DATE
+> Task :hook:mergeReleaseAssets
+> Task :thunder:generateReleaseAssets UP-TO-DATE
+> Task :thunder:mergeReleaseAssets
+> Task :tvbus:generateReleaseAssets UP-TO-DATE
+> Task :quickjs:mergeReleaseAssets
+> Task :zlive:generateReleaseAssets UP-TO-DATE
+> Task :zlive:mergeReleaseAssets
+> Task :tvbus:mergeReleaseAssets
+> Task :forcetech:extractProguardFiles
+> Task :hook:createFullJarRelease
+> Task :hook:extractProguardFiles
+
+> Task :catvod:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :forcetech:prepareLintJarForPublish
+> Task :app:mergeLeanbackArmeabi_v7aReleaseNativeLibs
+> Task :catvod:mergeReleaseGeneratedProguardFiles
+> Task :catvod:exportReleaseConsumerProguardFiles
+> Task :catvod:bundleLibCompileToJarRelease
+> Task :jianpian:extractProguardFiles
+> Task :forcetech:compileReleaseKotlin NO-SOURCE
+> Task :catvod:writeReleaseAarMetadata
+> Task :app:mergeLeanbackArmeabi_v7aReleaseArtProfile
+> Task :jianpian:compileReleaseKotlin NO-SOURCE
+> Task :jianpian:compileReleaseJavaWithJavac
+> Task :forcetech:compileReleaseJavaWithJavac
+> Task :forcetech:mergeReleaseGeneratedProguardFiles
+> Task :forcetech:exportReleaseConsumerProguardFiles
+> Task :jianpian:mergeReleaseGeneratedProguardFiles
+> Task :jianpian:exportReleaseConsumerProguardFiles
+> Task :quickjs:compileReleaseKotlin NO-SOURCE
+
+> Task :quickjs:compileReleaseJavaWithJavac
+Note: /home/runner/work/l3ewyyaa/l3ewyyaa/quickjs/src/main/java/com/fongmi/quickjs/method/Global.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :quickjs:mergeReleaseGeneratedProguardFiles
+> Task :quickjs:exportReleaseConsumerProguardFiles
+> Task :thunder:compileReleaseKotlin NO-SOURCE
+> Task :app:stripLeanbackArmeabi_v7aReleaseDebugSymbols
+> Task :tvbus:compileReleaseKotlin NO-SOURCE
+> Task :hook:generateReleaseLintModel
+> Task :thunder:compileReleaseJavaWithJavac
+> Task :thunder:mergeReleaseGeneratedProguardFiles
+> Task :forcetech:bundleLibCompileToJarRelease
+> Task :thunder:exportReleaseConsumerProguardFiles
+> Task :jianpian:bundleLibCompileToJarRelease
+> Task :thunder:bundleLibCompileToJarRelease
+> Task :catvod:extractDeepLinksRelease
+> Task :tvbus:compileReleaseJavaWithJavac
+> Task :quickjs:bundleLibCompileToJarRelease
+> Task :tvbus:mergeReleaseGeneratedProguardFiles
+> Task :catvod:mapReleaseSourceSetPaths
+> Task :catvod:processReleaseManifest
+> Task :tvbus:exportReleaseConsumerProguardFiles
+> Task :catvod:compileReleaseLibraryResources
+> Task :forcetech:bundleLibRuntimeToJarRelease
+> Task :tvbus:bundleLibCompileToJarRelease
+> Task :catvod:bundleLibRuntimeToJarRelease
+> Task :jianpian:bundleLibRuntimeToJarRelease
+> Task :quickjs:bundleLibRuntimeToJarRelease
+> Task :tvbus:bundleLibRuntimeToJarRelease
+> Task :catvod:processReleaseJavaRes NO-SOURCE
+> Task :forcetech:processReleaseJavaRes NO-SOURCE
+> Task :thunder:bundleLibRuntimeToJarRelease
+> Task :jianpian:processReleaseJavaRes NO-SOURCE
+> Task :thunder:processReleaseJavaRes NO-SOURCE
+> Task :quickjs:processReleaseJavaRes NO-SOURCE
+> Task :catvod:generateReleaseAssets UP-TO-DATE
+> Task :tvbus:processReleaseJavaRes NO-SOURCE
+> Task :forcetech:createFullJarRelease
+> Task :catvod:mergeReleaseAssets
+> Task :hook:prepareLintJarForPublish
+> Task :jianpian:createFullJarRelease
+> Task :quickjs:createFullJarRelease
+> Task :catvod:createFullJarRelease
+> Task :quickjs:extractProguardFiles
+> Task :catvod:extractProguardFiles
+> Task :jianpian:prepareLintJarForPublish
+> Task :quickjs:prepareLintJarForPublish
+> Task :thunder:createFullJarRelease
+> Task :tvbus:createFullJarRelease
+> Task :tvbus:extractProguardFiles
+> Task :thunder:extractProguardFiles
+> Task :tvbus:prepareLintJarForPublish
+> Task :thunder:prepareLintJarForPublish
+> Task :zlive:createFullJarRelease
+> Task :zlive:extractProguardFiles
+> Task :zlive:generateReleaseLintModel
+> Task :zlive:prepareLintJarForPublish
+> Task :forcetech:extractDeepLinksForAarRelease
+> Task :forcetech:checkReleaseAarMetadata
+> Task :forcetech:extractReleaseAnnotations
+> Task :forcetech:mergeReleaseConsumerProguardFiles
+> Task :jianpian:checkReleaseAarMetadata
+> Task :jianpian:extractDeepLinksForAarRelease
+> Task :jianpian:extractReleaseAnnotations
+> Task :jianpian:mergeReleaseConsumerProguardFiles
+> Task :catvod:generateReleaseLintModel
+> Task :catvod:prepareLintJarForPublish
+> Task :forcetech:mergeReleaseJavaResource
+> Task :jianpian:mergeReleaseJavaResource
+> Task :jianpian:generateReleaseLintModel
+> Task :forcetech:generateReleaseLintModel
+> Task :quickjs:generateReleaseLintModel
+> Task :forcetech:syncReleaseLibJars
+> Task :forcetech:bundleReleaseLocalLintAar
+> Task :tvbus:generateReleaseLintModel
+> Task :thunder:generateReleaseLintModel
+> Task :jianpian:syncReleaseLibJars
+> Task :jianpian:bundleReleaseLocalLintAar
+> Task :quickjs:extractDeepLinksForAarRelease
+> Task :quickjs:checkReleaseAarMetadata
+> Task :thunder:checkReleaseAarMetadata
+> Task :thunder:extractDeepLinksForAarRelease
+> Task :quickjs:extractReleaseAnnotations
+> Task :quickjs:mergeReleaseConsumerProguardFiles
+> Task :thunder:extractReleaseAnnotations
+> Task :thunder:mergeReleaseConsumerProguardFiles
+> Task :quickjs:mergeReleaseJavaResource
+> Task :thunder:mergeReleaseJavaResource
+> Task :quickjs:syncReleaseLibJars
+> Task :thunder:syncReleaseLibJars
+> Task :thunder:bundleReleaseLocalLintAar
+> Task :quickjs:bundleReleaseLocalLintAar
+> Task :tvbus:extractDeepLinksForAarRelease
+> Task :tvbus:extractReleaseAnnotations
+> Task :tvbus:mergeReleaseConsumerProguardFiles
+> Task :tvbus:checkReleaseAarMetadata
+> Task :tvbus:mergeReleaseJavaResource
+> Task :tvbus:syncReleaseLibJars
+> Task :tvbus:bundleReleaseLocalLintAar
+> Task :hook:checkReleaseAarMetadata
+> Task :catvod:checkReleaseAarMetadata
+> Task :catvod:extractDeepLinksForAarRelease
+> Task :hook:extractDeepLinksForAarRelease
+> Task :catvod:extractReleaseAnnotations
+> Task :hook:extractReleaseAnnotations
+> Task :hook:mergeReleaseConsumerProguardFiles
+> Task :catvod:mergeReleaseConsumerProguardFiles
+> Task :zlive:checkReleaseAarMetadata
+> Task :zlive:extractDeepLinksForAarRelease
+> Task :hook:mergeReleaseJavaResource
+> Task :hook:syncReleaseLibJars
+> Task :zlive:extractReleaseAnnotations
+> Task :zlive:mergeReleaseConsumerProguardFiles
+> Task :hook:bundleReleaseLocalLintAar
+> Task :catvod:mergeReleaseJavaResource
+> Task :zlive:mergeReleaseJavaResource
+> Task :zlive:syncReleaseLibJars
+> Task :forcetech:writeReleaseLintModelMetadata
+> Task :zlive:bundleReleaseLocalLintAar
+> Task :catvod:syncReleaseLibJars
+> Task :jianpian:writeReleaseLintModelMetadata
+> Task :catvod:bundleReleaseLocalLintAar
+> Task :quickjs:writeReleaseLintModelMetadata
+> Task :hook:writeReleaseLintModelMetadata
+> Task :thunder:writeReleaseLintModelMetadata
+> Task :tvbus:writeReleaseLintModelMetadata
+
+> Task :media:lib-common:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-common:bundleLibCompileToJarRelease
+> Task :media:lib-container:generateReleaseResources
+> Task :media:lib-container:packageReleaseResources
+> Task :media:lib-container:processReleaseNavigationResources
+> Task :app:expandLeanbackArmeabi_v7aReleaseL8ArtProfileWildcards
+> Task :media:lib-container:parseReleaseLocalResources
+> Task :media:lib-container:generateReleaseRFile
+> Task :media:lib-container:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-container:javaPreCompileRelease
+> Task :app:extractLeanbackArmeabi_v7aReleaseNativeSymbolTables
+> Task :media:lib-container:compileReleaseJavaWithJavac
+> Task :hook:lintVitalAnalyzeRelease
+> Task :zlive:lintVitalAnalyzeRelease
+> Task :catvod:writeReleaseLintModelMetadata
+> Task :media:lib-container:bundleLibCompileToJarRelease
+> Task :media:lib-database:generateReleaseResources
+> Task :media:lib-database:packageReleaseResources
+> Task :media:lib-database:processReleaseNavigationResources
+> Task :media:lib-database:parseReleaseLocalResources
+> Task :app:generateLeanbackArmeabi_v7aReleaseResources
+> Task :forcetech:lintVitalAnalyzeRelease
+> Task :media:lib-database:generateReleaseRFile
+> Task :media:lib-database:compileReleaseKotlin NO-SOURCE
+> Task :jianpian:lintVitalAnalyzeRelease
+> Task :media:lib-database:javaPreCompileRelease
+> Task :app:mergeLeanbackArmeabi_v7aReleaseNativeDebugMetadata
+> Task :media:lib-database:compileReleaseJavaWithJavac
+> Task :catvod:lintVitalAnalyzeRelease
+> Task :media:lib-database:bundleLibCompileToJarRelease
+> Task :media:lib-datasource:generateReleaseResources
+> Task :media:lib-datasource:packageReleaseResources
+> Task :media:lib-datasource:processReleaseNavigationResources
+> Task :media:lib-datasource:parseReleaseLocalResources
+> Task :thunder:lintVitalAnalyzeRelease
+> Task :zlive:writeReleaseLintModelMetadata
+> Task :tvbus:lintVitalAnalyzeRelease
+> Task :forcetech:generateReleaseLintVitalModel
+> Task :catvod:generateReleaseLintVitalModel
+> Task :hook:generateReleaseLintVitalModel
+> Task :jianpian:generateReleaseLintVitalModel
+> Task :quickjs:generateReleaseLintVitalModel
+> Task :thunder:generateReleaseLintVitalModel
+> Task :tvbus:generateReleaseLintVitalModel
+> Task :zlive:generateReleaseLintVitalModel
+> Task :media:lib-decoder:generateReleaseResources
+> Task :media:lib-datasource:javaPreCompileRelease
+> Task :media:lib-datasource:generateReleaseRFile
+> Task :media:lib-datasource:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-decoder:packageReleaseResources
+> Task :media:lib-decoder:processReleaseNavigationResources
+> Task :media:lib-exoplayer:generateReleaseResources
+> Task :quickjs:lintVitalAnalyzeRelease
+> Task :media:lib-decoder:parseReleaseLocalResources
+> Task :media:lib-decoder:generateReleaseRFile
+> Task :media:lib-decoder:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-decoder:javaPreCompileRelease
+> Task :media:lib-decoder:compileReleaseJavaWithJavac
+> Task :media:lib-decoder:bundleLibCompileToJarRelease
+> Task :media:lib-extractor:generateReleaseResources
+> Task :media:lib-extractor:packageReleaseResources
+> Task :media:lib-extractor:processReleaseNavigationResources
+> Task :media:lib-exoplayer:packageReleaseResources
+> Task :media:lib-exoplayer:processReleaseNavigationResources
+> Task :media:lib-extractor:parseReleaseLocalResources
+> Task :media:lib-extractor:generateReleaseRFile
+> Task :media:lib-exoplayer:parseReleaseLocalResources
+> Task :media:lib-exoplayer:generateReleaseRFile
+> Task :media:lib-exoplayer:javaPreCompileRelease
+> Task :media:lib-exoplayer-dash:generateReleaseResources
+> Task :media:lib-exoplayer-dash:packageReleaseResources
+> Task :media:lib-exoplayer-dash:processReleaseNavigationResources
+> Task :media:lib-extractor:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-extractor:javaPreCompileRelease
+> Task :media:lib-exoplayer-dash:parseReleaseLocalResources
+> Task :media:lib-exoplayer-dash:generateReleaseRFile
+> Task :app:packageLeanbackArmeabi_v7aReleaseResources
+> Task :media:lib-exoplayer-dash:javaPreCompileRelease
+> Task :media:lib-exoplayer-hls:generateReleaseResources
+> Task :app:generateLeanbackArmeabi_v7aReleaseBuildConfig
+> Task :media:lib-exoplayer-hls:packageReleaseResources
+> Task :media:lib-exoplayer-hls:processReleaseNavigationResources
+> Task :media:lib-exoplayer-hls:parseReleaseLocalResources
+> Task :media:lib-exoplayer-hls:generateReleaseRFile
+> Task :media:lib-exoplayer-hls:javaPreCompileRelease
+> Task :media:lib-exoplayer-rtsp:generateReleaseResources
+> Task :media:lib-exoplayer-rtsp:packageReleaseResources
+> Task :media:lib-exoplayer-rtsp:processReleaseNavigationResources
+> Task :media:lib-exoplayer-rtsp:parseReleaseLocalResources
+> Task :media:lib-exoplayer-rtsp:generateReleaseRFile
+> Task :media:lib-exoplayer-rtsp:javaPreCompileRelease
+> Task :media:lib-exoplayer-smoothstreaming:generateReleaseResources
+> Task :media:lib-exoplayer-smoothstreaming:packageReleaseResources
+> Task :media:lib-datasource:compileReleaseJavaWithJavac
+> Task :media:lib-exoplayer-smoothstreaming:processReleaseNavigationResources
+> Task :media:lib-datasource:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer-smoothstreaming:parseReleaseLocalResources
+> Task :media:lib-exoplayer-smoothstreaming:javaPreCompileRelease
+> Task :media:lib-decoder-ffmpeg:generateReleaseResources
+> Task :media:lib-decoder-ffmpeg:packageReleaseResources
+> Task :media:lib-decoder-ffmpeg:processReleaseNavigationResources
+> Task :media:lib-exoplayer-smoothstreaming:generateReleaseRFile
+> Task :media:lib-decoder-ffmpeg:parseReleaseLocalResources
+> Task :media:lib-decoder-ffmpeg:javaPreCompileRelease
+> Task :media:lib-container:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-container:exportReleaseConsumerProguardFiles
+> Task :media:lib-datasource-okhttp:generateReleaseResources
+> Task :media:lib-datasource-okhttp:packageReleaseResources
+> Task :media:lib-datasource-okhttp:processReleaseNavigationResources
+> Task :media:lib-datasource-okhttp:parseReleaseLocalResources
+> Task :media:lib-decoder-ffmpeg:generateReleaseRFile
+> Task :media:lib-datasource-okhttp:generateReleaseRFile
+> Task :media:lib-datasource-okhttp:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-ui:generateReleaseResources
+> Task :media:lib-datasource-okhttp:javaPreCompileRelease
+> Task :media:lib-datasource-okhttp:compileReleaseJavaWithJavac
+> Task :media:lib-datasource-okhttp:bundleLibCompileToJarRelease
+> Task :media:lib-ui-danmaku:generateReleaseResources
+> Task :media:lib-ui-danmaku:packageReleaseResources
+> Task :media:lib-ui-danmaku:processReleaseNavigationResources
+> Task :media:lib-ui-danmaku:parseReleaseLocalResources
+> Task :app:javaPreCompileLeanbackArmeabi_v7aRelease
+> Task :media:lib-ui-danmaku:generateReleaseRFile
+> Task :app:mapLeanbackArmeabi_v7aReleaseSourceSetPaths
+> Task :app:createLeanbackArmeabi_v7aReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksLeanbackArmeabi_v7aRelease
+> Task :app:extractProguardFiles
+> Task :app:mergeLeanbackArmeabi_v7aReleaseStartupProfile
+> Task :app:generateLeanbackArmeabi_v7aReleaseAssets UP-TO-DATE
+> Task :media:lib-datasource-okhttp:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-ui-danmaku:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-ui:packageReleaseResources
+> Task :media:lib-ui:processReleaseNavigationResources
+> Task :media:lib-ui-danmaku:javaPreCompileRelease
+> Task :media:lib-datasource-okhttp:exportReleaseConsumerProguardFiles
+> Task :media:lib-ui:javaPreCompileRelease
+> Task :media:lib-datasource-rtmp:generateReleaseResources
+> Task :media:lib-datasource-rtmp:packageReleaseResources
+> Task :media:lib-datasource-rtmp:processReleaseNavigationResources
+> Task :app:extractLeanbackArmeabi_v7aReleaseVersionControlInfo
+> Task :media:lib-ui:parseReleaseLocalResources
+> Task :media:lib-datasource-rtmp:parseReleaseLocalResources
+> Task :media:lib-ui:generateReleaseRFile
+> Task :media:lib-datasource-rtmp:javaPreCompileRelease
+> Task :media:lib-datasource-rtmp:generateReleaseRFile
+> Task :media:lib-effect:generateReleaseResources
+> Task :media:lib-datasource-rtmp:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-effect:packageReleaseResources
+> Task :media:lib-effect:processReleaseNavigationResources
+> Task :app:collectLeanbackArmeabi_v7aReleaseDependencies
+> Task :media:lib-datasource-rtmp:compileReleaseJavaWithJavac
+> Task :media:lib-datasource-rtmp:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-effect:parseReleaseLocalResources
+> Task :media:lib-datasource-rtmp:exportReleaseConsumerProguardFiles
+> Task :media:lib-effect:javaPreCompileRelease
+> Task :media:lib-effect:generateReleaseRFile
+> Task :media:lib-datasource:mergeReleaseGeneratedProguardFiles
+> Task :app:sdkLeanbackArmeabi_v7aReleaseDependencyData
+> Task :app:writeLeanbackArmeabi_v7aReleaseAppMetadata
+> Task :app:writeLeanbackArmeabi_v7aReleaseSigningConfigVersions
+> Task :media:lib-datasource:exportReleaseConsumerProguardFiles
+> Task :media:lib-database:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-database:exportReleaseConsumerProguardFiles
+> Task :media:lib-decoder:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-decoder:exportReleaseConsumerProguardFiles
+> Task :media:lib-common:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-common:exportReleaseConsumerProguardFiles
+> Task :media:lib-ui-danmaku:compileReleaseJavaWithJavac
+> Task :media:lib-ui-danmaku:bundleLibCompileToJarRelease
+> Task :media:lib-ui:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-session:compileReleaseAidl
+> Task :media:lib-ui-danmaku:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-ui-danmaku:exportReleaseConsumerProguardFiles
+> Task :media:lib-session:generateReleaseResources
+> Task :media:lib-session:packageReleaseResources
+
+> Task :media:lib-ui:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-ui:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-ui:exportReleaseConsumerProguardFiles
+> Task :media:lib-session:processReleaseNavigationResources
+> Task :media:lib-session:parseReleaseLocalResources
+> Task :media:lib-session:generateReleaseRFile
+> Task :media:lib-session:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-session:javaPreCompileRelease
+
+> Task :media:lib-extractor:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-extractor:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer:compileReleaseKotlin NO-SOURCE
+> Task :app:processLeanbackArmeabi_v7aReleaseNavigationResources
+
+> Task :app:mergeLeanbackArmeabi_v7aReleaseResources
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:309:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:19:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:23:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:24:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:29:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:16:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:20:4: Multiple substitutions specified in non-positional format of string resource string/detail_title. Did you mean to add the formatted="false" attribute?
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:18:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:279:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:289:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:10:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:139:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:58:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:87:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:82:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values/strings.xml:64:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/.gradle/caches/9.6.0/transforms/67365aa199c6542904df09d7da20f346/transformed/materialdesigncolors-1.0.0/res/values/values.xml:280:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/.gradle/caches/9.6.0/transforms/c6ae0c5f0fa772762c3908b11f108d03/transformed/preference-1.2.1/res/values/values.xml:23:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+
+> Task :media:lib-session:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:mergeLeanbackArmeabi_v7aReleaseResources
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:283:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:19:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:23:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:24:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:17:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:16:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:20:4: Multiple substitutions specified in non-positional format of string resource string/detail_title. Did you mean to add the formatted="false" attribute?
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:18:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:253:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:263:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:10:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:127:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:50:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:75:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:74:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:56:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rTW/strings.xml:200:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/.gradle/caches/9.6.0/transforms/c6ae0c5f0fa772762c3908b11f108d03/transformed/preference-1.2.1/res/values-zh-rTW/values-zh-rTW.xml:7:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+
+> Task :app:parseLeanbackArmeabi_v7aReleaseLocalResources
+> Task :app:compileLeanbackArmeabi_v7aReleaseNavigationResources
+> Task :media:lib-extractor:mergeReleaseGeneratedProguardFiles
+
+> Task :app:mergeLeanbackArmeabi_v7aReleaseResources
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:305:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:19:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:23:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:24:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:29:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:16:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:20:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:20:4: Multiple substitutions specified in non-positional format of string resource string/detail_title. Did you mean to add the formatted="false" attribute?
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:18:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:275:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:285:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:10:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:135:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:58:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:83:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:82:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:64:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/res/values-zh-rCN/strings.xml:221:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+/home/runner/.gradle/caches/9.6.0/transforms/c6ae0c5f0fa772762c3908b11f108d03/transformed/preference-1.2.1/res/values-zh-rCN/values-zh-rCN.xml:7:4: Ignoring element '{http://schemas.android.com/apk/res-auto}g' with unknown namespace 'http://schemas.android.com/apk/res-auto'.
+
+> Task :media:lib-extractor:exportReleaseConsumerProguardFiles
+> Task :media:lib-session:mergeReleaseGeneratedProguardFiles
+> Task :app:generateLeanbackArmeabi_v7aReleaseRFile
+> Task :media:lib-session:exportReleaseConsumerProguardFiles
+> Task :media:lib-ui:bundleLibCompileToJarRelease
+> Task :media:lib-datasource-rtmp:bundleLibCompileToJarRelease
+> Task :media:lib-session:bundleLibCompileToJarRelease
+> Task :media:lib-datasource-rtmp:writeReleaseAarMetadata
+> Task :media:lib-exoplayer-hls:writeReleaseAarMetadata
+> Task :media:lib-exoplayer-dash:writeReleaseAarMetadata
+> Task :media:lib-session:writeReleaseAarMetadata
+> Task :media:lib-extractor:writeReleaseAarMetadata
+> Task :media:lib-decoder:writeReleaseAarMetadata
+> Task :media:lib-ui-danmaku:writeReleaseAarMetadata
+> Task :media:lib-decoder-ffmpeg:writeReleaseAarMetadata
+> Task :media:lib-database:writeReleaseAarMetadata
+> Task :media:lib-exoplayer-rtsp:writeReleaseAarMetadata
+> Task :media:lib-container:writeReleaseAarMetadata
+> Task :media:lib-datasource-okhttp:writeReleaseAarMetadata
+> Task :media:lib-datasource:writeReleaseAarMetadata
+> Task :media:lib-ui:writeReleaseAarMetadata
+> Task :media:lib-common:writeReleaseAarMetadata
+> Task :media:lib-exoplayer-smoothstreaming:writeReleaseAarMetadata
+> Task :media:lib-effect:writeReleaseAarMetadata
+> Task :media:lib-exoplayer-smoothstreaming:extractDeepLinksRelease
+> Task :media:lib-exoplayer-rtsp:processReleaseManifest
+> Task :media:lib-effect:processReleaseManifest
+> Task :media:lib-decoder-ffmpeg:extractDeepLinksRelease
+> Task :media:lib-exoplayer-smoothstreaming:processReleaseManifest
+> Task :media:lib-datasource:processReleaseManifest
+> Task :media:lib-session:extractDeepLinksRelease
+> Task :media:lib-ui:processReleaseManifest
+> Task :media:lib-container:extractDeepLinksRelease
+> Task :media:lib-extractor:processReleaseManifest
+> Task :media:lib-ui-danmaku:extractDeepLinksRelease
+> Task :media:lib-datasource:extractDeepLinksRelease
+> Task :media:lib-container:processReleaseManifest
+> Task :media:lib-session:processReleaseManifest
+> Task :media:lib-database:processReleaseManifest
+> Task :media:lib-exoplayer-hls:processReleaseManifest
+> Task :media:lib-decoder:extractDeepLinksRelease
+> Task :media:lib-exoplayer-dash:processReleaseManifest
+> Task :media:lib-decoder:processReleaseManifest
+> Task :media:lib-database:extractDeepLinksRelease
+> Task :media:lib-extractor:extractDeepLinksRelease
+> Task :media:lib-common:extractDeepLinksRelease
+> Task :media:lib-datasource-rtmp:processReleaseManifest
+> Task :media:lib-exoplayer-dash:extractDeepLinksRelease
+> Task :media:lib-decoder-ffmpeg:processReleaseManifest
+> Task :media:lib-effect:extractDeepLinksRelease
+> Task :media:lib-ui:extractDeepLinksRelease
+> Task :media:lib-exoplayer-rtsp:extractDeepLinksRelease
+> Task :media:lib-datasource-okhttp:processReleaseManifest
+> Task :media:lib-datasource-rtmp:extractDeepLinksRelease
+> Task :media:lib-datasource-okhttp:extractDeepLinksRelease
+> Task :media:lib-ui-danmaku:processReleaseManifest
+> Task :media:lib-common:processReleaseManifest
+> Task :media:lib-exoplayer-hls:extractDeepLinksRelease
+> Task :media:lib-exoplayer-rtsp:mapReleaseSourceSetPaths
+> Task :media:lib-exoplayer-rtsp:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-smoothstreaming:mapReleaseSourceSetPaths
+> Task :media:lib-exoplayer-smoothstreaming:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-hls:mapReleaseSourceSetPaths
+
+> Task :media:lib-exoplayer:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-datasource:mapReleaseSourceSetPaths
+> Task :media:lib-exoplayer-hls:compileReleaseLibraryResources
+> Task :media:lib-datasource-okhttp:mapReleaseSourceSetPaths
+> Task :media:lib-datasource-okhttp:compileReleaseLibraryResources
+> Task :media:lib-session:mapReleaseSourceSetPaths
+> Task :media:lib-session:compileReleaseLibraryResources
+> Task :media:lib-extractor:mapReleaseSourceSetPaths
+> Task :media:lib-extractor:compileReleaseLibraryResources
+> Task :media:lib-container:mapReleaseSourceSetPaths
+> Task :media:lib-exoplayer:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer:exportReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer:writeReleaseAarMetadata
+> Task :media:lib-exoplayer:processReleaseManifest
+> Task :media:lib-exoplayer:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer:extractDeepLinksRelease
+> Task :media:lib-exoplayer-dash:compileReleaseKotlin NO-SOURCE
+> Task :media:lib-container:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-hls:compileReleaseKotlin NO-SOURCE
+
+> Task :media:lib-exoplayer-dash:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-exoplayer-dash:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer-dash:exportReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-rtsp:compileReleaseKotlin NO-SOURCE
+
+> Task :media:lib-exoplayer-hls:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:dataBindingGenBaseClassesLeanbackArmeabi_v7aRelease
+> Task :media:lib-exoplayer-hls:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer-hls:exportReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-smoothstreaming:compileReleaseKotlin NO-SOURCE
+> Task :app:checkLeanbackArmeabi_v7aReleaseAarMetadata
+
+> Task :media:lib-exoplayer-smoothstreaming:compileReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer-smoothstreaming:exportReleaseConsumerProguardFiles
+> Task :media:lib-decoder-ffmpeg:compileReleaseKotlin NO-SOURCE
+
+> Task :media:lib-exoplayer-rtsp:compileReleaseJavaWithJavac
+Note: /home/runner/work/l3ewyyaa/l3ewyyaa/media/libraries/exoplayer_rtsp/src/main/java/androidx/media3/exoplayer/rtsp/RtspMediaSource.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-exoplayer-rtsp:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer-rtsp:exportReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-dash:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer-rtsp:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer-smoothstreaming:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer-hls:bundleLibCompileToJarRelease
+> Task :media:lib-ui-danmaku:mapReleaseSourceSetPaths
+> Task :media:lib-datasource-rtmp:mapReleaseSourceSetPaths
+> Task :media:lib-ui:mapReleaseSourceSetPaths
+> Task :media:lib-decoder-ffmpeg:compileReleaseJavaWithJavac
+> Task :media:lib-decoder-ffmpeg:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-decoder-ffmpeg:exportReleaseConsumerProguardFiles
+> Task :media:lib-decoder-ffmpeg:bundleLibCompileToJarRelease
+> Task :media:lib-exoplayer:mapReleaseSourceSetPaths
+> Task :media:lib-database:mapReleaseSourceSetPaths
+> Task :media:lib-ui:compileReleaseLibraryResources
+> Task :media:lib-database:compileReleaseLibraryResources
+> Task :media:lib-effect:mapReleaseSourceSetPaths
+> Task :media:lib-common:mapReleaseSourceSetPaths
+> Task :media:lib-ui-danmaku:compileReleaseLibraryResources
+> Task :media:lib-effect:compileReleaseLibraryResources
+> Task :media:lib-decoder-ffmpeg:mapReleaseSourceSetPaths
+> Task :media:lib-decoder-ffmpeg:compileReleaseLibraryResources
+> Task :media:lib-datasource:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-dash:mapReleaseSourceSetPaths
+> Task :media:lib-exoplayer:compileReleaseLibraryResources
+> Task :media:lib-decoder:mapReleaseSourceSetPaths
+> Task :media:lib-decoder:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-dash:compileReleaseLibraryResources
+> Task :media:lib-common:compileReleaseLibraryResources
+> Task :media:lib-datasource-rtmp:compileReleaseLibraryResources
+> Task :media:lib-exoplayer-rtsp:bundleLibRuntimeToJarRelease
+> Task :media:lib-session:bundleLibRuntimeToJarRelease
+> Task :media:lib-extractor:bundleLibRuntimeToJarRelease
+> Task :media:lib-exoplayer:bundleLibRuntimeToJarRelease
+> Task :media:lib-datasource-okhttp:bundleLibRuntimeToJarRelease
+> Task :media:lib-database:bundleLibRuntimeToJarRelease
+> Task :media:lib-exoplayer-smoothstreaming:bundleLibRuntimeToJarRelease
+> Task :media:lib-decoder:bundleLibRuntimeToJarRelease
+> Task :media:lib-ui-danmaku:bundleLibRuntimeToJarRelease
+> Task :media:lib-exoplayer-dash:bundleLibRuntimeToJarRelease
+> Task :media:lib-datasource-rtmp:bundleLibRuntimeToJarRelease
+> Task :media:lib-datasource:bundleLibRuntimeToJarRelease
+> Task :media:lib-ui:bundleLibRuntimeToJarRelease
+> Task :media:lib-decoder-ffmpeg:bundleLibRuntimeToJarRelease
+> Task :media:lib-container:bundleLibRuntimeToJarRelease
+> Task :media:lib-exoplayer-hls:bundleLibRuntimeToJarRelease
+> Task :media:lib-datasource:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-database:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-exoplayer-hls:processReleaseJavaRes NO-SOURCE
+> Task :app:processLeanbackArmeabi_v7aReleaseMainManifest
+> Task :media:lib-exoplayer-dash:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-session:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-exoplayer-rtsp:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-extractor:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-common:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-ui:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-decoder-ffmpeg:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-decoder:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-datasource-rtmp:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-exoplayer:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-container:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-common:bundleLibRuntimeToJarRelease
+> Task :media:lib-datasource-okhttp:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-ui-danmaku:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-exoplayer-rtsp:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer-smoothstreaming:processReleaseJavaRes NO-SOURCE
+> Task :media:lib-datasource-rtmp:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer-rtsp:mergeReleaseAssets
+> Task :media:lib-exoplayer-smoothstreaming:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-datasource-rtmp:mergeReleaseAssets
+> Task :media:lib-exoplayer-hls:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseAssets
+> Task :media:lib-ui-danmaku:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer-hls:mergeReleaseAssets
+> Task :media:lib-decoder-ffmpeg:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-ui-danmaku:mergeReleaseAssets
+> Task :media:lib-session:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-decoder-ffmpeg:mergeReleaseAssets
+> Task :media:lib-extractor:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-session:mergeReleaseAssets
+> Task :media:lib-ui:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-extractor:mergeReleaseAssets
+> Task :media:lib-datasource:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-ui:mergeReleaseAssets
+> Task :media:lib-datasource:mergeReleaseAssets
+> Task :media:lib-effect:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-database:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-database:mergeReleaseAssets
+> Task :media:lib-datasource-okhttp:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-effect:mergeReleaseAssets
+> Task :media:lib-exoplayer-dash:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer-dash:mergeReleaseAssets
+> Task :media:lib-decoder:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-datasource-okhttp:mergeReleaseAssets
+> Task :media:lib-exoplayer:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-decoder:mergeReleaseAssets
+> Task :media:lib-common:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-exoplayer:mergeReleaseAssets
+> Task :media:lib-container:generateReleaseAssets UP-TO-DATE
+> Task :media:lib-common:mergeReleaseAssets
+> Task :media:lib-container:mergeReleaseAssets
+> Task :media:lib-database:createFullJarRelease
+> Task :media:lib-database:extractProguardFiles
+> Task :media:lib-common:createFullJarRelease
+> Task :media:lib-database:prepareLintJarForPublish
+> Task :app:processLeanbackArmeabi_v7aReleaseManifest
+> Task :media:lib-common:extractProguardFiles
+> Task :media:lib-datasource:createFullJarRelease
+> Task :app:mergeLeanbackArmeabi_v7aReleaseAssets
+> Task :app:processLeanbackArmeabi_v7aReleaseManifestForPackage
+> Task :app:compressLeanbackArmeabi_v7aReleaseAssets
+> Task :media:lib-datasource:extractProguardFiles
+> Task :media:lib-datasource:prepareLintJarForPublish
+> Task :media:lib-datasource-okhttp:createFullJarRelease
+> Task :media:lib-datasource-okhttp:extractProguardFiles
+> Task :media:lib-datasource-okhttp:prepareLintJarForPublish
+> Task :media:lib-ui:extractProguardFiles
+> Task :media:lib-ui-danmaku:createFullJarRelease
+> Task :media:lib-ui-danmaku:extractProguardFiles
+> Task :media:lib-ui-danmaku:prepareLintJarForPublish
+> Task :media:lib-decoder:prepareLintJarForPublish
+> Task :media:lib-container:createFullJarRelease
+> Task :media:lib-container:extractProguardFiles
+> Task :media:lib-container:prepareLintJarForPublish
+> Task :media:lib-decoder:createFullJarRelease
+> Task :media:lib-decoder:extractProguardFiles
+> Task :media:lib-extractor:extractProguardFiles
+> Task :media:lib-common:generateReleaseLintModel
+> Task :media:lib-common:prepareLintJarForPublish
+> Task :media:lib-database:generateReleaseLintModel
+> Task :media:lib-exoplayer:createFullJarRelease
+> Task :media:lib-container:generateReleaseLintModel
+> Task :media:lib-datasource:generateReleaseLintModel
+> Task :media:lib-decoder:generateReleaseLintModel
+> Task :media:lib-datasource-okhttp:generateReleaseLintModel
+> Task :media:lib-ui-danmaku:generateReleaseLintModel
+> Task :media:lib-extractor:generateReleaseLintModel
+> Task :media:lib-session:prepareLintJarForPublish
+> Task :media:lib-exoplayer-rtsp:prepareLintJarForPublish
+> Task :media:lib-decoder-ffmpeg:createFullJarRelease
+> Task :media:lib-datasource-rtmp:createFullJarRelease
+> Task :media:lib-exoplayer:extractProguardFiles
+> Task :media:lib-extractor:createFullJarRelease
+> Task :media:lib-extractor:prepareLintJarForPublish
+> Task :media:lib-exoplayer:generateReleaseLintModel
+> Task :media:lib-exoplayer:prepareLintJarForPublish
+> Task :media:lib-exoplayer-smoothstreaming:extractProguardFiles
+> Task :media:lib-ui:generateReleaseLintModel
+> Task :media:lib-datasource-rtmp:prepareLintJarForPublish
+> Task :media:lib-exoplayer-rtsp:createFullJarRelease
+> Task :media:lib-session:extractProguardFiles
+> Task :media:lib-exoplayer-smoothstreaming:generateReleaseLintModel
+> Task :media:lib-decoder-ffmpeg:prepareLintJarForPublish
+> Task :media:lib-decoder-ffmpeg:extractProguardFiles
+> Task :media:lib-decoder-ffmpeg:generateReleaseLintModel
+> Task :media:lib-exoplayer-hls:prepareLintJarForPublish
+> Task :media:lib-ui:createFullJarRelease
+> Task :media:lib-exoplayer-hls:extractProguardFiles
+> Task :media:lib-exoplayer-hls:generateReleaseLintModel
+> Task :media:lib-session:generateReleaseLintModel
+> Task :media:lib-exoplayer-dash:createFullJarRelease
+> Task :media:lib-exoplayer-rtsp:extractProguardFiles
+> Task :media:lib-exoplayer-rtsp:generateReleaseLintModel
+> Task :media:lib-effect:prepareLintJarForPublish
+> Task :media:lib-exoplayer-smoothstreaming:prepareLintJarForPublish
+> Task :media:lib-exoplayer-dash:extractProguardFiles
+> Task :media:lib-exoplayer-hls:createFullJarRelease
+> Task :media:lib-effect:extractProguardFiles
+> Task :media:lib-exoplayer-dash:generateReleaseLintModel
+> Task :media:lib-session:createFullJarRelease
+> Task :media:lib-datasource-rtmp:extractProguardFiles
+> Task :media:lib-datasource-rtmp:generateReleaseLintModel
+> Task :media:lib-exoplayer-smoothstreaming:createFullJarRelease
+> Task :media:lib-exoplayer-dash:prepareLintJarForPublish
+> Task :media:lib-ui:prepareLintJarForPublish
+> Task :media:lib-exoplayer-hls:checkReleaseAarMetadata
+> Task :media:lib-exoplayer-dash:extractDeepLinksForAarRelease
+> Task :media:lib-exoplayer-dash:checkReleaseAarMetadata
+> Task :media:lib-exoplayer-dash:mergeReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-dash:mergeReleaseJavaResource
+> Task :media:lib-exoplayer-hls:extractDeepLinksForAarRelease
+> Task :media:lib-exoplayer-dash:extractReleaseAnnotations
+> Task :media:lib-exoplayer-dash:syncReleaseLibJars
+> Task :media:lib-exoplayer-dash:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer-hls:mergeReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-hls:mergeReleaseJavaResource
+> Task :media:lib-exoplayer-rtsp:checkReleaseAarMetadata
+> Task :media:lib-exoplayer-rtsp:extractDeepLinksForAarRelease
+> Task :media:lib-effect:compileReleaseKotlin
+> Task :media:lib-exoplayer-rtsp:extractReleaseAnnotations
+> Task :media:lib-exoplayer-rtsp:mergeReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-rtsp:mergeReleaseJavaResource
+> Task :media:lib-exoplayer-rtsp:syncReleaseLibJars
+> Task :media:lib-exoplayer-hls:extractReleaseAnnotations
+> Task :media:lib-exoplayer-rtsp:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer-smoothstreaming:checkReleaseAarMetadata
+> Task :media:lib-exoplayer-smoothstreaming:extractDeepLinksForAarRelease
+> Task :media:lib-exoplayer-smoothstreaming:extractReleaseAnnotations
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer-smoothstreaming:mergeReleaseJavaResource
+> Task :media:lib-exoplayer-hls:syncReleaseLibJars
+> Task :media:lib-exoplayer-smoothstreaming:syncReleaseLibJars
+> Task :media:lib-exoplayer-smoothstreaming:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer-hls:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer:checkReleaseAarMetadata
+> Task :media:lib-decoder-ffmpeg:checkReleaseAarMetadata
+> Task :media:lib-exoplayer:extractDeepLinksForAarRelease
+> Task :media:lib-decoder-ffmpeg:extractDeepLinksForAarRelease
+> Task :media:lib-decoder-ffmpeg:extractReleaseAnnotations
+> Task :media:lib-decoder-ffmpeg:mergeReleaseConsumerProguardFiles
+> Task :media:lib-decoder-ffmpeg:mergeReleaseJavaResource
+> Task :media:lib-decoder-ffmpeg:syncReleaseLibJars
+> Task :media:lib-decoder-ffmpeg:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer:mergeReleaseConsumerProguardFiles
+> Task :media:lib-exoplayer:mergeReleaseJavaResource
+> Task :media:lib-extractor:checkReleaseAarMetadata
+> Task :media:lib-extractor:extractDeepLinksForAarRelease
+
+> Task :media:lib-effect:compileReleaseJavaWithJavac
+Note: /home/runner/work/l3ewyyaa/l3ewyyaa/media/libraries/effect/src/main/java/androidx/media3/effect/TimestampAdjustmentShaderProgram.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :media:lib-effect:mergeReleaseGeneratedProguardFiles
+> Task :media:lib-effect:exportReleaseConsumerProguardFiles
+> Task :media:lib-effect:bundleLibCompileToJarRelease
+> Task :app:compileLeanbackArmeabi_v7aReleaseKotlin NO-SOURCE
+> Task :media:lib-effect:bundleLibRuntimeToJarRelease
+> Task :media:lib-effect:processReleaseJavaRes
+> Task :app:processLeanbackArmeabi_v7aReleaseResources
+> Task :media:lib-extractor:mergeReleaseConsumerProguardFiles
+> Task :media:lib-effect:createFullJarRelease
+> Task :media:lib-effect:generateReleaseLintModel
+> Task :media:lib-extractor:mergeReleaseJavaResource
+> Task :media:lib-container:checkReleaseAarMetadata
+> Task :media:lib-container:extractDeepLinksForAarRelease
+> Task :media:lib-container:extractReleaseAnnotations
+> Task :media:lib-container:mergeReleaseConsumerProguardFiles
+> Task :media:lib-ui:checkReleaseAarMetadata
+> Task :media:lib-container:mergeReleaseJavaResource
+> Task :media:lib-ui:extractDeepLinksForAarRelease
+> Task :media:lib-container:syncReleaseLibJars
+> Task :media:lib-container:bundleReleaseLocalLintAar
+> Task :media:lib-ui:mergeReleaseConsumerProguardFiles
+> Task :media:lib-ui:extractReleaseAnnotations
+> Task :media:lib-ui-danmaku:checkReleaseAarMetadata
+> Task :media:lib-ui:mergeReleaseJavaResource
+> Task :media:lib-ui-danmaku:extractDeepLinksForAarRelease
+> Task :media:lib-ui:syncReleaseLibJars
+> Task :media:lib-ui:bundleReleaseLocalLintAar
+> Task :media:lib-ui-danmaku:mergeReleaseConsumerProguardFiles
+> Task :media:lib-ui-danmaku:mergeReleaseJavaResource
+> Task :media:lib-ui-danmaku:extractReleaseAnnotations
+> Task :media:lib-ui-danmaku:syncReleaseLibJars
+> Task :media:lib-ui-danmaku:bundleReleaseLocalLintAar
+> Task :media:lib-datasource-okhttp:extractDeepLinksForAarRelease
+> Task :media:lib-datasource-okhttp:extractReleaseAnnotations
+> Task :media:lib-datasource-okhttp:mergeReleaseConsumerProguardFiles
+> Task :media:lib-datasource-okhttp:checkReleaseAarMetadata
+> Task :media:lib-datasource-rtmp:checkReleaseAarMetadata
+> Task :media:lib-datasource-rtmp:extractDeepLinksForAarRelease
+> Task :media:lib-datasource-rtmp:extractReleaseAnnotations
+> Task :media:lib-datasource-rtmp:mergeReleaseConsumerProguardFiles
+> Task :media:lib-datasource-okhttp:mergeReleaseJavaResource
+> Task :media:lib-datasource-okhttp:syncReleaseLibJars
+> Task :media:lib-datasource-okhttp:bundleReleaseLocalLintAar
+> Task :media:lib-effect:checkReleaseAarMetadata
+> Task :media:lib-datasource-rtmp:mergeReleaseJavaResource
+> Task :media:lib-effect:extractDeepLinksForAarRelease
+> Task :media:lib-datasource-rtmp:syncReleaseLibJars
+> Task :media:lib-extractor:extractReleaseAnnotations
+> Task :media:lib-datasource-rtmp:bundleReleaseLocalLintAar
+> Task :media:lib-effect:mergeReleaseConsumerProguardFiles
+> Task :media:lib-effect:mergeReleaseJavaResource
+> Task :media:lib-extractor:syncReleaseLibJars
+> Task :media:lib-extractor:bundleReleaseLocalLintAar
+> Task :media:lib-datasource:extractDeepLinksForAarRelease
+> Task :media:lib-datasource:checkReleaseAarMetadata
+> Task :media:lib-datasource:extractReleaseAnnotations
+> Task :media:lib-datasource:mergeReleaseConsumerProguardFiles
+> Task :media:lib-datasource:mergeReleaseJavaResource
+> Task :media:lib-datasource:syncReleaseLibJars
+> Task :media:lib-datasource:bundleReleaseLocalLintAar
+> Task :media:lib-database:extractDeepLinksForAarRelease
+> Task :media:lib-database:checkReleaseAarMetadata
+> Task :media:lib-database:mergeReleaseConsumerProguardFiles
+> Task :media:lib-database:extractReleaseAnnotations
+> Task :media:lib-database:mergeReleaseJavaResource
+> Task :media:lib-database:syncReleaseLibJars
+> Task :media:lib-database:bundleReleaseLocalLintAar
+> Task :media:lib-decoder:extractDeepLinksForAarRelease
+> Task :media:lib-decoder:checkReleaseAarMetadata
+> Task :media:lib-decoder:mergeReleaseConsumerProguardFiles
+> Task :media:lib-decoder:extractReleaseAnnotations
+> Task :media:lib-common:checkReleaseAarMetadata
+> Task :media:lib-common:extractDeepLinksForAarRelease
+> Task :media:lib-decoder:mergeReleaseJavaResource
+> Task :media:lib-decoder:syncReleaseLibJars
+> Task :media:lib-decoder:bundleReleaseLocalLintAar
+> Task :media:lib-common:mergeReleaseConsumerProguardFiles
+> Task :media:lib-common:mergeReleaseJavaResource
+> Task :media:lib-exoplayer:extractReleaseAnnotations
+> Task :media:lib-exoplayer:syncReleaseLibJars
+> Task :media:lib-exoplayer:bundleReleaseLocalLintAar
+> Task :media:lib-session:extractDeepLinksForAarRelease
+> Task :media:lib-session:checkReleaseAarMetadata
+> Task :media:lib-session:mergeReleaseConsumerProguardFiles
+> Task :media:lib-common:extractReleaseAnnotations
+> Task :media:lib-common:syncReleaseLibJars
+> Task :media:lib-common:bundleReleaseLocalLintAar
+> Task :media:lib-extractor:writeReleaseLintModelMetadata
+> Task :media:lib-common:writeReleaseLintModelMetadata
+> Task :media:lib-database:writeReleaseLintModelMetadata
+> Task :media:lib-datasource:writeReleaseLintModelMetadata
+> Task :media:lib-session:mergeReleaseJavaResource
+> Task :media:lib-datasource-rtmp:writeReleaseLintModelMetadata
+> Task :media:lib-session:extractReleaseAnnotations
+> Task :media:lib-session:syncReleaseLibJars
+> Task :media:lib-session:bundleReleaseLocalLintAar
+
+> Task :app:compileLeanbackArmeabi_v7aReleaseJavaWithJavac
+Note: [1] Wrote GeneratedAppGlideModule with: [com.bumptech.glide.integration.okhttp3.OkHttpLibraryGlideModule, com.bumptech.glide.integration.avif.AvifGlideModule]
+
+> Task :media:lib-datasource-rtmp:lintVitalAnalyzeRelease
+> Task :media:lib-ui-danmaku:writeReleaseLintModelMetadata
+> Task :media:lib-exoplayer-rtsp:writeReleaseLintModelMetadata
+> Task :media:lib-exoplayer-hls:writeReleaseLintModelMetadata
+> Task :media:lib-container:writeReleaseLintModelMetadata
+> Task :media:lib-decoder:writeReleaseLintModelMetadata
+> Task :media:lib-effect:extractReleaseAnnotations
+> Task :media:lib-effect:syncReleaseLibJars
+> Task :media:lib-effect:bundleReleaseLocalLintAar
+> Task :media:lib-exoplayer:writeReleaseLintModelMetadata
+> Task :media:lib-container:lintVitalAnalyzeRelease
+> Task :media:lib-exoplayer-smoothstreaming:lintVitalAnalyzeRelease
+> Task :media:lib-exoplayer-hls:lintVitalAnalyzeRelease
+> Task :media:lib-exoplayer-smoothstreaming:writeReleaseLintModelMetadata
+
+> Task :app:compileLeanbackArmeabi_v7aReleaseJavaWithJavac
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/java/com/fongmi/android/tv/player/exo/FilteringHttpDataSource.java:63: warning: unreachable catch clause
+        } catch (IOException e) {
+          ^
+  thrown type HttpDataSourceException has already been caught
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/java/com/fongmi/android/tv/player/exo/FilteringHttpDataSource.java:89: warning: unreachable catch clause
+        } catch (IOException e) {
+          ^
+  thrown type HttpDataSourceException has already been caught
+/home/runner/work/l3ewyyaa/l3ewyyaa/app/src/main/java/com/fongmi/android/tv/player/exo/FilteringHttpDataSource.java:102: warning: unreachable catch clause
+        } catch (IOException e) {
+          ^
+  thrown type HttpDataSourceException has already been caught
+
+> Task :media:lib-extractor:lintVitalAnalyzeRelease
+> Task :media:lib-decoder:lintVitalAnalyzeRelease
+> Task :media:lib-session:lintVitalAnalyzeRelease
+> Task :media:lib-effect:lintVitalAnalyzeRelease
+> Task :media:lib-datasource:lintVitalAnalyzeRelease
+> Task :media:lib-session:writeReleaseLintModelMetadata
+> Task :media:lib-exoplayer-dash:writeReleaseLintModelMetadata
+> Task :media:lib-datasource-okhttp:lintVitalAnalyzeRelease
+> Task :media:lib-effect:writeReleaseLintModelMetadata
+
+> Task :app:compileLeanbackArmeabi_v7aReleaseJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+3 warnings
+
+> Task :media:lib-database:lintVitalAnalyzeRelease
+> Task :media:lib-exoplayer-rtsp:lintVitalAnalyzeRelease
+> Task :media:lib-datasource-okhttp:writeReleaseLintModelMetadata
+> Task :media:lib-decoder-ffmpeg:lintVitalAnalyzeRelease
+> Task :media:lib-ui-danmaku:lintVitalAnalyzeRelease
+> Task :media:lib-decoder-ffmpeg:writeReleaseLintModelMetadata
+> Task :media:lib-ui:writeReleaseLintModelMetadata
+> Task :media:lib-ui:lintVitalAnalyzeRelease
+> Task :app:mergeLeanbackArmeabi_v7aReleaseGeneratedProguardFiles
+> Task :media:lib-exoplayer-dash:lintVitalAnalyzeRelease
+> Task :media:lib-ui-danmaku:generateReleaseLintVitalModel
+> Task :app:processLeanbackArmeabi_v7aReleaseJavaRes
+> Task :media:lib-ui:generateReleaseLintVitalModel
+> Task :media:lib-common:generateReleaseLintVitalModel
+> Task :media:lib-exoplayer:generateReleaseLintVitalModel
+> Task :media:lib-session:generateReleaseLintVitalModel
+> Task :media:lib-decoder:generateReleaseLintVitalModel
+> Task :media:lib-exoplayer-rtsp:generateReleaseLintVitalModel
+> Task :media:lib-container:generateReleaseLintVitalModel
+> Task :media:lib-exoplayer-dash:generateReleaseLintVitalModel
+> Task :media:lib-datasource:generateReleaseLintVitalModel
+> Task :media:lib-decoder-ffmpeg:generateReleaseLintVitalModel
+> Task :media:lib-datasource-rtmp:generateReleaseLintVitalModel
+> Task :media:lib-datasource-okhttp:generateReleaseLintVitalModel
+> Task :media:lib-effect:generateReleaseLintVitalModel
+> Task :media:lib-database:generateReleaseLintVitalModel
+> Task :media:lib-exoplayer-smoothstreaming:generateReleaseLintVitalModel
+> Task :media:lib-exoplayer-hls:generateReleaseLintVitalModel
+> Task :media:lib-extractor:generateReleaseLintVitalModel
+> Task :media:lib-common:lintVitalAnalyzeRelease
+> Task :app:expandLeanbackArmeabi_v7aReleaseArtProfileWildcards
+> Task :app:generateLeanbackArmeabi_v7aReleaseLintVitalReportModel
+> Task :media:lib-exoplayer:lintVitalAnalyzeRelease
+> Task :app:mergeLeanbackArmeabi_v7aReleaseJavaResource
+> Task :app:lintVitalAnalyzeLeanbackArmeabi_v7aRelease
+> Task :app:lintVitalReportLeanbackArmeabi_v7aRelease
+> Task :app:lintVitalLeanbackArmeabi_v7aRelease
+> Task :app:minifyLeanbackArmeabi_v7aReleaseWithR8
+> Task :app:convertShrunkResourcesToBinaryLeanbackArmeabi_v7aRelease
+> Task :app:optimizeLeanbackArmeabi_v7aReleaseResources
+> Task :app:l8DexDesugarLibLeanbackArmeabi_v7aRelease
+> Task :app:compileLeanbackArmeabi_v7aReleaseArtProfile
+> Task :app:packageLeanbackArmeabi_v7aRelease
+> Task :app:createLeanbackArmeabi_v7aReleaseApkListingFileRedirect
+> Task :app:assembleLeanbackArmeabi_v7aRelease
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1790096106717.json
 
 [Incubating] Problems report is available at: file:///home/runner/work/l3ewyyaa/l3ewyyaa/build/reports/problems/problems-report.html
 
-FAILURE: Build failed with an exception.
+BUILD SUCCESSFUL in 4m 51s
+964 actionable tasks: 964 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.6.0/userguide/configuration_cache_enabling.html
 
-* What went wrong:
-A problem occurred configuring project ':chaquo'.
-> Variant 'arm64_v8aDebug': This version of Chaquopy requires minSdk version 24 or higher. See https://chaquo.com/chaquopy/doc/current/versions.html.
-
-* Try:
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights from a Build Scan (powered by Develocity).
-> Get more help at https://help.gradle.org.
-
-* Exception is:
-org.gradle.api.ProjectConfigurationException: A problem occurred configuring project ':chaquo'.
-	at org.gradle.configuration.project.LifecycleProjectEvaluator.wrapException(LifecycleProjectEvaluator.java:84)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator.addConfigurationFailure(LifecycleProjectEvaluator.java:77)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator.access$500(LifecycleProjectEvaluator.java:55)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$NotifyAfterEvaluate.run(LifecycleProjectEvaluator.java:255)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$EvaluateProject.lambda$run$0(LifecycleProjectEvaluator.java:114)
-	at org.gradle.api.internal.project.DefaultProjectState.lambda$applyToMutableState$0(DefaultProjectState.java:226)
-	at org.gradle.api.internal.project.DefaultProjectState.lambda$fromMutableState$1(DefaultProjectState.java:233)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$runAndReleaseLocks$0(DefaultWorkerLeaseService.java:300)
-	at org.gradle.internal.work.ResourceLockStatistics$1.measure(ResourceLockStatistics.java:43)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAndReleaseLocks(DefaultWorkerLeaseService.java:298)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocksAcquired(DefaultWorkerLeaseService.java:294)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$withReplacedLocks$4(DefaultWorkerLeaseService.java:450)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:372)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withReplacedLocks(DefaultWorkerLeaseService.java:449)
-	at org.gradle.api.internal.project.DefaultProjectState.runWithModelLock(DefaultProjectState.java:254)
-	at org.gradle.api.internal.project.DefaultProjectState.fromMutableState(DefaultProjectState.java:233)
-	at org.gradle.api.internal.project.DefaultProjectState.applyToMutableState(DefaultProjectState.java:225)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$EvaluateProject.run(LifecycleProjectEvaluator.java:100)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator.evaluate(LifecycleProjectEvaluator.java:72)
-	at org.gradle.api.internal.project.DefaultProject.evaluateUnchecked(DefaultProject.java:828)
-	at org.gradle.api.internal.project.ProjectLifecycleController.lambda$ensureSelfConfigured$2(ProjectLifecycleController.java:96)
-	at org.gradle.internal.model.StateTransitionController.lambda$doTransition$15(StateTransitionController.java:293)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:304)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:292)
-	at org.gradle.internal.model.StateTransitionController.lambda$maybeTransitionIfNotCurrentlyTransitioning$11(StateTransitionController.java:237)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:35)
-	at org.gradle.internal.model.StateTransitionController.maybeTransitionIfNotCurrentlyTransitioning(StateTransitionController.java:233)
-	at org.gradle.api.internal.project.ProjectLifecycleController.ensureSelfConfigured(ProjectLifecycleController.java:96)
-	at org.gradle.api.internal.project.DefaultProjectState.ensureConfigured(DefaultProjectState.java:194)
-	at org.gradle.execution.TaskPathProjectEvaluator.configure(TaskPathProjectEvaluator.java:70)
-	at org.gradle.execution.TaskPathProjectEvaluator.configureHierarchy(TaskPathProjectEvaluator.java:86)
-	at org.gradle.configuration.DefaultProjectsPreparer.prepareProjects(DefaultProjectsPreparer.java:52)
-	at org.gradle.configuration.BuildTreePreparingProjectsPreparer.prepareProjects(BuildTreePreparingProjectsPreparer.java:65)
-	at org.gradle.configuration.BuildOperationFiringProjectsPreparer$ConfigureBuild.run(BuildOperationFiringProjectsPreparer.java:52)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
-	at org.gradle.configuration.BuildOperationFiringProjectsPreparer.prepareProjects(BuildOperationFiringProjectsPreparer.java:40)
-	at org.gradle.initialization.VintageBuildModelController.lambda$prepareProjects$2(VintageBuildModelController.java:83)
-	at org.gradle.internal.model.StateTransitionController.lambda$doTransition$15(StateTransitionController.java:293)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:304)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:292)
-	at org.gradle.internal.model.StateTransitionController.lambda$transitionIfNotPreviously$12(StateTransitionController.java:251)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:35)
-	at org.gradle.internal.model.StateTransitionController.transitionIfNotPreviously(StateTransitionController.java:247)
-	at org.gradle.initialization.VintageBuildModelController.prepareProjects(VintageBuildModelController.java:83)
-	at org.gradle.initialization.VintageBuildModelController.prepareToScheduleTasks(VintageBuildModelController.java:70)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$prepareToScheduleTasks$7(DefaultBuildLifecycleController.java:185)
-	at org.gradle.internal.model.StateTransitionController.lambda$doTransition$15(StateTransitionController.java:293)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:304)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:292)
-	at org.gradle.internal.model.StateTransitionController.lambda$maybeTransition$10(StateTransitionController.java:228)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:35)
-	at org.gradle.internal.model.StateTransitionController.maybeTransition(StateTransitionController.java:224)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.prepareToScheduleTasks(DefaultBuildLifecycleController.java:183)
-	at org.gradle.internal.buildtree.DefaultBuildTreeWorkPreparer.scheduleRequestedTasks(DefaultBuildTreeWorkPreparer.java:35)
-	at org.gradle.internal.cc.impl.barrier.BarrierAwareBuildTreeWorkPreparer.scheduleRequestedTasks$lambda$0(BarrierAwareBuildTreeWorkPreparer.kt:34)
-	at org.gradle.internal.cc.impl.barrier.VintageConfigurationTimeActionRunner.runConfigurationTimeAction(VintageConfigurationTimeActionRunner.kt:48)
-	at org.gradle.internal.cc.impl.barrier.BarrierAwareBuildTreeWorkPreparer.scheduleRequestedTasks(BarrierAwareBuildTreeWorkPreparer.kt:33)
-	at org.gradle.internal.cc.impl.VintageBuildTreeWorkController$scheduleAndRunRequestedTasks$1$finalizedGraph$1.call(VintageBuildTreeWorkController.kt:37)
-	at org.gradle.internal.cc.impl.VintageBuildTreeWorkController$scheduleAndRunRequestedTasks$1$finalizedGraph$1.call(VintageBuildTreeWorkController.kt:37)
-	at org.gradle.internal.Try.ofFailable(Try.java:46)
-	at org.gradle.internal.cc.impl.VintageBuildTreeWorkController$scheduleAndRunRequestedTasks$1.apply(VintageBuildTreeWorkController.kt:37)
-	at org.gradle.internal.cc.impl.VintageBuildTreeWorkController$scheduleAndRunRequestedTasks$1.apply(VintageBuildTreeWorkController.kt:36)
-	at org.gradle.composite.internal.DefaultIncludedBuildTaskGraph.withNewWorkGraph(DefaultIncludedBuildTaskGraph.java:115)
-	at org.gradle.internal.cc.impl.VintageBuildTreeWorkController.scheduleAndRunRequestedTasks(VintageBuildTreeWorkController.kt:36)
-	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$scheduleAndRunTasks$1(DefaultBuildTreeLifecycleController.java:76)
-	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.lambda$runBuild$5(DefaultBuildTreeLifecycleController.java:121)
-	at org.gradle.internal.model.StateTransitionController.lambda$transition$7(StateTransitionController.java:207)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:304)
-	at org.gradle.internal.model.StateTransitionController.lambda$transition$8(StateTransitionController.java:207)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:45)
-	at org.gradle.internal.model.StateTransitionController.transition(StateTransitionController.java:207)
-	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.runBuild(DefaultBuildTreeLifecycleController.java:118)
-	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.scheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:76)
-	at org.gradle.internal.buildtree.DefaultBuildTreeLifecycleController.scheduleAndRunTasks(DefaultBuildTreeLifecycleController.java:71)
-	at org.gradle.tooling.internal.provider.ExecuteBuildActionRunner.run(ExecuteBuildActionRunner.java:31)
-	at org.gradle.launcher.exec.ChainingBuildActionRunner.run(ChainingBuildActionRunner.java:35)
-	at org.gradle.internal.buildtree.ProblemReportingBuildActionRunner.run(ProblemReportingBuildActionRunner.java:55)
-	at org.gradle.launcher.exec.BuildOutcomeReportingBuildActionRunner.run(BuildOutcomeReportingBuildActionRunner.java:83)
-	at org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner.run(FileSystemWatchingBuildActionRunner.java:135)
-	at org.gradle.launcher.exec.BuildCompletionNotifyingBuildActionRunner.run(BuildCompletionNotifyingBuildActionRunner.java:64)
-	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.lambda$execute$0(RootBuildLifecycleBuildActionExecutor.java:101)
-	at org.gradle.composite.internal.DefaultRootBuildState.run(DefaultRootBuildState.java:119)
-	at org.gradle.launcher.exec.RootBuildLifecycleBuildActionExecutor.execute(RootBuildLifecycleBuildActionExecutor.java:101)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor.runBuildTreeLifecycle(DefaultBuildTreeActionExecutor.java:126)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor.access$100(DefaultBuildTreeActionExecutor.java:52)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor$2.call(DefaultBuildTreeActionExecutor.java:98)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor$2.call(DefaultBuildTreeActionExecutor.java:94)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor.runAsBuildOperation(DefaultBuildTreeActionExecutor.java:94)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor.lambda$runBuildTreeAction$0(DefaultBuildTreeActionExecutor.java:88)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.lambda$runAndReleaseLocks$0(DefaultWorkerLeaseService.java:300)
-	at org.gradle.internal.work.ResourceLockStatistics$1.measure(ResourceLockStatistics.java:43)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAndReleaseLocks(DefaultWorkerLeaseService.java:298)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocksAcquired(DefaultWorkerLeaseService.java:294)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:286)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:130)
-	at org.gradle.launcher.exec.DefaultBuildTreeActionExecutor.runBuildTreeAction(DefaultBuildTreeActionExecutor.java:88)
-	at org.gradle.tooling.internal.provider.continuous.ContinuousBuildActionExecutor.execute(ContinuousBuildActionExecutor.java:111)
-	at org.gradle.tooling.internal.provider.SubscribableBuildActionExecutor.execute(SubscribableBuildActionExecutor.java:64)
-	at org.gradle.internal.session.DefaultBuildSessionContext.execute(DefaultBuildSessionContext.java:46)
-	at org.gradle.internal.buildprocess.execution.BuildSessionLifecycleBuildActionExecutor$ActionImpl.apply(BuildSessionLifecycleBuildActionExecutor.java:106)
-	at org.gradle.internal.buildprocess.execution.BuildSessionLifecycleBuildActionExecutor$ActionImpl.apply(BuildSessionLifecycleBuildActionExecutor.java:94)
-	at org.gradle.internal.session.BuildSessionState.run(BuildSessionState.java:73)
-	at org.gradle.internal.buildprocess.execution.BuildSessionLifecycleBuildActionExecutor.execute(BuildSessionLifecycleBuildActionExecutor.java:67)
-	at org.gradle.internal.buildprocess.execution.BuildSessionLifecycleBuildActionExecutor.execute(BuildSessionLifecycleBuildActionExecutor.java:45)
-	at org.gradle.internal.buildprocess.execution.StartParamsValidatingActionExecutor.execute(StartParamsValidatingActionExecutor.java:57)
-	at org.gradle.internal.buildprocess.execution.StartParamsValidatingActionExecutor.execute(StartParamsValidatingActionExecutor.java:32)
-	at org.gradle.internal.buildprocess.execution.SessionFailureReportingActionExecutor.execute(SessionFailureReportingActionExecutor.java:51)
-	at org.gradle.internal.buildprocess.execution.SessionFailureReportingActionExecutor.execute(SessionFailureReportingActionExecutor.java:39)
-	at org.gradle.internal.buildprocess.execution.SetupLoggingActionExecutor.execute(SetupLoggingActionExecutor.java:47)
-	at org.gradle.internal.buildprocess.execution.SetupLoggingActionExecutor.execute(SetupLoggingActionExecutor.java:31)
-	at org.gradle.launcher.daemon.server.exec.ExecuteBuild.doBuild(ExecuteBuild.java:70)
-	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.WatchForDisconnection.execute(WatchForDisconnection.java:39)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.ResetDeprecationLogger.execute(ResetDeprecationLogger.java:29)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.RequestStopIfSingleUsedDaemon.execute(RequestStopIfSingleUsedDaemon.java:35)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.ForwardClientInput.lambda$execute$0(ForwardClientInput.java:40)
-	at org.gradle.internal.daemon.clientinput.ClientInputForwarder.forwardInput(ClientInputForwarder.java:80)
-	at org.gradle.launcher.daemon.server.exec.ForwardClientInput.execute(ForwardClientInput.java:37)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.LogAndCheckHealth.execute(LogAndCheckHealth.java:53)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.ApplyClientEnvironmentVariables.doBuild(ApplyClientEnvironmentVariables.java:80)
-	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.LogToClient.doBuild(LogToClient.java:63)
-	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.EstablishBuildEnvironment.doBuild(EstablishBuildEnvironment.java:74)
-	at org.gradle.launcher.daemon.server.exec.BuildCommandOnly.execute(BuildCommandOnly.java:37)
-	at org.gradle.launcher.daemon.server.api.DaemonCommandExecution.proceed(DaemonCommandExecution.java:104)
-	at org.gradle.launcher.daemon.server.exec.StartBuildOrRespondWithBusy$1.run(StartBuildOrRespondWithBusy.java:52)
-	at org.gradle.launcher.daemon.server.DaemonStateCoordinator.lambda$runCommand$0(DaemonStateCoordinator.java:321)
-	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
-	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-Caused by: org.gradle.api.GradleException: Variant 'arm64_v8aDebug': This version of Chaquopy requires minSdk version 24 or higher. See https://chaquo.com/chaquopy/doc/current/versions.html.
-	at com.chaquo.python.PythonPlugin.onVariant(PythonPlugin.kt:235)
-	at com.chaquo.python.PythonPlugin$apply$2$2.invoke(PythonPlugin.kt:87)
-	at com.chaquo.python.PythonPlugin$apply$2$2.invoke(PythonPlugin.kt:22)
-	at com.android.build.api.extension.impl.AndroidComponentsExtensionImpl$onVariants$1.execute(AndroidComponentsExtensionImpl.kt:74)
-	at com.android.build.api.extension.impl.AndroidComponentsExtensionImpl$onVariants$1.execute(AndroidComponentsExtensionImpl.kt:74)
-	at com.android.build.api.extension.impl.OperationsRegistrar.executeOperations(OperationsRegistrar.kt:76)
-	at com.android.build.gradle.internal.VariantManager.createVariantsFromCombination$lambda$29(VariantManager.kt:995)
-	at com.android.build.gradle.internal.VariantManager.computeVariants(VariantManager.kt:243)
-	at com.android.build.gradle.internal.VariantManager.createVariants(VariantManager.kt:209)
-	at com.android.build.gradle.internal.plugins.BasePlugin.createAndroidTasks(BasePlugin.kt:591)
-	at com.android.build.gradle.internal.plugins.BasePlugin$createTasks$2$1.call(BasePlugin.kt:490)
-	at com.android.build.gradle.internal.profile.NoOpAnalyticsConfiguratorService.recordBlock(NoOpAnalyticsConfiguratorService.kt:52)
-	at com.android.build.gradle.internal.plugins.BasePlugin$createTasks$2.accept(BasePlugin.kt:490)
-	at com.android.build.gradle.internal.plugins.BasePlugin$createTasks$2.accept(BasePlugin.kt:487)
-	at com.android.build.gradle.internal.crash.CrashReporting$afterEvaluate$1.execute(crash_reporting.kt:37)
-	at com.android.build.gradle.internal.crash.CrashReporting$afterEvaluate$1.execute(crash_reporting.kt:35)
-	at org.gradle.internal.code.DefaultUserCodeApplicationContext$CurrentApplication$1.execute(DefaultUserCodeApplicationContext.java:124)
-	at org.gradle.configuration.internal.DefaultListenerBuildOperationDecorator$BuildOperationEmittingAction$1.run(DefaultListenerBuildOperationDecorator.java:173)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:30)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:27)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:48)
-	at org.gradle.configuration.internal.DefaultListenerBuildOperationDecorator$BuildOperationEmittingAction.execute(DefaultListenerBuildOperationDecorator.java:170)
-	at org.gradle.internal.event.BroadcastDispatch$ActionInvocationHandler.dispatch(BroadcastDispatch.java:101)
-	at org.gradle.internal.event.BroadcastDispatch$ActionInvocationHandler.dispatch(BroadcastDispatch.java:89)
-	at org.gradle.internal.event.AbstractBroadcastDispatch.dispatch(AbstractBroadcastDispatch.java:44)
-	at org.gradle.internal.event.BroadcastDispatch$SingletonDispatch.dispatch(BroadcastDispatch.java:270)
-	at org.gradle.internal.event.BroadcastDispatch$SingletonDispatch.dispatch(BroadcastDispatch.java:172)
-	at org.gradle.internal.event.AbstractBroadcastDispatch.dispatch(AbstractBroadcastDispatch.java:84)
-	at org.gradle.internal.event.AbstractBroadcastDispatch.dispatch(AbstractBroadcastDispatch.java:70)
-	at org.gradle.internal.event.BroadcastDispatch$CompositeDispatch.dispatch(BroadcastDispatch.java:382)
-	at org.gradle.internal.event.BroadcastDispatch$CompositeDispatch.dispatch(BroadcastDispatch.java:274)
-	at org.gradle.internal.event.ListenerBroadcast.dispatch(ListenerBroadcast.java:160)
-	at org.gradle.internal.event.ListenerBroadcast.dispatch(ListenerBroadcast.java:37)
-	at org.gradle.internal.dispatch.ProxyDispatchAdapter$DispatchingInvocationHandler.invoke(ProxyDispatchAdapter.java:88)
-	at jdk.proxy1/jdk.proxy1.$Proxy71.afterEvaluate(Unknown Source)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$NotifyAfterEvaluate$1.execute(LifecycleProjectEvaluator.java:247)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$NotifyAfterEvaluate$1.execute(LifecycleProjectEvaluator.java:244)
-	at org.gradle.api.internal.project.DefaultProject.stepEvaluationListener(DefaultProject.java:1562)
-	at org.gradle.configuration.project.LifecycleProjectEvaluator$NotifyAfterEvaluate.run(LifecycleProjectEvaluator.java:253)
-	... 161 more
-
-
-Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
-
-You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
-
-For more on this, please refer to https://docs.gradle.org/9.6.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-
-BUILD FAILED in 21s
-9 actionable tasks: 9 executed
+=== APK Collection Results ===
+./app/build/outputs/apk/leanbackArmeabi_v7a/release/leanback-armeabi_v7a.apk
