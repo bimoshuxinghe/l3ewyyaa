@@ -209,6 +209,52 @@ API21  libc++_shared.so  __cxa_thread_atexit_impl
 - **频道名不通用**：`cctv5p` 必须写成 `cctv5plus`；`cctv164k` 复用 `cctv16` 的节目单；
   `cctv9` 当天可能无节目；CGTN 系列与 4K/8K 超高清频道完全没有节目单。
 
+### 连续拉流稳定性实测
+
+针对「会不会断流」的担心，用**逐字未改动的 `YspSpider.java`**（仅替换
+`Init` / `OkHttp` / `Log` 三个 Android 壳）在 JVM 上做了真实连续拉流：
+
+| 场景 | 参数 | m3u8 | TS 切片 | 数据量 | 连续失败峰值 |
+|---|---|---|---|---|---|
+| 直播 CCTV1 | 45 轮 × 9s（437s，跨越 300s playurl 过期点） | 45/45 | — | — | 0 |
+| 直播 CCTV1（切片级） | 40 轮 × 9s，每轮下载 2 个切片 | 40/40 | **80/80** | 178 MB | 0 |
+| 直播 CCTV1（修复后回归） | 22 轮 × 9s | 22/22 | **44/44** | 110 MB | 0 |
+| 回看 CCTV1 | 15 轮 × 9s | 15/15 | 29/30 | 72 MB | 0 |
+
+刷新间隔取 9s，对齐实测到的 `#EXT-X-TARGETDURATION:9`（即播放器真实刷新频率）。
+关键结论：**playurl 缓存 300s 过期后会自动重新生成 cKey 取流，实测该时点无中断**。
+
+> 单次切片失败（29/30 那 1 次）发生在回放 CDN 冷启动握手阶段，非连续失败；
+> ExoPlayer 自带重试，不构成断流。真正会导致断流的是**连续失败**，实测峰值为 0。
+
+### 回看的一个隐蔽 bug（已修复）
+
+初版把 `playbackTimestamp` 直接当成了 cKey 的时间戳：
+
+```java
+// 错：cKey 用 2 小时前的时间戳签名，服务端判定签名过旧直接拒绝
+long timestamp = playbackTimestamp != null ? playbackTimestamp : nowSec();
+manager.generateCkey(cnlid, timestamp);
+```
+
+实测后果：`getPlayUrl` 返回 `null` → `handlePlayback` 走 `liveFallback` →
+**回看被悄悄降级成直播**。表面上看"能播、不断流"，但用户点回看看到的其实是直播画面。
+
+对照 Python 原版 `make_playback_request()` 才看清正确语义——cKey 时间戳恒为「当前时间」，
+回看时间只通过独立的 `playbacktime` 参数传递：
+
+```python
+ckey_result = self.generate_ckey(cnlid)        # 不传 timestamp
+"fntick": str(params['Timestamp']),            # 当前时间
+"playbacktime": str(playback_timestamp)        # 回看时间，独立参数
+```
+
+修复：`long timestamp = nowSec();`。修复后实测拿到真正的回看流
+（域名 `tlivecloud-playback-cdn.ysp.cctv.cn`、URL 带 `starttime`）。
+
+> 判伪要点：回看流 m3u8 含 `#EXT-X-ENDLIST` 或 `starttime`、域名为回放 CDN；
+> 若只有 3 个切片且无上述特征，就是被降级成了直播。
+
 算法移植采用**向量验证**（Python 生成参考向量 → JVM 断言相等）：
 
 | 模块 | 覆盖内容 | 结果 |

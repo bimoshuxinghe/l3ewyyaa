@@ -314,7 +314,12 @@ public final class YspSpider {
      */
     public String getPlayUrl(String cnlid, String livepid, String defn, Long playbackTimestamp) {
         CKeyManager manager = new CKeyManager();
-        long timestamp = playbackTimestamp != null ? playbackTimestamp : nowSec();
+        // cKey 与 fntick 一律用「当前时间」，回看时间只通过 playbacktime 单独传递。
+        // 对齐 Python 版 make_playback_request()：它调用 generate_ckey(cnlid) 不传
+        // timestamp，因此 cKey 内部 Timestamp 恒为当前时间。若误把 playbackTimestamp
+        // 当作 cKey 时间戳，服务端会因签名时间过旧直接拒绝（实测返回 null），
+        // 回看随即被降级成直播。
+        long timestamp = nowSec();
         manager.generateGuid();
         CKeyManager.CKeyResult ck = manager.generateCkey(cnlid, timestamp);
         if (ck == null) return null;
