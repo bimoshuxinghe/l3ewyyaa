@@ -17,37 +17,14 @@ import java.nio.charset.StandardCharsets;
 public class PlayerSetting {
 
     public static final int ENGINE_EXO = 0;
-    public static final int ENGINE_MPV = 1;
-
-    // DV7 处理模式常量
-    public static final int DV7_AUTO = 0;        // 自动检测
-    public static final int DV7_CONVERT = 1;     // 转为DV8.1
-    public static final int DV7_STRIP = 2;       // 剥离为HDR10
-    public static final int DV7_OFF = 3;         // 不干预
 
     public static int getEngine() {
-        return Math.min(Math.max(Prefers.getInt("player_engine", ENGINE_EXO), ENGINE_EXO), ENGINE_MPV);
+        return ENGINE_EXO;
     }
 
     public static void putEngine(int engine) {
-        Prefers.put("player_engine", Math.min(Math.max(engine, ENGINE_EXO), ENGINE_MPV));
+        Prefers.put("player_engine", ENGINE_EXO);
     }
-
-    public static boolean isMpv() {
-        return getEngine() == ENGINE_MPV;
-    }
-
-    public static int getDv7HandlingMode() {
-        return Math.min(Math.max(Prefers.getInt("dv7_mode", DV7_AUTO), DV7_AUTO), DV7_OFF);
-    }
-
-    public static void putDv7HandlingMode(int mode) {
-        Prefers.put("dv7_mode", mode);
-    }
-
-    public static boolean isDv7Auto() { return getDv7HandlingMode() == DV7_AUTO; }
-    public static boolean isDv7Convert() { return getDv7HandlingMode() == DV7_CONVERT; }
-    public static boolean isDv7Strip() { return getDv7HandlingMode() == DV7_STRIP; }
 
     public static boolean isAdFilter() {
         return Prefers.getBoolean("adblock", true);
@@ -110,77 +87,6 @@ public class PlayerSetting {
         Drawable background = view.getBackground();
         if (background == null) return;
         background.mutate().setAlpha(Math.round((100 - getControllerTransparency()) * 2.55f));
-    }
-
-    public static File getMpvConfigDir() {
-        File dir = Path.files("mpv");
-        if (!dir.exists()) dir.mkdirs();
-        return dir;
-    }
-
-    public static File getMpvConfigFile() {
-        return new File(getMpvConfigDir(), "mpv.conf");
-    }
-
-    public static boolean hasMpvConfig() {
-        return Path.exists(getMpvConfigFile());
-    }
-
-    public static String getMpvConfigName() {
-        return Prefers.getString("mpv_config_name");
-    }
-
-    public static boolean importMpvConfig(String path) {
-        if (TextUtils.isEmpty(path)) return false;
-        File source = new File(path);
-        if (!Path.exists(source)) return false;
-        File target = getMpvConfigFile();
-        if (!source.getAbsolutePath().equals(target.getAbsolutePath())) Path.copy(source, target);
-        if (!Path.exists(target)) return false;
-        Prefers.put("mpv_config_name", source.getName());
-        return true;
-    }
-
-    public static boolean importMpvConfigUrl(String url) {
-        if (TextUtils.isEmpty(url)) return false;
-        url = url.trim();
-        if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
-        String text = OkHttp.string(url);
-        if (TextUtils.isEmpty(text)) return false;
-        File target = getMpvConfigFile();
-        Path.write(target, text.getBytes(StandardCharsets.UTF_8));
-        if (!Path.exists(target)) return false;
-        Prefers.put("mpv_config_name", url);
-        return true;
-    }
-
-    public static void clearMpvConfig() {
-        Path.clear(getMpvConfigFile());
-        Prefers.remove("mpv_config_name");
-    }
-
-    public static int getMpvRender() {
-        return Math.min(Math.max(Prefers.getInt("mpv_render"), 0), 2);
-    }
-
-    public static void putMpvRender(int render) {
-        Prefers.put("mpv_render", Math.min(Math.max(render, 0), 2));
-    }
-
-    public static boolean isMpvAudioPassthrough() {
-        return Prefers.getBoolean("mpv_audio_passthrough");
-    }
-
-    public static void putMpvAudioPassthrough(boolean passthrough) {
-        Prefers.put("mpv_audio_passthrough", passthrough);
-    }
-
-    public static boolean isMpvDolbyPassthrough() {
-        return Prefers.getBoolean("mpv_dolby_passthrough");
-    }
-
-    public static void putMpvDolbyPassthrough(boolean passthrough) {
-        Prefers.put("mpv_dolby_passthrough", passthrough);
     }
 
     public static boolean isExoDolbyVisionPassthrough() {
@@ -351,19 +257,4 @@ public class PlayerSetting {
         Prefers.put("subtitle_position", value);
     }
 
-    public static float getMpvSubtitleScale() {
-        return Prefers.getFloat("mpv_subtitle_scale", 1.0f);
-    }
-
-    public static void putMpvSubtitleScale(float value) {
-        Prefers.put("mpv_subtitle_scale", value);
-    }
-
-    public static float getMpvSubtitlePosition() {
-        return Prefers.getFloat("mpv_subtitle_position", 100.0f);
-    }
-
-    public static void putMpvSubtitlePosition(float value) {
-        Prefers.put("mpv_subtitle_position", value);
-    }
 }

@@ -27,9 +27,6 @@
     native <methods>;
 }
 
--keep class is.xyz.mpv.MPVLib { *; }
--keep class is.xyz.mpv.MPVLib$* { *; }
-
 -keep class androidx.media3.decoder.VideoDecoderOutputBuffer { *; }
 -keep class androidx.media3.decoder.DecoderInputBuffer { *; }
 -keep class androidx.media3.decoder.av1.Dav1dDecoder { *; }

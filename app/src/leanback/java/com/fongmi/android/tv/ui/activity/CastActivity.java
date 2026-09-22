@@ -311,7 +311,7 @@ public class CastActivity extends PlaybackActivity implements CustomKeyDownVod.L
     }
 
     private void setTrackVisible() {
-        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().canSetSubtitleStyle() || player().isVod() ? View.VISIBLE : View.GONE);
+        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().isVod() ? View.VISIBLE : View.GONE);
         mBinding.control.action.audio.setVisibility(player().haveTrack(C.TRACK_TYPE_AUDIO) ? View.VISIBLE : View.GONE);
         mBinding.control.action.video.setVisibility(player().haveTrack(C.TRACK_TYPE_VIDEO) ? View.VISIBLE : View.GONE);
     }
@@ -427,7 +427,7 @@ public class CastActivity extends PlaybackActivity implements CustomKeyDownVod.L
 
     @Override
     public void onSubtitleClick() {
-        SubtitleDialog.create().player(player()).view(mBinding.exo.getSubtitleView()).show(this);
+        SubtitleDialog.create().view(mBinding.exo.getSubtitleView()).show(this);
         App.post(this::hideControl, 100);
     }
 

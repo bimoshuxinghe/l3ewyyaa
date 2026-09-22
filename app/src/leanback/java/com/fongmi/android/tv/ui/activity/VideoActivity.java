@@ -1410,7 +1410,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     @Override
     public void onSubtitleClick() {
-        SubtitleDialog.create().player(player()).view(mBinding.player.getSubtitleView()).show(this);
+        SubtitleDialog.create().view(mBinding.player.getSubtitleView()).show(this);
         App.post(this::hideControl, 100);
     }
 
@@ -1469,7 +1469,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private void setTrackVisible() {
-        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().canSetSubtitleStyle() || player().isVod() ? View.VISIBLE : View.GONE);
+        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().isVod() ? View.VISIBLE : View.GONE);
         mBinding.control.action.audio.setVisibility(player().haveTrack(C.TRACK_TYPE_AUDIO) ? View.VISIBLE : View.GONE);
         mBinding.control.action.video.setVisibility(player().haveTrack(C.TRACK_TYPE_VIDEO) ? View.VISIBLE : View.GONE);
     }

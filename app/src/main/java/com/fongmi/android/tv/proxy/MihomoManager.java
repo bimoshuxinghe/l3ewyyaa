@@ -1,34 +1,30 @@
 package com.fongmi.android.tv.proxy;
 
-import android.text.TextUtils;
 import android.net.Uri;
-import android.util.Log;
+import android.text.TextUtils;
 
-import com.fongmi.android.tv.App;
-import com.github.catvod.utils.Path;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
-
+/**
+ * 内置 mihomo 内核的接入层。
+ *
+ * <p>历史实现会以进程方式拉起随包携带的 {@code libmihomo.so}，用于把 Clash 订阅里的
+ * VMess/VLESS/Trojan/SS/Hysteria2/AnyTLS 等加密节点转换成本地 HTTP 代理。
+ *
+ * <p>该二进制由 Go 构建并声明 {@code minSdk=34}，同时也依赖 API 23 起才存在的 bionic 符号，
+ * 因此在 Android 14 以下设备上无法加载运行。自本版本起不再随包分发该二进制，
+ * 本类降级为平台可用性开关：始终返回「不可用」，让上层走 HTTP/SOCKS 节点直连逻辑。
+ *
+ * <p>HTTP/HTTPS/SOCKS5 直连节点、订阅解析、延迟测速、自动择优，以及向爬虫注入
+ * {@code mergeExt()} 的能力全部保留，不受影响。
+ */
 public class MihomoManager {
 
-    private static final String TAG = MihomoManager.class.getSimpleName();
-    private static final String BINARY = "libmihomo.so";
-    private static final String CONFIG = "config.yaml";
+    /** 保留原端口常量：上层用于识别「本地 mihomo 代理」的历史选中值。 */
     private static final int MIXED_PORT = 18890;
     private static final int CONTROLLER_PORT = 18891;
-    private static final int MAX_LOG_LINES = 200;
 
-    private Process process;
-    private final StringBuilder logBuffer = new StringBuilder();
-    private String lastError = "";
-    private String lastConfig = "";
-    private String lastSelected = "";
+    private static final String UNAVAILABLE_MSG =
+            "内置 mihomo 内核已移除（原内核要求 Android 14 及以上）。"
+                    + "加密节点不可用，请改用 HTTP / HTTPS / SOCKS5 直连节点。";
 
     private static class Loader {
         static volatile MihomoManager INSTANCE = new MihomoManager();
@@ -36,6 +32,13 @@ public class MihomoManager {
 
     public static MihomoManager get() {
         return Loader.INSTANCE;
+    }
+
+    /**
+     * 内置内核是否在当前平台可用。始终为 false —— 二进制已移除。
+     */
+    public static boolean isSupported() {
+        return false;
     }
 
     public static String getProxyUrl() {
@@ -55,11 +58,11 @@ public class MihomoManager {
     }
 
     public String getLastError() {
-        return lastError;
+        return UNAVAILABLE_MSG;
     }
 
     public String getLog() {
-        return logBuffer.toString();
+        return "";
     }
 
     public synchronized boolean start(String config) {
@@ -67,286 +70,13 @@ public class MihomoManager {
     }
 
     public synchronized boolean start(String config, String selected) {
-        if (TextUtils.isEmpty(config)) {
-            lastError = "配置为空";
-            return false;
-        }
-        // Check if already running with the SAME config and selected node
-        if (isRunning() && canConnect()) {
-            boolean configSame = config.equals(lastConfig);
-            boolean selectedSame = (selected == null ? "" : selected).equals(lastSelected);
-            if (configSame && selectedSame) {
-                appendLog("Mihomo已运行且配置未变，跳过重启");
-                return true;
-            }
-            appendLog("配置或选中节点已变化，重启Mihomo (configChanged=" + !configSame + ", selectedChanged=" + !selectedSame + ")");
-            stop();
-        } else if (canConnect() && !isRunning()) {
-            // Stale process from previous app session is occupying the port
-            appendLog("检测到旧Mihomo进程占用端口，尝试清理...");
-            killStaleProcess();
-        }
-        boolean hadProcess = process != null;
-        stop();
-        lastError = "";
-        logBuffer.setLength(0);
-        try {
-            if (hadProcess) Thread.sleep(300);
-            File dir = Path.files("mihomo");
-            if (!dir.exists()) dir.mkdirs();
-            File file = new File(dir, CONFIG);
-            String fixedConfig = fixConfig(config, selected);
-            Path.write(file, fixedConfig.getBytes(StandardCharsets.UTF_8));
-            appendLog("配置文件: " + file.getAbsolutePath());
-            appendLog("配置内容:\n" + fixedConfig);
-            appendLog("选中节点: " + (TextUtils.isEmpty(selected) ? "(无)" : selected));
-
-            File binary = new File(App.get().getApplicationInfo().nativeLibraryDir, BINARY);
-            if (!binary.exists()) {
-                lastError = "二进制文件不存在: " + binary.getAbsolutePath() + "\nnativeLibraryDir: " + App.get().getApplicationInfo().nativeLibraryDir;
-                appendLog(lastError);
-                return false;
-            }
-            binary.setExecutable(true);
-            appendLog("启动: " + binary.getAbsolutePath() + " -d " + dir.getAbsolutePath() + " -f " + file.getAbsolutePath());
-
-            process = new ProcessBuilder(binary.getAbsolutePath(), "-d", dir.getAbsolutePath(), "-f", file.getAbsolutePath()).redirectErrorStream(true).start();
-            drain(process);
-            boolean ok = waitReady();
-            if (ok) {
-                lastConfig = config;
-                lastSelected = selected == null ? "" : selected;
-            }
-            return ok;
-        } catch (Exception e) {
-            lastError = "启动异常: " + e.getMessage();
-            appendLog(lastError);
-            Log.e(TAG, "start failed", e);
-            stop();
-            return false;
-        }
-    }
-
-    private void killStaleProcess() {
-        try {
-            Process killProc = new ProcessBuilder("sh", "-c", "pkill -f libmihomo.so 2>/dev/null || true").start();
-            killProc.waitFor(2, TimeUnit.SECONDS);
-            killProc.destroy();
-            Thread.sleep(500);
-        } catch (Exception ignored) {
-        }
+        return false;
     }
 
     public synchronized void stop() {
-        if (process == null) return;
-        process.destroy();
-        try {
-            if (!process.waitFor(2, TimeUnit.SECONDS)) {
-                process.destroyForcibly();
-                appendLog("进程被强制终止");
-            }
-        } catch (InterruptedException ignored) {
-        }
-        process = null;
     }
 
     public synchronized boolean isRunning() {
-        return process != null && process.isAlive();
-    }
-
-    private boolean waitReady() throws InterruptedException {
-        for (int i = 0; i < 80; i++) {
-            if (!isRunning()) {
-                lastError = "Mihomo进程启动后立即退出\n可能原因: 配置错误/二进制不兼容/权限不足\n\n日志:\n" + logBuffer.toString();
-                appendLog(lastError);
-                return false;
-            }
-            if (canConnect()) {
-                appendLog("Mihomo启动成功，耗时" + i * 100 + "ms");
-                return true;
-            }
-            Thread.sleep(100);
-        }
-        lastError = "Mihomo在8秒内未就绪\n进程状态: " + (isRunning() ? "运行中" : "已退出") + "\n\n日志:\n" + logBuffer.toString();
-        appendLog(lastError);
-        return isRunning();
-    }
-
-    private boolean canConnect() {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress("127.0.0.1", MIXED_PORT), 100);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private void appendLog(String line) {
-        Log.d(TAG, line);
-        if (logBuffer.length() > 0) logBuffer.append("\n");
-        logBuffer.append(line);
-        int lineCount = logBuffer.toString().split("\n").length;
-        if (lineCount > MAX_LOG_LINES) {
-            String[] lines = logBuffer.toString().split("\n", lineCount - MAX_LOG_LINES + 1);
-            logBuffer.setLength(0);
-            for (int i = 1; i < lines.length; i++) {
-                logBuffer.append(lines[i]);
-                if (i < lines.length - 1) logBuffer.append("\n");
-            }
-        }
-    }
-
-    private void drain(Process process) {
-        Thread thread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    appendLog(line);
-                }
-            } catch (Exception ignored) {
-            }
-        }, "mihomo-log");
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    private String fixConfig(String config, String selected) {
-        String text = config.replace("\r\n", "\n").replace("\r", "\n");
-        if (!TextUtils.isEmpty(selected)) text = buildSelectedConfig(text, selected);
-        text = fixServerName(text);
-        text = fixVlessFlow(text);
-        text = putTopLevel(text, "mixed-port", String.valueOf(MIXED_PORT));
-        text = putTopLevel(text, "allow-lan", "false");
-        text = putTopLevel(text, "bind-address", "'127.0.0.1'");
-        text = putTopLevel(text, "external-controller", "'127.0.0.1:" + CONTROLLER_PORT + "'");
-        text = putTopLevel(text, "log-level", "info");
-        text = putTopLevel(text, "find-process-mode", "off");
-        text = ensureDns(text);
-        return text;
-    }
-
-    private String fixServerName(String text) {
-        String[] lines = text.split("\n", -1);
-        StringBuilder result = new StringBuilder();
-        boolean inProxies = false;
-        String currentType = "";
-        for (String line : lines) {
-            String trimmed = line.trim();
-            boolean isTopLevel = !TextUtils.isEmpty(line) && !Character.isWhitespace(line.charAt(0)) && line.contains(":");
-            if (isTopLevel) {
-                inProxies = trimmed.startsWith("proxies:");
-                currentType = "";
-                result.append(line).append("\n");
-                continue;
-            }
-            if (inProxies) {
-                if (trimmed.startsWith("- ")) {
-                    currentType = "";
-                } else if (trimmed.startsWith("type:")) {
-                    currentType = trimmed.substring("type:".length()).trim();
-                } else if (trimmed.startsWith("server-name:")) {
-                    boolean useSni = "trojan".equals(currentType) || "hysteria2".equals(currentType) || "hysteria".equals(currentType) || "tuic".equals(currentType) || "snell".equals(currentType);
-                    String value = trimmed.substring("server-name:".length()).trim();
-                    result.append(line.substring(0, line.length() - trimmed.length())).append(useSni ? "sni: " : "servername: ").append(value).append("\n");
-                    continue;
-                }
-            }
-            result.append(line).append("\n");
-        }
-        return result.toString();
-    }
-
-    private String fixVlessFlow(String text) {
-        return text;
-    }
-
-    private String ensureDns(String text) {
-        if (text.contains("\ndns:") || text.startsWith("dns:")) return text;
-        String dns = "dns:\n" +
-                "  enable: true\n" +
-                "  listen: 0.0.0.0:1053\n" +
-                "  enhanced-mode: fake-ip\n" +
-                "  fake-ip-range: 198.18.0.1/16\n" +
-                "  nameserver:\n" +
-                "    - 223.5.5.5\n" +
-                "    - 119.29.29.29\n" +
-                "    - https://dns.alidns.com/dns-query\n" +
-                "  fallback:\n" +
-                "    - https://1.1.1.1/dns-query\n" +
-                "    - https://8.8.8.8/dns-query\n" +
-                "  fallback-filter:\n" +
-                "    geoip: false\n" +
-                "    ipcidr:\n" +
-                "      - 240.0.0.0/4\n";
-        return dns + text;
-    }
-
-    private String buildSelectedConfig(String text, String selected) {
-        String proxies = extractBlock(text, "proxies");
-        if (TextUtils.isEmpty(proxies)) return text;
-        return "mode: rule\n" +
-                "ipv6: false\n" +
-                "proxies:\n" +
-                proxies +
-                "proxy-groups:\n" +
-                "  - name: XYS_PROXY\n" +
-                "    type: select\n" +
-                "    proxies:\n" +
-                "      - " + quote(selected) + "\n" +
-                "rules:\n" +
-                "  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve\n" +
-                "  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve\n" +
-                "  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve\n" +
-                "  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve\n" +
-                "  - DOMAIN-SUFFIX,cn,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,iqiyipic.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,iqiyi.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,qpic.cn,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,qq.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,youku.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,bilibili.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,hdslb.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,gtimg.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,taobao.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,alicdn.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,aliyuncs.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,aliyun.com,DIRECT\n" +
-                "  - DOMAIN-SUFFIX,pages.dev,DIRECT\n" +
-                "  - MATCH,XYS_PROXY\n";
-    }
-
-    private String extractBlock(String text, String key) {
-        String[] lines = text.split("\n", -1);
-        StringBuilder builder = new StringBuilder();
-        boolean found = false;
-        for (String line : lines) {
-            if (!found) {
-                found = line.matches("^" + key + "\\s*:.*");
-                continue;
-            }
-            if (!TextUtils.isEmpty(line) && !Character.isWhitespace(line.charAt(0)) && line.contains(":")) break;
-            builder.append(line).append('\n');
-        }
-        return builder.toString();
-    }
-
-    private String quote(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-    }
-
-    private String putTopLevel(String text, String key, String value) {
-        String[] lines = text.split("\n", -1);
-        boolean found = false;
-        StringBuilder builder = new StringBuilder();
-        for (String line : lines) {
-            if (line.matches("^" + key + "\\s*:.*")) {
-                builder.append(key).append(": ").append(value).append('\n');
-                found = true;
-            } else {
-                builder.append(line).append('\n');
-            }
-        }
-        if (!found) builder.insert(0, key + ": " + value + "\n");
-        return builder.toString();
+        return false;
     }
 }

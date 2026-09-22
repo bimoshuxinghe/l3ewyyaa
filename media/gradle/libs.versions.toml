@@ -1,10 +1,10 @@
 [versions]
-releaseVersion = "1.11.0"
-releaseVersionCode = "1011000300"
+releaseVersion = "1.4.1"
+releaseVersionCode = "1004001300"
 # SDK
 compileSdkVersion = "36"
 appTargetSdkVersion = "34"
-minSdkVersion = "23"
+minSdkVersion = "21"
 libTestTargetSdkVersion = "36"
 # See https://developer.android.com/training/cars/media/automotive-os#automotive-module
 automotiveMinSdkVersion = "28"

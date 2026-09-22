@@ -1,7 +1,6 @@
 package com.fongmi.android.tv.player.engine;
 
 import androidx.media3.common.C;
-import androidx.media3.common.Format;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.MediaTitle;
@@ -171,16 +170,6 @@ public class ExoPlayerEngine implements PlayerEngine {
             }
         }
 
-        // DV7 profile detection logging for decode errors
-        if (e.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
-            e.errorCode == PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED ||
-            e.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED) {
-            Format videoFormat = getSelectedVideoFormat();
-            if (videoFormat != null && ExoUtil.isDolbyVisionProfile7(videoFormat)) {
-                Log.w("ExoPlayerEngine", "DV7 decode failure detected: errorCode=" + e.errorCode + ", codecs=" + videoFormat.codecs);
-            }
-        }
-
         return switch (e.errorCode) {
             case PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> seekToDefaultPosition();
             case PlaybackException.ERROR_CODE_DECODER_INIT_FAILED, PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED, PlaybackException.ERROR_CODE_DECODING_FAILED -> retryDolbyVisionOrDecode();
@@ -254,21 +243,7 @@ public class ExoPlayerEngine implements PlayerEngine {
     }
 
     private ErrorAction retryDolbyVisionOrDecode() {
-        // DV7 specific: detect DV7 decode failure and attempt fallback to HEVC.
-        // When a DV7 track fails to decode, disable DV passthrough and set DV7_STRIP
-        // mode so the track selector and applyDolbyVisionPolicy will prefer non-DV tracks.
-        Format videoFormat = getSelectedVideoFormat();
-        if (videoFormat != null && ExoUtil.isDolbyVisionProfile7(videoFormat)) {
-            Log.w("ExoPlayerEngine", "DV7 decode failed, attempting HEVC fallback. codecs=" + videoFormat.codecs);
-            long position = player.getCurrentPosition();
-            PlayerSetting.putExoDolbyVisionPassthrough(false);
-            if (PlayerSetting.isDv7Auto()) {
-                PlayerSetting.putDv7HandlingMode(PlayerSetting.DV7_STRIP);
-            }
-            startInternal(position);
-            return ErrorAction.RECOVERED;
-        }
-        // Existing DV fallback: disable DV passthrough and retry.
+        // DV 回退：关闭 DV 直通后重试，让轨道选择器改选非 DV 轨道。
         if (PlayerSetting.isExoDolbyVisionPassthrough() && ExoUtil.hasSelectedDolbyVision(player)) {
             long position = player.getCurrentPosition();
             PlayerSetting.putExoDolbyVisionPassthrough(false);
@@ -276,19 +251,6 @@ public class ExoPlayerEngine implements PlayerEngine {
             return ErrorAction.RECOVERED;
         }
         return ErrorAction.DECODE;
-    }
-
-    /**
-     * 获取当前选中的视频轨道 Format，用于 DV7 profile 检测。
-     */
-    private Format getSelectedVideoFormat() {
-        for (Tracks.Group group : player.getCurrentTracks().getGroups()) {
-            if (group.getType() != C.TRACK_TYPE_VIDEO) continue;
-            for (int i = 0; i < group.length; i++) {
-                if (group.isTrackSelected(i)) return group.getTrackFormat(i);
-            }
-        }
-        return null;
     }
 
     private ErrorAction retryFormat(int errorCode) {

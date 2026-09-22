@@ -328,30 +328,6 @@ public class PlayerManager implements ParseCallback {
         try { engine.setAudioOffsetMs(offsetMs); } catch (Exception e) { e.printStackTrace(); }
     }
 
-    public boolean canSetSubtitleStyle() {
-        try { return engine.canSetSubtitleStyle(); } catch (Exception e) { e.printStackTrace(); return false; }
-    }
-
-    public void addSubtitleSize() {
-        try { engine.addSubtitleSize(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void subSubtitleSize() {
-        try { engine.subSubtitleSize(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void addSubtitlePosition() {
-        try { engine.addSubtitlePosition(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void subSubtitlePosition() {
-        try { engine.subSubtitlePosition(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void resetSubtitleStyle() {
-        try { engine.resetSubtitleStyle(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
     public void reset() {
         App.removeCallbacks(runnable);
         retry = 0;
@@ -421,14 +397,6 @@ public class PlayerManager implements ParseCallback {
 
     private PlayerEngine createEngine(int decode) {
         return new ExoPlayerEngine(decode, listener);
-    }
-
-    private boolean isMpvEngine() {
-        return false;
-    }
-
-    public boolean isMpv() {
-        return false;
     }
 
     public void browse(PlaySpec spec) {

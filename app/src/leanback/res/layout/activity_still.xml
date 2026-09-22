@@ -42,12 +42,26 @@
             app:strokeColor="#80FFFFFF"
             app:strokeWidth="1dp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/download"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:text="下载到本地"
+            android:textColor="@android:color/white"
+            app:backgroundTint="#CC333333"
+            app:cornerRadius="24dp"
+            app:strokeColor="#80FFFFFF"
+            app:strokeWidth="1dp" />
+
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="24dp"
-            android:text="左右键切换 · 返回键退出"
+            android:text="左右键切换剧照 · 返回键退出"
             android:textColor="#99FFFFFF"
             android:textSize="14sp" />
 

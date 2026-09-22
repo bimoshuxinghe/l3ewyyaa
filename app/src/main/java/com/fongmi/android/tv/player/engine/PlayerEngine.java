@@ -80,25 +80,6 @@ public interface PlayerEngine {
     default void setAudioOffsetMs(long offsetMs) {
     }
 
-    default boolean canSetSubtitleStyle() {
-        return false;
-    }
-
-    default void addSubtitleSize() {
-    }
-
-    default void subSubtitleSize() {
-    }
-
-    default void addSubtitlePosition() {
-    }
-
-    default void subSubtitlePosition() {
-    }
-
-    default void resetSubtitleStyle() {
-    }
-
     default List<MediaTitle> getCurrentMediaTitles() {
         return Collections.emptyList();
     }

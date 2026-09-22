@@ -10,3 +10,5 @@ lib-*.aar
 /Release__pycache__/
 __pycache__/
 chaquo/src/main/python/cache/
+
+/Release/

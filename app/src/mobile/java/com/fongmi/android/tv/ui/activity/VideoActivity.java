@@ -1212,23 +1212,9 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void onChoose() {
-        mClock.setCallback(null);
-        String[] items = {getString(R.string.play_exo), getString(R.string.play_mpv)};
-        int current = player().isMpv() ? 1 : 0;
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.player)
-                .setSingleChoiceItems(items, current, (dialog, which) -> {
-                    int target = which == 0 ? PlayerSetting.ENGINE_EXO : PlayerSetting.ENGINE_MPV;
-                    if (which != current) {
-                        player().setEngine(target);
-                        setEngine();
-                        setDecode();
-                    }
-                    dialog.dismiss();
-                })
-                .setNegativeButton(R.string.dialog_negative, null)
-                .show();
-        setR1Callback();
+        // 播放引擎固定为 ExoPlayer（mpv 引擎已移除），引擎选择对话框不再有意义。
+        // 复用「解码方式切换」，保证按钮点击仍有实际作用。
+        onDecode();
     }
 
     private boolean onChooseExternal() {
@@ -1301,7 +1287,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private boolean onTextLong() {
-        if (!player().haveTrack(C.TRACK_TYPE_TEXT) && !player().canSetSubtitleStyle()) return false;
+        if (!player().haveTrack(C.TRACK_TYPE_TEXT)) return false;
         onSubtitleClick();
         return true;
     }
@@ -1810,7 +1796,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     @Override
     public void onSubtitleClick() {
-        SubtitleDialog.create().player(player()).view(mBinding.exo.getSubtitleView()).show(this);
+        SubtitleDialog.create().view(mBinding.exo.getSubtitleView()).show(this);
         hideControl();
     }
 
@@ -1910,7 +1896,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     private void setTrackVisible() {
-        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().canSetSubtitleStyle() || player().isVod() ? View.VISIBLE : View.GONE);
+        mBinding.control.action.text.setVisibility(player().haveTrack(C.TRACK_TYPE_TEXT) || player().isVod() ? View.VISIBLE : View.GONE);
         mBinding.control.action.audio.setVisibility(player().haveTrack(C.TRACK_TYPE_AUDIO) ? View.VISIBLE : View.GONE);
         mBinding.control.action.video.setVisibility(player().haveTrack(C.TRACK_TYPE_VIDEO) ? View.VISIBLE : View.GONE);
     }

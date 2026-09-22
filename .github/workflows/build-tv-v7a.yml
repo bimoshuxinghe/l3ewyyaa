@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/danmaku-fongmi-port
+      - feature/android5-support
   workflow_dispatch:
 
 permissions:

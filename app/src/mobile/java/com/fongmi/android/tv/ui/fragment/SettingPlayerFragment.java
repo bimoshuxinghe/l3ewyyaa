@@ -30,7 +30,6 @@ import com.fongmi.android.tv.R;
 
 import com.fongmi.android.tv.App;
 
-import com.fongmi.android.tv.databinding.DialogMpvConfigBinding;
 
 import com.fongmi.android.tv.databinding.FragmentSettingPlayerBinding;
 
@@ -76,7 +75,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
 
     private String[] caption;
 
-    private String[] mpvRender;
 
     private String[] render;
 
@@ -114,12 +112,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
 
         mBinding.tunnelText.setText(getSwitch(PlayerSetting.isTunnel()));
 
-        mBinding.mpvConfigText.setText(getMpvConfigText());
-
-        mBinding.mpvAudioPassthroughText.setText(getSwitch(PlayerSetting.isMpvAudioPassthrough()));
-
-        mBinding.mpvDolbyPassthroughText.setText(getSwitch(PlayerSetting.isMpvDolbyPassthrough()));
-
         mBinding.exoDolbyVisionPassthroughText.setText(getSwitch(PlayerSetting.isExoDolbyVisionPassthrough()));
 
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
@@ -143,8 +135,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         mBinding.scaleText.setText((scale = ResUtil.getStringArray(R.array.select_scale))[PlayerSetting.getScale()]);
 
         mBinding.renderText.setText((render = ResUtil.getStringArray(R.array.select_render))[PlayerSetting.getRender()]);
-
-        mBinding.mpvRenderText.setText((mpvRender = ResUtil.getStringArray(R.array.select_mpv_render))[PlayerSetting.getMpvRender()]);
 
         mBinding.captionText.setText((caption = ResUtil.getStringArray(R.array.select_caption))[PlayerSetting.isCaption() ? 1 : 0]);
 
@@ -174,16 +164,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
 
         mBinding.tunnel.setOnClickListener(this::setTunnel);
 
-        mBinding.mpvConfig.setOnClickListener(this::onMpvConfig);
-
-        mBinding.mpvConfig.setOnLongClickListener(this::clearMpvConfig);
-
-        mBinding.mpvRender.setOnClickListener(this::onMpvRender);
-
-        mBinding.mpvAudioPassthrough.setOnClickListener(this::setMpvAudioPassthrough);
-
-        mBinding.mpvDolbyPassthrough.setOnClickListener(this::setMpvDolbyPassthrough);
-
         mBinding.exoDolbyVisionPassthrough.setOnClickListener(this::setExoDolbyVisionPassthrough);
 
         mBinding.caption.setOnClickListener(this::setCaption);
@@ -209,12 +189,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
             com.fongmi.android.tv.event.ScrollEvent.post(scrollY - oldScrollY);
 
         });
-
-    }
-
-    private String getMpvConfigText() {
-
-        return PlayerSetting.hasMpvConfig() ? PlayerSetting.getMpvConfigName() : getString(R.string.player_mpv_config_default);
 
     }
 
@@ -363,146 +337,6 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         mBinding.tunnelText.setText(getSwitch(PlayerSetting.isTunnel()));
 
         if (PlayerSetting.isTunnel() && PlayerSetting.getRender() == 1) setRender(view);
-
-    }
-
-    private void onMpvConfig(View view) {
-
-        DialogMpvConfigBinding binding = DialogMpvConfigBinding.inflate(getLayoutInflater());
-
-        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(requireActivity()).setView(binding.getRoot()).create();
-
-        binding.current.setText("\u5F53\u524D\uFF1A" + getMpvConfigText());
-
-        binding.clear.setEnabled(PlayerSetting.hasMpvConfig());
-
-        binding.clear.setAlpha(PlayerSetting.hasMpvConfig() ? 1.0f : 0.45f);
-
-        if (PlayerSetting.getMpvConfigName().startsWith("http")) binding.input.setText(PlayerSetting.getMpvConfigName());
-
-        binding.local.setOnClickListener(v -> {
-
-            dialog.dismiss();
-
-            selectMpvConfigFile();
-
-        });
-
-        binding.url.setOnClickListener(v -> {
-
-            String url = binding.input.getText() == null ? "" : binding.input.getText().toString().trim();
-
-            if (TextUtils.isEmpty(url) || (!url.startsWith("http://") && !url.startsWith("https://"))) {
-
-                Notify.show("MPV \u914D\u7F6E\u5730\u5740\u65E0\u6548");
-
-                return;
-
-            }
-
-            dialog.dismiss();
-
-            importMpvConfigUrl(url);
-
-        });
-
-        binding.clear.setOnClickListener(v -> {
-
-            clearMpvConfig(view);
-
-            dialog.dismiss();
-
-        });
-
-        dialog.setOnShowListener(d -> {
-
-            if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-
-        });
-
-        dialog.show();
-
-    }
-
-    private void selectMpvConfigFile() {
-
-        FileChooser.from(mpvConfigLauncher).show(new String[]{"text/*", "application/octet-stream", "*/*"});
-
-    }
-
-    private void importMpvConfigUrl(String url) {
-
-        Notify.progress(requireActivity());
-
-        Task.execute(() -> {
-
-            boolean ok = PlayerSetting.importMpvConfigUrl(url);
-
-            App.post(() -> {
-
-                Notify.dismiss();
-
-                if (!isAdded()) return;
-
-                if (ok) {
-
-                    mBinding.mpvConfigText.setText(getMpvConfigText());
-
-                    Notify.show("MPV \u914D\u7F6E\u5DF2\u5BFC\u5165");
-
-                } else {
-
-                    Notify.show("MPV \u914D\u7F6E\u5730\u5740\u65E0\u6548");
-
-                }
-
-            });
-
-        });
-
-    }
-
-    private boolean clearMpvConfig(View view) {
-
-        if (!PlayerSetting.hasMpvConfig()) return false;
-
-        PlayerSetting.clearMpvConfig();
-
-        mBinding.mpvConfigText.setText(getMpvConfigText());
-
-        Notify.show("MPV \u914D\u7F6E\u5DF2\u6E05\u9664");
-
-        return true;
-
-    }
-
-    private void onMpvRender(View view) {
-
-        new MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.player_mpv_render).setNegativeButton(R.string.dialog_negative, null).setSingleChoiceItems(mpvRender, PlayerSetting.getMpvRender(), (dialog, which) -> {
-
-            mBinding.mpvRenderText.setText(mpvRender[which]);
-
-            PlayerSetting.putMpvRender(which);
-
-            dialog.dismiss();
-
-        }).show();
-
-    }
-
-    private void setMpvAudioPassthrough(View view) {
-
-        PlayerSetting.putMpvAudioPassthrough(!PlayerSetting.isMpvAudioPassthrough());
-
-        mBinding.mpvAudioPassthroughText.setText(getSwitch(PlayerSetting.isMpvAudioPassthrough()));
-
-    }
-
-    private void setMpvDolbyPassthrough(View view) {
-
-        PlayerSetting.putMpvDolbyPassthrough(!PlayerSetting.isMpvDolbyPassthrough());
-
-        mBinding.mpvDolbyPassthroughText.setText(getSwitch(PlayerSetting.isMpvDolbyPassthrough()));
 
     }
 
@@ -667,16 +501,5 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         if (!hidden) initView();
 
     }
-
-    private final ActivityResultLauncher<Intent> mpvConfigLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || result.getData().getData() == null) return;
-        String path = FileChooser.getPathFromUri(result.getData().getData());
-        if (TextUtils.isEmpty(path) || !PlayerSetting.importMpvConfig(path)) {
-            Notify.show("MPV \u914D\u7F6E\u5BFC\u5165\u5931\u8D25");
-            return;
-        }
-        mBinding.mpvConfigText.setText(getMpvConfigText());
-        Notify.show("MPV \u914D\u7F6E\u5DF2\u5BFC\u5165");
-    });
 
 }
