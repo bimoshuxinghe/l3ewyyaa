@@ -13,14 +13,14 @@ import android.widget.TextView;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.utils.QRCode;
-import com.fongmi.chaquo.MiguServer;
 import com.github.catvod.utils.Prefers;
 
 /**
  * 咪咕账号登录弹窗：支持遥控器输入（D-pad + OK 弹软键盘），也支持"手机扫码绑定"。
- * 扫码绑定：电视显示二维码（http://<局域网IP>:9980/bind?t=token）→ 手机扫码 →
- * 手机上填 UID/Token → 写回本机 → 内置 Python 代理自动切蓝光1080p。
+ * 扫码绑定：电视显示二维码（http://&lt;局域网IP&gt;:&lt;本机服务端口&gt;/bind?type=...）→ 手机扫码 →
+ * 手机上填 UID/Token → 写回本机 → 内置直播代理自动切蓝光1080p。
  */
 public class MiguLoginDialog {
 
@@ -102,7 +102,9 @@ public class MiguLoginDialog {
         if (activity == null || activity.isFinishing()) return;
         if (type == null) type = TYPE_MIGU;
         boolean tmdb = TYPE_TMDB.equals(type);
-        String url = "http://" + MiguServer.getLocalIp() + ":9980/bind?type=" + type;
+        // 二维码由手机扫，必须用局域网地址（getAddress(false)），不能用 loopback。
+        // 端口是本机 Nano 的动态端口，不能硬编码——原先 Python 版固定 9980，服务已随 Chaquopy 移除。
+        String url = Server.get().getAddress(false) + "/bind?type=" + type;
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         int pad = (int) (activity.getResources().getDisplayMetrics().density * 20);

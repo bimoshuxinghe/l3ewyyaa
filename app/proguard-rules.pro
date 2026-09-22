@@ -71,9 +71,6 @@
 # CatVod Spiders (Native Built-in)
 -keep class com.github.catvod.spider.** { *; }
 
-# Chaquopy & PyLoader Bridge
--keep class com.fongmi.chaquo.** { *; }
--keep class com.chaquo.python.** { *; }
 
 # JNA desktop-only API references are unavailable on Android.
 -dontwarn java.awt.Component

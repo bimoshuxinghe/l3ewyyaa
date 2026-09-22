@@ -117,7 +117,6 @@ androidComponents {
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.aar"])
     implementation project(':catvod')
-    implementation project(':chaquo')
     implementation project(':forcetech')
     implementation project(':hook')
     implementation project(':jianpian')

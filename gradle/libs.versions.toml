@@ -1,7 +1,6 @@
 [versions]
 agp = "9.4.0"
-python = "17.0.0"
-minSdk = "23"
+minSdk = "21"
 targetSdk = "28"
 compileSdk = "36"
 
@@ -10,12 +9,12 @@ appcompat = "1.7.1"
 biometric = "1.1.0"
 desugar = "2.1.5"
 leanback = "1.2.0"
-lifecycleService = "2.10.0"
-media = "1.8.0"
+lifecycleService = "2.9.0"
+media = "1.7.0"
 palette = "1.0.0"
 preference = "1.2.1"
 recyclerview = "1.4.0"
-room = "2.8.4"
+room = "2.7.1"
 splashscreen = "1.2.0"
 startup = "1.2.0"
 swiperefreshlayout = "1.2.0"
@@ -37,7 +36,7 @@ jupnp = "3.0.4"
 juniversalchardet = "1.0.3"
 logger = "2.2.0"
 lottie = "6.7.1"
-material = "1.14.0"
+material = "1.13.0"
 materialdesigncolors = "1.0.0"
 nanohttpd = "2.3.1"
 newpipeextractor = "v0.26.1"
@@ -130,7 +129,6 @@ media3-ui-danmaku = { group = "androidx.media3", name = "media3-ui-danmaku", ver
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
-chaquo-python = { id = "com.chaquo.python", version.ref = "python" }
 
 [bundles]
 glide = ["glide", "glide-annotations", "glide-avif-integration", "glide-okhttp3-integration"]

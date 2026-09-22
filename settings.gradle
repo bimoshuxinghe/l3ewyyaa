@@ -58,7 +58,6 @@ if (mediaDir.exists()) {
 
 include ':app'
 include ':catvod'
-include ':chaquo'
 include ':forcetech'
 include ':hook'
 include ':jianpian'

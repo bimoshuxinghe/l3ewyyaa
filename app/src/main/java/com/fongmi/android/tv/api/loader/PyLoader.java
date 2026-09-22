@@ -1,66 +1,44 @@
 package com.fongmi.android.tv.api.loader;
 
-import com.fongmi.android.tv.App;
-import com.fongmi.android.tv.proxy.ProxySubscriptionManager;
-import com.fongmi.chaquo.Loader;
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.crawler.SpiderNull;
 
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Python 爬虫加载器（已停用）。
+ *
+ * <p>本类保留原有公开 API，但不再使用 Chaquopy 解释器。原因：Chaquopy 全栈
+ * （libpython3.10.so 及全部 C 扩展）依赖 {@code __register_atfork}，该符号自
+ * Android 6.0（API 23）起才由 bionic 提供，在 Android 5.0/5.1（API 21/22）上
+ * 加载必然失败。为把 minSdk 降到 21，此处改为空实现。
+ *
+ * <p>调用方行为：{@link #getSpider} 返回 {@link SpiderNull}（与原实现加载失败时
+ * 的降级路径完全一致），{@link #proxy} 返回 404。JS / JAR(csp_) 爬虫不受影响。
+ */
 public class PyLoader {
 
-    // 内置央视频 py 的固定 spider key：默认合并列表源（/ysp?list=live）不经过 setRecent，
-    // /proxy?do=py&fun=cctv 播放时 recent 可能为 null，必须自举加载内置 live_ysp。
-    private static final String YSP_KEY = "ysp_builtin";
-
     private final ConcurrentHashMap<String, Spider> spiders;
-    private final Loader loader;
-    private volatile String recent;
 
     public PyLoader() {
         spiders = new ConcurrentHashMap<>();
-        loader = new Loader();
     }
 
     public void clear() {
-        spiders.values().forEach(Spider::destroy);
         spiders.clear();
-        recent = null;
     }
 
     public void setRecent(String recent) {
-        this.recent = recent;
+        // Python 爬虫已停用，无需记录最近使用。
     }
 
     public Spider getSpider(String key, String api, String ext) {
-        return spiders.computeIfAbsent(key, k -> {
-            try {
-                Spider spider = loader.spider(api);
-                spider.siteKey = key;
-                spider.init(App.get(), ProxySubscriptionManager.get().mergeExt(ext));
-                return spider;
-            } catch (Throwable e) {
-                e.printStackTrace();
-                return new SpiderNull();
-            }
-        });
+        return new SpiderNull();
     }
 
     public Object[] proxy(Map<String, String> params) throws Exception {
-        // 内置央视频直播（/proxy?do=py&fun=cctv&id=xxx）：强制用内置 live_ysp，不依赖 recent。
-        // app.py 的 spider() 支持纯模块名加载（import live_ysp → Spider()），首次懒加载并缓存。
-        if ("cctv".equals(params.get("fun"))) {
-            // 等待 Python 环境就绪（App 启动异步初始化），避免播放时首次 Python.start() 竞争
-            com.fongmi.chaquo.MiguServer.awaitReady(8000);
-            Spider spider = getSpider(YSP_KEY, "live_ysp", "");
-            if (spider == null || spider instanceof SpiderNull) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("ysp spider not loaded".getBytes()), null};
-            return spider.proxy(params);
-        }
-        if (recent == null) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("py spider not loaded".getBytes()), null};
-        Spider spider = spiders.get(recent);
-        if (spider == null) return new Object[]{404, "text/plain", new java.io.ByteArrayInputStream("py spider not found".getBytes()), null};
-        return spider.proxy(params);
+        return new Object[]{404, "text/plain", new ByteArrayInputStream("py spider not supported on this build".getBytes()), null};
     }
 }
