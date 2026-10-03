@@ -16,6 +16,36 @@
         android:scaleType="centerCrop"
         android:visibility="invisible" />
 
+    <!--
+      背景压暗层：全屏底图之上再叠一层暗色，避免背景抢过内容。
+      之前 bg_tv_cinema_backdrop_tint 等 6 个遮罩 drawable 已存在但未接入布局，
+      导致背景"平"、缺少纵深，这里按 hellotv 的做法补齐分层。
+    -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_tv_cinema_backdrop_tint" />
+
+    <!-- 左侧竖向压暗：保证 hero 区文字（标题/简介）在亮背景上也清晰 -->
+    <View
+        android:layout_width="720dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_cinema_hero_overlay" />
+
+    <!-- 底部渐深：让海报栏与上方内容自然分层 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_tv_cinema_bottom_gradient" />
+
+    <!-- 顶栏区域轻微压暗，托住导航文字 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_gravity="top"
+        android:background="@drawable/bg_tv_cinema_cover_tint" />
+
     <!-- Navigation bar -->
     <LinearLayout
         android:id="@+id/nav"
@@ -330,9 +360,9 @@
     <androidx.leanback.widget.HorizontalGridView
         android:id="@+id/posters"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="264dp"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="-4dp"
+        android:layout_marginBottom="-6dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="32dp"

@@ -1,65 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  瀑布流海报卡片（QuickTVUI 风格）
+  对照 quicktvui/hellotv 实际界面：
+    · 无底板、无边框，大图直接呈现（原版是 LinearLayout + 底色，视觉上像手机网格）
+    · 标题压在图片底部，靠渐变浮层保证可读
+    · 圆角沿用 Vod.Grid.Cinema (10dp)
+    · 卡片放大到 190x254，接近 hellotv 的大图比例
+-->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="130dp"
-    android:layout_height="200dp"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
     android:clipChildren="false"
     android:clipToPadding="false"
     android:focusable="true"
     android:focusableInTouchMode="true">
 
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/card"
-        android:layout_width="120dp"
-        android:layout_height="190dp"
+        android:layout_width="190dp"
+        android:layout_height="254dp"
         android:layout_gravity="center"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:elevation="4dp"
-        android:foreground="@drawable/selector_tv_cinema_poster"
-        android:orientation="vertical">
+        android:foreground="@drawable/selector_tv_cinema_poster">
 
-        <FrameLayout
-            android:layout_width="120dp"
-            android:layout_height="155dp">
+        <ImageView
+            android:id="@+id/image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/white_10"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/Vod.Grid.Cinema"
+            tools:ignore="ContentDescription" />
 
-            <com.google.android.material.imageview.ShapeableImageView
-                android:id="@+id/image"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/white_10"
-                android:scaleType="centerCrop"
-                app:shapeAppearanceOverlay="@style/Vod.Grid.Cinema" />
+        <!-- 底部渐变浮层：与 hellotv 浮动标题一致，保证任意底图上文字可读 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="78dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/bg_cinema_poster_title_fade" />
 
-            <TextView
-                android:id="@+id/remarks"
-                android:layout_width="wrap_content"
-                android:layout_height="18dp"
-                android:layout_gravity="bottom|start"
-                android:layout_marginStart="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="@drawable/bg_cinema_tag_chip"
-                android:gravity="center"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:singleLine="true"
-                android:textColor="@color/white"
-                android:textSize="9sp"
-                android:visibility="gone" />
-        </FrameLayout>
-
-        <com.google.android.material.textview.MaterialTextView
+        <TextView
             android:id="@+id/name"
             android:layout_width="match_parent"
-            android:layout_height="35dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
             android:ellipsize="end"
-            android:gravity="center"
-            android:maxLines="2"
-            android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:paddingTop="4dp"
+            android:maxLines="1"
+            android:paddingStart="11dp"
+            android:paddingEnd="11dp"
+            android:paddingBottom="11dp"
+            android:shadowColor="#B3000000"
+            android:shadowDx="0"
+            android:shadowDy="1"
+            android:shadowRadius="5"
             android:textColor="@color/white"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:textSize="14sp"
+            android:textStyle="bold"
+            tools:text="流浪地球 2" />
+
+        <!-- 角标：右下角清晰度标记，仅聚焦时显示 -->
+        <TextView
+            android:id="@+id/remarks"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="9dp"
+            android:background="@drawable/bg_cinema_corner_badge"
+            android:gravity="center"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:textColor="@color/white"
+            android:textSize="9sp"
+            android:visibility="gone"
+            tools:text="4K"
+            tools:visibility="visible" />
+    </FrameLayout>
 </FrameLayout>

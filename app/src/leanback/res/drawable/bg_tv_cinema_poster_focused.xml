@@ -1,6 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#4D808080" />
-    <corners android:radius="10dp" />
-    <stroke android:width="2.5dp" android:color="#FFFFFFFF" />
-</shape>
+<!--
+  聚焦态：外发光 + 白色描边，不再填充灰底
+  原实现用 #4D808080 灰填充，会把海报压灰、显脏；改为纯描边后画面更通透
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 外发光：向外柔化，模拟 hellotv 的浮起观感 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="10dp" />
+            <stroke
+                android:width="6dp"
+                android:color="#33FFFFFF" />
+        </shape>
+    </item>
+    <!-- 主描边 -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="10dp" />
+            <stroke
+                android:width="3dp"
+                android:color="#FFFFFFFF" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 卡片角标：琥珀色实心小标签，对应 hellotv 的角标色 #B67827 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#CCB67827" />
+    <corners android:radius="3dp" />
+</shape>

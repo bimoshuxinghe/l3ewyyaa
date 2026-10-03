@@ -18,6 +18,9 @@ import java.util.List;
 
 public class CinemaPosterAdapter extends RecyclerView.Adapter<CinemaPosterAdapter.ViewHolder> {
 
+    /** 非聚焦卡片透明度：压暗以突出当前焦点，对应 QuickTVUI 的层次感 */
+    private static final float DIM_ALPHA = 0.45f;
+
     private final OnClickListener listener;
     private final List<Vod> items = new ArrayList<>();
 
@@ -62,13 +65,9 @@ public class CinemaPosterAdapter extends RecyclerView.Adapter<CinemaPosterAdapte
         holder.binding.card.setForeground(FocusColor.posterForeground());
         holder.binding.name.setText(item.getName());
         ImgUtil.load(item.getName(), item.getPic(), holder.binding.image);
-        String remarks = item.getRemarks();
-        if (!TextUtils.isEmpty(remarks)) {
-            holder.binding.remarks.setText(remarks);
-            holder.binding.remarks.setVisibility(View.VISIBLE);
-        } else {
-            holder.binding.remarks.setVisibility(View.GONE);
-        }
+        holder.bindRemarks(item.getRemarks());
+        // ViewHolder 复用时必须复位焦点态残留的透明度/缩放，否则会出现"部分卡片偏暗"
+        holder.resetFocusState();
     }
 
     @Override
@@ -78,6 +77,7 @@ public class CinemaPosterAdapter extends RecyclerView.Adapter<CinemaPosterAdapte
 
     class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         private final AdapterCinemaPosterBinding binding;
+        private String remarks = "";
 
         ViewHolder(AdapterCinemaPosterBinding binding) {
             super(binding.getRoot());
@@ -91,10 +91,29 @@ public class CinemaPosterAdapter extends RecyclerView.Adapter<CinemaPosterAdapte
                 return false;
             });
             itemView.setOnFocusChangeListener((v, hasFocus) -> {
-                float scale = hasFocus ? 1.1f : 1.0f;
+                // QuickTVUI 观感核心：聚焦项浮起并提亮，其余压暗形成主次
+                float scale = hasFocus ? 1.06f : 1.0f;
                 itemView.animate().scaleX(scale).scaleY(scale).setDuration(200).start();
+                itemView.setAlpha(hasFocus ? 1.0f : DIM_ALPHA);
                 itemView.setZ(hasFocus ? 16f : 0f);
+                // 角标仅在聚焦时出现，静止画面更干净
+                binding.remarks.setVisibility(hasFocus && !TextUtils.isEmpty(remarks) ? View.VISIBLE : View.GONE);
             });
+        }
+
+        void bindRemarks(String text) {
+            remarks = text == null ? "" : text;
+            binding.remarks.setText(remarks);
+        }
+
+        /** 复位焦点动画与透明度，避免复用时残留上一次的状态 */
+        void resetFocusState() {
+            itemView.animate().cancel();
+            itemView.setScaleX(1.0f);
+            itemView.setScaleY(1.0f);
+            itemView.setAlpha(DIM_ALPHA);
+            itemView.setZ(0f);
+            binding.remarks.setVisibility(View.GONE);
         }
 
         @Override
