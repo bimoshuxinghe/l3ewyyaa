@@ -18,8 +18,11 @@ import java.util.List;
 
 public class CinemaPosterAdapter extends RecyclerView.Adapter<CinemaPosterAdapter.ViewHolder> {
 
-    /** 非聚焦卡片透明度：压暗以突出当前焦点，对应 QuickTVUI 的层次感 */
-    private static final float DIM_ALPHA = 0.45f;
+    /**
+     * 非聚焦卡片透明度。
+     * 0.45 实测过暗，整排卡片发灰显脏；0.72 既能拉开主次，又保留海报原本的观感。
+     */
+    private static final float DIM_ALPHA = 0.72f;
 
     private final OnClickListener listener;
     private final List<Vod> items = new ArrayList<>();

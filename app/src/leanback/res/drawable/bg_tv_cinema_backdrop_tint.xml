@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#66000000" />
+<!--
+  全屏背景压暗层
+  原为 #66000000(40%)，实测压不住明亮海报（人脸几乎原图透出，抢过内容）
+  改为 72% 黑并带轻微冷色偏移，让背景退成"氛围"而非"主体"
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#B805070C" />
 </shape>

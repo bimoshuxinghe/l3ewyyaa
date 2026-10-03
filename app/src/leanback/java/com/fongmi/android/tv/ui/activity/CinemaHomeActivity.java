@@ -156,8 +156,8 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     private void setPosterAdapter() {
         mPosterAdapter = new CinemaPosterAdapter(this);
-        // 卡片放大到 190dp 后，间距同步放大到 16dp，保持呼吸感
-        mBinding.posters.setHorizontalSpacing(ResUtil.dp2px(16));
+        // 卡片 190dp 宽，间距 22dp：留出呼吸感，避免海报挤成一堵墙
+        mBinding.posters.setHorizontalSpacing(ResUtil.dp2px(22));
         mBinding.posters.setAdapter(mPosterAdapter);
         mBinding.posters.addOnChildViewHolderSelectedListener(new androidx.leanback.widget.OnChildViewHolderSelectedListener() {
             @Override

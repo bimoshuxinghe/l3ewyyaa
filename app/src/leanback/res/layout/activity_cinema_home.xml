@@ -28,7 +28,7 @@
 
     <!-- 左侧竖向压暗：保证 hero 区文字（标题/简介）在亮背景上也清晰 -->
     <View
-        android:layout_width="720dp"
+        android:layout_width="880dp"
         android:layout_height="match_parent"
         android:background="@drawable/bg_cinema_hero_overlay" />
 
@@ -222,10 +222,10 @@
     <!-- Hero section: constrained to left 1/3 so background poster is visible -->
     <LinearLayout
         android:id="@+id/hero"
-        android:layout_width="380dp"
+        android:layout_width="620dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="32dp"
-        android:layout_marginTop="118dp"
+        android:layout_marginTop="112dp"
         android:orientation="vertical">
 
         <!-- Movie title row -->
@@ -249,13 +249,13 @@
                 android:layout_height="match_parent"
                 android:ellipsize="end"
                 android:gravity="center_vertical"
-                android:shadowColor="#99000000"
+                android:shadowColor="#CC000000"
                 android:shadowDx="0"
                 android:shadowDy="2"
-                android:shadowRadius="12"
+                android:shadowRadius="14"
                 android:singleLine="true"
                 android:textColor="@color/white"
-                android:textSize="28sp"
+                android:textSize="36sp"
                 android:textStyle="bold" />
 
             <!-- TMDB 标题 Logo：尺寸调大一点，仍限制在标题行内，不遮挡下面的简介 -->
@@ -339,30 +339,30 @@
             android:id="@+id/tip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="10dp"
             android:ellipsize="end"
-            android:lineSpacingExtra="3dp"
-            android:maxLines="5"
-            android:paddingStart="12dp"
-            android:paddingTop="8dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="8dp"
-            android:shadowColor="#99000000"
+            android:lineSpacingExtra="6dp"
+            android:maxLines="4"
+            android:paddingStart="0dp"
+            android:paddingTop="0dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="0dp"
+            android:shadowColor="#CC000000"
             android:shadowDx="0"
-            android:shadowDy="1"
-            android:shadowRadius="6"
+            android:shadowDy="2"
+            android:shadowRadius="10"
             android:text="@string/home_tip"
-            android:textColor="#FFD0D8F0"
-            android:textSize="12sp" />
+            android:textColor="#E6EAF4"
+            android:textSize="15sp" />
     </LinearLayout>
 
     <!-- Bottom poster carousel -->
     <androidx.leanback.widget.HorizontalGridView
         android:id="@+id/posters"
         android:layout_width="match_parent"
-        android:layout_height="264dp"
+        android:layout_height="300dp"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="-6dp"
+        android:layout_marginBottom="6dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:paddingStart="32dp"
