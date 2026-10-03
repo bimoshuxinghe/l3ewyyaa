@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - mobile-v8a
+      - feat/hellotv-waterfall-ui
   workflow_dispatch:
 
 permissions:

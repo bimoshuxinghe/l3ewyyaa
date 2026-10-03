@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/danmaku-fongmi-port
+      - feat/hellotv-waterfall-ui
   workflow_dispatch:
 
 permissions:
