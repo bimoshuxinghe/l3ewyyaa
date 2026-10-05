@@ -87,6 +87,12 @@ public class CinemaHomeActivity extends BaseActivity implements
     private final Handler mBackdropHandler = new Handler(Looper.getMainLooper());
     private Runnable mBackdropRunnable;
 
+    // 焦点防抖：遥控器快速划过海报时，不为每个条目发起 TMDB/豆瓣搜索与大图加载，
+    // 停留超过 HERO_DEBOUNCE_MS 才执行，消除"加载慢"的最大来源
+    private static final long HERO_DEBOUNCE_MS = 350;
+    private final Handler mHeroDebounceHandler = new Handler(Looper.getMainLooper());
+    private Runnable mHeroDebounceRunnable;
+
     // 短按智能选源播放：跨站点搜索后自动打开第一个可播源
     private final Handler mSmartHandler = new Handler(Looper.getMainLooper());
     private boolean mSmartPlaying;
@@ -142,9 +148,13 @@ public class CinemaHomeActivity extends BaseActivity implements
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
         mBinding.loading.setVisibility(View.VISIBLE);
         mBinding.empty.setText(R.string.home_loading);
-        com.fongmi.android.tv.utils.PermissionUtil.requestNotify(this);
-        com.fongmi.android.tv.service.DLNARendererService.start(this);
-        Updater.create().start(this);
+        // 通知权限/DLNA/升级检查与首屏无关，延后执行，避免拖慢首页首帧
+        mBinding.getRoot().postDelayed(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            com.fongmi.android.tv.utils.PermissionUtil.requestNotify(this);
+            com.fongmi.android.tv.service.DLNARendererService.start(this);
+            Updater.create().start(this);
+        }, 1200);
         setPosterAdapter();
         setCategoryAdapter();
         setViewModel();
@@ -240,7 +250,6 @@ public class CinemaHomeActivity extends BaseActivity implements
     private void setHero() {
         if (!mHasMovieSelected) {
             mBinding.appTitle.setText(getString(R.string.app_name));
-            mBinding.tagRow.setVisibility(View.GONE);
         }
     }
 
@@ -252,6 +261,7 @@ public class CinemaHomeActivity extends BaseActivity implements
         stopBackdropRotation();
         mCurrentBackdrops.clear();
         mCurrentBackdropIndex = 0;
+        // 立即更新本地文本（无网络开销）
         mBinding.appTitle.setText(item.getName());
         showTitleText();
         if (!TextUtils.isEmpty(item.getActor())) {
@@ -262,43 +272,19 @@ public class CinemaHomeActivity extends BaseActivity implements
         }
         String tipText = item.getContent();
         if (!TextUtils.isEmpty(tipText)) {
-            mBinding.tip.setText("简介：" + tipText);
+            mBinding.tip.setText(tipText);
         } else if (!TextUtils.isEmpty(item.getRemarks())) {
             mBinding.tip.setText(item.getRemarks());
         } else {
             mBinding.tip.setText(R.string.home_tip);
         }
-        updateTagRow(item);
-        updateCoverBg(item);
-    }
-
-    private void updateTagRow(Vod item) {
-        boolean hasTag = false;
-        String year = item.getYear();
-        String area = item.getArea();
-        String type = item.getTypeName();
-        if (!TextUtils.isEmpty(year)) {
-            mBinding.tagYear.setText(year);
-            mBinding.tagYear.setVisibility(View.VISIBLE);
-            hasTag = true;
-        } else {
-            mBinding.tagYear.setVisibility(View.GONE);
-        }
-        if (!TextUtils.isEmpty(area)) {
-            mBinding.tagArea.setText(area);
-            mBinding.tagArea.setVisibility(View.VISIBLE);
-            hasTag = true;
-        } else {
-            mBinding.tagArea.setVisibility(View.GONE);
-        }
-        if (!TextUtils.isEmpty(type)) {
-            mBinding.tagType.setText(type);
-            mBinding.tagType.setVisibility(View.VISIBLE);
-            hasTag = true;
-        } else {
-            mBinding.tagType.setVisibility(View.GONE);
-        }
-        mBinding.tagRow.setVisibility(hasTag ? View.VISIBLE : View.GONE);
+        // 昂贵的部分（TMDB/豆瓣搜索 + 全屏大图加载）延迟执行：
+        // 快速移动焦点时只保留最后一次，停留即出背景
+        if (mHeroDebounceRunnable != null) mHeroDebounceHandler.removeCallbacks(mHeroDebounceRunnable);
+        mHeroDebounceRunnable = () -> {
+            if (TextUtils.equals(mCurrentHeroName, item.getName())) updateCoverBg(item);
+        };
+        mHeroDebounceHandler.postDelayed(mHeroDebounceRunnable, HERO_DEBOUNCE_MS);
     }
 
     private void updateCoverBg(Vod item) {
@@ -498,7 +484,6 @@ public class CinemaHomeActivity extends BaseActivity implements
         mCurrentTypeId = "home";
         mHasMovieSelected = false;
         mLastCoverUrl = "";
-        mBinding.tagRow.setVisibility(View.GONE);
         mBinding.loading.setVisibility(View.VISIBLE);
         mBinding.loadingProgress.setVisibility(View.VISIBLE);
         mBinding.empty.setText(R.string.home_loading);
@@ -532,7 +517,6 @@ public class CinemaHomeActivity extends BaseActivity implements
         mCurrentTypeId = item.getTypeId();
         mHasMovieSelected = false;
         mLastCoverUrl = "";
-        mBinding.tagRow.setVisibility(View.GONE);
         mBinding.loading.setVisibility(View.VISIBLE);
         mBinding.loadingProgress.setVisibility(View.VISIBLE);
         mBinding.empty.setText(R.string.home_loading);
@@ -805,6 +789,7 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     protected void onDestroy() {
+        if (mHeroDebounceRunnable != null) mHeroDebounceHandler.removeCallbacks(mHeroDebounceRunnable);
         if (mConfigReady) stopSmartPlay(); // initView 未完成时 mViewModel/mSmartHandler 等尚未初始化，stopSmartPlay 内部访问它们会 NPE
         com.fongmi.android.tv.service.DLNARendererService.stop(this);
         if (isFinishing() || isChangingConfigurations()) {

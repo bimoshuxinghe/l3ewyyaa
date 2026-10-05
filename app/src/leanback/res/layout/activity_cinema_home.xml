@@ -275,64 +275,13 @@
             android:id="@+id/actor"
             android:layout_width="match_parent"
             android:layout_height="24dp"
+            android:layout_marginTop="4dp"
             android:ellipsize="end"
             android:gravity="center_vertical"
             android:singleLine="true"
             android:textColor="#FFC8D0E8"
             android:textSize="13sp"
             android:visibility="gone" />
-
-        <!-- Tag row: year, area, type -->
-        <LinearLayout
-            android:id="@+id/tagRow"
-            android:layout_width="wrap_content"
-            android:layout_height="26dp"
-            android:layout_marginTop="6dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tagYear"
-                android:layout_width="wrap_content"
-                android:layout_height="22dp"
-                android:background="@drawable/bg_cinema_tag_chip"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:singleLine="true"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tagArea"
-                android:layout_width="wrap_content"
-                android:layout_height="22dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_cinema_tag_chip"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:singleLine="true"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:visibility="gone" />
-
-            <TextView
-                android:id="@+id/tagType"
-                android:layout_width="wrap_content"
-                android:layout_height="22dp"
-                android:layout_marginStart="6dp"
-                android:background="@drawable/bg_cinema_tag_chip"
-                android:gravity="center"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:singleLine="true"
-                android:textColor="@color/white"
-                android:textSize="11sp"
-                android:visibility="gone" />
-        </LinearLayout>
 
         <!-- Synopsis: shown directly over the backdrop poster -->
         <TextView
@@ -342,7 +291,7 @@
             android:layout_marginTop="10dp"
             android:ellipsize="end"
             android:lineSpacingExtra="6dp"
-            android:maxLines="4"
+            android:maxLines="3"
             android:paddingStart="0dp"
             android:paddingTop="0dp"
             android:paddingEnd="24dp"
