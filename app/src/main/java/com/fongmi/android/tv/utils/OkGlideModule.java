@@ -19,6 +19,7 @@ import com.bumptech.glide.load.engine.cache.LruResourceCache;
 import com.bumptech.glide.load.engine.cache.MemorySizeCalculator;
 import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.module.AppGlideModule;
+import com.bumptech.glide.request.RequestOptions;
 import com.github.catvod.net.OkHttp;
 
 import java.io.InputStream;
@@ -37,7 +38,7 @@ public class OkGlideModule extends AppGlideModule {
         // 1) 海报墙统一降为 RGB_565 解码，位图内存直接减半（海报不透明，肉眼几乎无差）
         // 2) 内存缓存与 Bitmap 池各砍半，进一步降低 GC 压力与 OOM 概率
         if (isLowMemoryDevice(context)) {
-            builder.setDecodeFormat(DecodeFormat.PREFER_RGB_565);
+            builder.setDefaultRequestOptions(RequestOptions.formatOf(DecodeFormat.PREFER_RGB_565));
             builder.setMemoryCache(new LruResourceCache(calculator.getMemoryCacheSize() / 2));
             builder.setBitmapPool(new LruBitmapPool(calculator.getBitmapPoolSize() / 2));
         } else {
