@@ -450,14 +450,4 @@ public abstract class PlaybackActivity extends BaseActivity implements MediaCont
         danmakuController.close();
         releasePlaybackService();
     }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        // 遥控器菜单键呼出播放设置（智能去广等）
-        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SETTINGS) {
-            com.fongmi.android.tv.ui.dialog.PlayerSettingsDialog.show(this);
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
-    }
 }

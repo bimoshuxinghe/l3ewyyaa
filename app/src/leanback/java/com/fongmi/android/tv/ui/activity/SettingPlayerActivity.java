@@ -54,6 +54,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.tunnelText.setText(getSwitch(PlayerSetting.isTunnel()));
         mBinding.exoDolbyVisionPassthroughText.setText(getSwitch(PlayerSetting.isExoDolbyVisionPassthrough()));
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
+        mBinding.engineText.setText(getEngineText());
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
         mBinding.preloadText.setText(getPreloadText());
@@ -87,6 +88,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.exoDolbyVisionPassthrough.setOnClickListener(this::setExoDolbyVisionPassthrough);
         mBinding.caption.setOnClickListener(this::setCaption);
         mBinding.adblock.setOnClickListener(this::setAdblock);
+        mBinding.engine.setOnClickListener(this::onEngine);
         mBinding.caption.setOnLongClickListener(this::onCaption);
         mBinding.background.setOnClickListener(this::onBackground);
         mBinding.homeMute.setOnClickListener(this::onHomeMute);
@@ -215,6 +217,20 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     private void setAdblock(View view) {
         Setting.putAdblock(!Setting.isAdblock());
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
+    }
+
+    private String getEngineText() {
+        int engine = PlayerSetting.getEngine();
+        if (engine == PlayerSetting.ENGINE_MPV) return getString(R.string.play_mpv);
+        if (engine == PlayerSetting.ENGINE_IJK) return getString(R.string.play_ijk);
+        return getString(R.string.play_exo);
+    }
+
+    private void onEngine(View view) {
+        // EXO → MPV → IJK 循环切换，下一次播放生效
+        int next = (PlayerSetting.getEngine() + 1) % (PlayerSetting.ENGINE_IJK + 1);
+        PlayerSetting.putEngine(next);
+        mBinding.engineText.setText(getEngineText());
     }
 
     private boolean onCaption(View view) {

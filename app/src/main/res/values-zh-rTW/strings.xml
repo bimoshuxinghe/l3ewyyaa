@@ -46,6 +46,8 @@
     <string name="play_skip_not_set">&#x672A;&#x8A2D;&#x7F6E;&#x8DF3;&#x904E;&#x9EDE;</string>
     <string name="play_exo">EXO</string>
     <string name="play_mpv">MPV</string>
+    <string name="play_ijk">IJK</string>
+    <string name="play_engine">播放引擎</string>
     <string name="play_next">下集</string>
     <string name="play_prev">上集</string>
     <string name="play_stop">停止</string>

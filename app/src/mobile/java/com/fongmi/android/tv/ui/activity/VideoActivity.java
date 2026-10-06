@@ -1213,12 +1213,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
 
     private void onChoose() {
         mClock.setCallback(null);
-        String[] items = {getString(R.string.play_exo), getString(R.string.play_mpv)};
-        int current = player().isMpv() ? 1 : 0;
+        String[] items = {getString(R.string.play_exo), getString(R.string.play_mpv), getString(R.string.play_ijk)};
+        int current = player().isMpv() ? 1 : player().isIjk() ? 2 : 0;
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.player)
                 .setSingleChoiceItems(items, current, (dialog, which) -> {
-                    int target = which == 0 ? PlayerSetting.ENGINE_EXO : PlayerSetting.ENGINE_MPV;
+                    int target = which == 0 ? PlayerSetting.ENGINE_EXO : which == 1 ? PlayerSetting.ENGINE_MPV : PlayerSetting.ENGINE_IJK;
                     if (which != current) {
                         player().setEngine(target);
                         setEngine();
