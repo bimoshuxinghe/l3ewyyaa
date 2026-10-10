@@ -136,7 +136,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
             } catch (Exception ignored) {
             }
             try {
-                try { player.clearMediaItems(); } catch (Exception e) { e.printStackTrace(); }
+                try { player.clearMediaItems(); } catch (Exception clearEx) { clearEx.printStackTrace(); }
             } catch (Exception ignored) {
             }
             try {
