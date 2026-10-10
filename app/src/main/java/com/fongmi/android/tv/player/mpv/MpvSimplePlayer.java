@@ -1,7 +1,9 @@
 package com.fongmi.android.tv.player.mpv;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
@@ -500,8 +502,15 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
             applyHdrOptions();
             setMpvOption("tls-verify", "no");
             setMpvOption("ytdl", "no");
-            setMpvOption("demuxer-max-bytes", "67108864");
-            setMpvOption("demuxer-max-back-bytes", "67108864");
+            if (isLowEndDevice()) {
+                // 低端盒子/电视（低内存或 32 位）：缩小解复用缓存，降低常驻内存占用
+                setMpvOption("demuxer-max-bytes", "16777216");
+                setMpvOption("demuxer-max-back-bytes", "8388608");
+                setMpvOption("cache-secs", "10");
+            } else {
+                setMpvOption("demuxer-max-bytes", "67108864");
+                setMpvOption("demuxer-max-back-bytes", "67108864");
+            }
             setMpvOption("idle", "yes");
             setMpvOption("force-window", "no");
             MPVLib.init();
@@ -744,8 +753,24 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
 
     private void applyHdrOptions() {
         setMpvOption("target-colorspace-hint", "yes");
-        setMpvOption("hdr-compute-peak", "yes");
+        if (isLowEndDevice()) {
+            // 低端设备跳过逐帧峰值亮度计算，省 CPU/GPU
+            setMpvOption("hdr-compute-peak", "no");
+        } else {
+            setMpvOption("hdr-compute-peak", "yes");
+        }
         setMpvOption("tone-mapping", "auto");
+    }
+
+    private boolean isLowEndDevice() {
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            boolean lowRam = am != null && am.isLowRamDevice();
+            boolean is32Bit = Build.SUPPORTED_ABIS.length > 0 && !Build.SUPPORTED_ABIS[0].contains("64");
+            return lowRam || is32Bit;
+        } catch (Throwable e) {
+            return false;
+        }
     }
 
     private void applyOffsets() {

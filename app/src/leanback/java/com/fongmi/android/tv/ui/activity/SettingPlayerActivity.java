@@ -4,12 +4,17 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.View;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.viewbinding.ViewBinding;
 
+import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.databinding.ActivitySettingPlayerBinding;
+import com.fongmi.android.tv.databinding.DialogMpvConfigBinding;
 import com.fongmi.android.tv.impl.BufferListener;
 import com.fongmi.android.tv.impl.SpeedListener;
 import com.fongmi.android.tv.impl.UaListener;
@@ -19,7 +24,11 @@ import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.dialog.BufferDialog;
 import com.fongmi.android.tv.ui.dialog.SpeedDialog;
 import com.fongmi.android.tv.ui.dialog.UaDialog;
+import com.fongmi.android.tv.utils.FileChooser;
+import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
+import com.fongmi.android.tv.utils.Task;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.DecimalFormat;
 
@@ -55,6 +64,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.exoDolbyVisionPassthroughText.setText(getSwitch(PlayerSetting.isExoDolbyVisionPassthrough()));
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
         mBinding.engineText.setText(getEngineText());
+        mBinding.mpvConfigText.setText(getMpvConfigText());
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
         mBinding.preloadText.setText(getPreloadText());
@@ -89,6 +99,8 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.caption.setOnClickListener(this::setCaption);
         mBinding.adblock.setOnClickListener(this::setAdblock);
         mBinding.engine.setOnClickListener(this::onEngine);
+        mBinding.mpvConfig.setOnClickListener(this::onMpvConfig);
+        mBinding.mpvConfig.setOnLongClickListener(this::clearMpvConfig);
         mBinding.caption.setOnLongClickListener(this::onCaption);
         mBinding.background.setOnClickListener(this::onBackground);
         mBinding.homeMute.setOnClickListener(this::onHomeMute);
@@ -220,18 +232,81 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     }
 
     private String getEngineText() {
-        int engine = PlayerSetting.getEngine();
-        if (engine == PlayerSetting.ENGINE_MPV) return getString(R.string.play_mpv);
-        if (engine == PlayerSetting.ENGINE_IJK) return getString(R.string.play_ijk);
-        return getString(R.string.play_exo);
+        return PlayerSetting.isMpv() ? getString(R.string.play_mpv) : getString(R.string.play_exo);
     }
 
     private void onEngine(View view) {
-        // EXO → MPV → IJK 循环切换，下一次播放生效
-        int next = (PlayerSetting.getEngine() + 1) % (PlayerSetting.ENGINE_IJK + 1);
-        PlayerSetting.putEngine(next);
+        // EXO ↔ MPV 切换，下一次播放生效
+        PlayerSetting.putEngine(PlayerSetting.isMpv() ? PlayerSetting.ENGINE_EXO : PlayerSetting.ENGINE_MPV);
         mBinding.engineText.setText(getEngineText());
     }
+
+    private String getMpvConfigText() {
+        return PlayerSetting.hasMpvConfig() ? PlayerSetting.getMpvConfigName() : getString(R.string.player_mpv_config_default);
+    }
+
+    private void onMpvConfig(View view) {
+        DialogMpvConfigBinding binding = DialogMpvConfigBinding.inflate(getLayoutInflater());
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this).setView(binding.getRoot()).create();
+        binding.current.setText("当前：" + getMpvConfigText());
+        binding.clear.setEnabled(PlayerSetting.hasMpvConfig());
+        binding.clear.setAlpha(PlayerSetting.hasMpvConfig() ? 1.0f : 0.45f);
+        if (PlayerSetting.getMpvConfigName().startsWith("http")) binding.input.setText(PlayerSetting.getMpvConfigName());
+        binding.local.setOnClickListener(v -> {
+            dialog.dismiss();
+            FileChooser.from(mpvConfigLauncher).show(new String[]{"text/*", "application/octet-stream", "*/*"});
+        });
+        binding.url.setOnClickListener(v -> {
+            String url = binding.input.getText() == null ? "" : binding.input.getText().toString().trim();
+            if (TextUtils.isEmpty(url) || (!url.startsWith("http://") && !url.startsWith("https://"))) {
+                Notify.show("MPV 配置地址无效");
+                return;
+            }
+            dialog.dismiss();
+            importMpvConfigUrl(url);
+        });
+        binding.clear.setOnClickListener(v -> {
+            clearMpvConfig(view);
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    private void importMpvConfigUrl(String url) {
+        Notify.progress(this);
+        Task.execute(() -> {
+            boolean ok = PlayerSetting.importMpvConfigUrl(url);
+            App.post(() -> {
+                Notify.dismiss();
+                if (isDestroyed() || isFinishing()) return;
+                if (ok) {
+                    mBinding.mpvConfigText.setText(getMpvConfigText());
+                    Notify.show("MPV 配置已导入");
+                } else {
+                    Notify.show("MPV 配置地址无效");
+                }
+            });
+        });
+    }
+
+    private boolean clearMpvConfig(View view) {
+        if (!PlayerSetting.hasMpvConfig()) return false;
+        PlayerSetting.clearMpvConfig();
+        mBinding.mpvConfigText.setText(getMpvConfigText());
+        Notify.show("MPV 配置已清除");
+        return true;
+    }
+
+    private final ActivityResultLauncher<Intent> mpvConfigLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || result.getData().getData() == null) return;
+        String path = FileChooser.getPathFromUri(result.getData().getData());
+        if (TextUtils.isEmpty(path) || !PlayerSetting.importMpvConfig(path)) {
+            Notify.show("MPV 配置导入失败");
+            return;
+        }
+        mBinding.mpvConfigText.setText(getMpvConfigText());
+        Notify.show("MPV 配置已导入");
+    });
 
     private boolean onCaption(View view) {
         if (PlayerSetting.isCaption()) startActivity(new Intent(Settings.ACTION_CAPTIONING_SETTINGS));

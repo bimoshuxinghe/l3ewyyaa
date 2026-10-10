@@ -31,7 +31,6 @@ import com.fongmi.android.tv.player.engine.ExoPlayerEngine;
 import com.fongmi.android.tv.player.engine.MpvPlayerEngine;
 import com.fongmi.android.tv.player.engine.PlaySpec;
 import com.fongmi.android.tv.player.engine.PlayerEngine;
-import com.fongmi.android.tv.player.ijk.IjkPlayerEngine;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.utils.Notify;
@@ -201,7 +200,6 @@ public class PlayerManager implements ParseCallback {
 
     public String getEngineText() {
         if (engine instanceof MpvPlayerEngine) return ResUtil.getString(R.string.play_mpv);
-        if (engine instanceof IjkPlayerEngine) return ResUtil.getString(R.string.play_ijk);
         return ResUtil.getString(R.string.play_exo);
     }
 
@@ -377,7 +375,7 @@ public class PlayerManager implements ParseCallback {
     }
 
     public void toggleEngine() {
-        int next = (PlayerSetting.getEngine() + 1) % (PlayerSetting.ENGINE_IJK + 1);
+        int next = PlayerSetting.getEngine() == PlayerSetting.ENGINE_MPV ? PlayerSetting.ENGINE_EXO : PlayerSetting.ENGINE_MPV;
         setEngine(next);
     }
 
@@ -385,10 +383,6 @@ public class PlayerManager implements ParseCallback {
         if (engine != null && PlayerSetting.getEngine() == target) return;
         if (target == PlayerSetting.ENGINE_MPV && !MpvPlayerEngine.isAvailable()) {
             Notify.show(ResUtil.getString(R.string.play_mpv) + " 不可用");
-            return;
-        }
-        if (target == PlayerSetting.ENGINE_IJK && !IjkPlayerEngine.isAvailable()) {
-            Notify.show(ResUtil.getString(R.string.play_ijk) + " 不可用");
             return;
         }
         long resume = getSwitchPosition(); // 在释放旧引擎前记下进度
@@ -446,7 +440,6 @@ public class PlayerManager implements ParseCallback {
     private PlayerEngine createEngine(int decode) {
         int engine = PlayerSetting.getEngine();
         if (engine == PlayerSetting.ENGINE_MPV && MpvPlayerEngine.isAvailable()) return new MpvPlayerEngine(decode, listener);
-        if (engine == PlayerSetting.ENGINE_IJK && IjkPlayerEngine.isAvailable()) return new IjkPlayerEngine(decode, listener);
         return new ExoPlayerEngine(decode, listener);
     }
 
@@ -456,14 +449,6 @@ public class PlayerManager implements ParseCallback {
 
     public boolean isMpv() {
         return isMpvEngine();
-    }
-
-    private boolean isIjkEngine() {
-        return engine instanceof IjkPlayerEngine;
-    }
-
-    public boolean isIjk() {
-        return isIjkEngine();
     }
 
     public void browse(PlaySpec spec) {
@@ -525,7 +510,6 @@ public class PlayerManager implements ParseCallback {
     private void ensureEngineForSpec() {
         int target = PlayerSetting.getEngine();
         boolean mismatch = target == PlayerSetting.ENGINE_MPV ? !(engine instanceof MpvPlayerEngine)
-                : target == PlayerSetting.ENGINE_IJK ? !(engine instanceof IjkPlayerEngine)
                 : !(engine instanceof ExoPlayerEngine);
         if (mismatch) setEngine(target);
     }

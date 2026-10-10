@@ -18,7 +18,6 @@ public class PlayerSetting {
 
     public static final int ENGINE_EXO = 0;
     public static final int ENGINE_MPV = 1;
-    public static final int ENGINE_IJK = 2;
 
     // DV7 处理模式常量
     public static final int DV7_AUTO = 0;        // 自动检测
@@ -27,19 +26,15 @@ public class PlayerSetting {
     public static final int DV7_OFF = 3;         // 不干预
 
     public static int getEngine() {
-        return Math.min(Math.max(Prefers.getInt("player_engine", ENGINE_EXO), ENGINE_EXO), ENGINE_IJK);
+        return Math.min(Math.max(Prefers.getInt("player_engine", ENGINE_EXO), ENGINE_EXO), ENGINE_MPV);
     }
 
     public static void putEngine(int engine) {
-        Prefers.put("player_engine", Math.min(Math.max(engine, ENGINE_EXO), ENGINE_IJK));
+        Prefers.put("player_engine", Math.min(Math.max(engine, ENGINE_EXO), ENGINE_MPV));
     }
 
     public static boolean isMpv() {
         return getEngine() == ENGINE_MPV;
-    }
-
-    public static boolean isIjk() {
-        return getEngine() == ENGINE_IJK;
     }
 
     public static int getDv7HandlingMode() {
