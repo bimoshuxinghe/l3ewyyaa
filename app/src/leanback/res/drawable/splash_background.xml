@@ -2,7 +2,6 @@
 <!-- 全屏启动图：不使用 windowSplashScreenAnimatedIcon（系统会把它裁进圆/圆角方框），
      改为窗口背景直接铺满整张 16:9 原图 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="#0A1030" />
     <item>
         <bitmap
             android:gravity="fill"
