@@ -112,6 +112,27 @@ public class PlayerSetting {
         background.mutate().setAlpha(Math.round((100 - getControllerTransparency()) * 2.55f));
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static boolean isExoDolbyVisionPassthrough() {
+        return Prefers.getBoolean("exo_dolby_vision_passthrough", true);
+    }
+
+    public static void putExoDolbyVisionPassthrough(boolean passthrough) {
+        Prefers.put("exo_dolby_vision_passthrough", passthrough);
+    }
+
     public static int getRender() {
         return Prefers.getInt("render", 0);
     }
@@ -271,4 +292,8 @@ public class PlayerSetting {
     public static void putSubtitlePosition(float value) {
         Prefers.put("subtitle_position", value);
     }
+
+
+
+
 }
