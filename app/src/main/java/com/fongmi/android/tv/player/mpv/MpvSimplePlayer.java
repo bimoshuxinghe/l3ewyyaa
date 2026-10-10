@@ -95,6 +95,8 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
     private boolean passthroughEnabled;
     private boolean passthroughRecoveryAttempted;
     private boolean hlsAbortRetryAttempted;
+    private boolean hlsForceFallbackAttempted;
+    private boolean suppressHlsForce;
     private int liveRetryCount;
     private static final int MAX_LIVE_RETRIES = 3;
     private boolean audioOnlyFallback;
@@ -464,6 +466,7 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
                 } else if (manualStop || mediaItem == null) {
                     playbackState = Player.STATE_IDLE;
                 } else if (!manualStop && !renderedFirstFrame && !audioOnlyFallback && mediaItem != null) {
+                    if (retryWithoutHlsForce()) return;
                     if (retryHlsAbortError()) return;
                     if (retryLiveStream()) return;
                     setError(lastErrorMessage == null ? "MPV 播放失败" : lastErrorMessage);
@@ -558,6 +561,8 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
         if (!TextUtils.equals(activeLoadUrl, url)) {
             activeLoadUrl = url;
             hlsAbortRetryAttempted = false;
+            hlsForceFallbackAttempted = false;
+            suppressHlsForce = false;
             liveRetryCount = 0;
         }
         applyHeaders(mediaItem);
@@ -657,7 +662,7 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
     private String getLoadOptions(long positionMs, boolean useStartOption, MediaItem item, String url) {
         List<String> options = new ArrayList<>();
         if (positionMs > 0 && useStartOption) options.add("start=" + formatSeconds(positionMs));
-        if (shouldTreatAsHls(item, url)) {
+        if (shouldTreatAsHls(item, url) && !suppressHlsForce) {
             // 直播 / HLS（以及无法从 URL 看出格式的动态 PHP 代理链接）一律按 HLS 来处理：
             //   - demuxer=lavf + demuxer-lavf-format=hls → 强制走 libavformat 的 HLS 解复用
             //     （避免 mpv 对"扩展名不明显"的直播源误判成 raw MPEG-TS / FLV，造成切台快时探测失败报"MPV 播放失败"）
@@ -697,7 +702,8 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
     private boolean shouldTreatAsHls(MediaItem item, String url) {
         if (isHls(item, url)) return true;
         if (MpvMedia.isRadioAudio(url)) return false;
-        if (isMp4LikeContainer(url)) return false;
+        // 需求：所有传入链接（php?xxx 代理、m3u8、ts/flv 直播等）一律按 HLS 解复用，
+        // 不再区分 mp4/mkv 点播容器（真·点播若因此失败，会走 hlsForceFallback 自动重试）
         // 剩下的情况：动态链接、.ts/.flv 直播流、或任何不明确的 http(s) 直播
         // —— 统统按 HLS 容器探测，省掉切台时的格式探测竞态。
         String u = url == null ? "" : url.toLowerCase(Locale.ROOT);
@@ -735,6 +741,15 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
                 handler.post(() -> Notify.show("当前设备不支持音频直通，已关闭"));
             }
             setMpvOption("audio-spdif", "");
+            // 音频解码优化：非直通时把多声道下混成双声道，显著降低解码/滤镜开销
+            setMpvOption("ad-lavc-downmix", "yes");
+            // 音频缓冲保持较小，起播更快、内存占用更低
+            setMpvOption("audio-buffer", "0.25");
+            if (isLowEndDevice()) {
+                // 低端盒子/电视：限制音频解码线程数，避免和视频解码抢 CPU
+                setMpvOption("ad-lavc-threads", "2");
+                setMpvOption("audio-resample-filter-size", "16");
+            }
         }
     }
 
@@ -1251,6 +1266,23 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
         if (TextUtils.equals(lastStartedUrl, currentUrl)) return false;
         if (TextUtils.equals(lastStartedUrl, playable)) return false;
         // lastStartedUrl 与当前 mediaItem.url 不匹配 → 是过期事件
+        return true;
+    }
+
+    /**
+     * 强制 HLS 解复用打不开时的兜底：只重试一次，改为让 mpv 自动探测格式。
+     * 这样"所有链接都按 HLS 处理"不会影响真实 mp4/mkv 点播。
+     */
+    private boolean retryWithoutHlsForce() {
+        if (hlsForceFallbackAttempted || suppressHlsForce || mediaItem == null) return false;
+        if (!shouldTreatAsHls(mediaItem, mediaItem.localConfiguration == null ? null : mediaItem.localConfiguration.uri.toString())) return false;
+        hlsForceFallbackAttempted = true;
+        suppressHlsForce = true;
+        lastErrorMessage = null;
+        lastErrorUrl = null;
+        playerError = null;
+        Log.i(TAG, "retryWithoutHlsForce: 强制 HLS 失败，改用自动探测重试");
+        loadMediaItem(positionMs, false);
         return true;
     }
 

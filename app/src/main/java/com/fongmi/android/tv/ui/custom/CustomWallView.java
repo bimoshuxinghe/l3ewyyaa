@@ -78,7 +78,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
     private void stop() {
         if (player != null && player.isPlaying()) {
             player.stop();
-            player.clearMediaItems();
+            try { player.clearMediaItems(); } catch (Exception e) { e.printStackTrace(); }
         }
         if (video != null) {
             video.setPlayer(null);
@@ -136,7 +136,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
             } catch (Exception ignored) {
             }
             try {
-                player.clearMediaItems();
+                try { player.clearMediaItems(); } catch (Exception e) { e.printStackTrace(); }
             } catch (Exception ignored) {
             }
             try {
@@ -159,7 +159,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
         state = player.getPlaybackState();
         if (state == Player.STATE_IDLE || state == Player.STATE_ENDED) return;
         try {
-            player.clearMediaItems();
+            try { player.clearMediaItems(); } catch (Exception e) { e.printStackTrace(); }
         } catch (Exception ignored) {
         }
     }
