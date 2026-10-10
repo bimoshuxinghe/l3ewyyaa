@@ -12,7 +12,7 @@
 
     <style name="Theme.Splash" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.App</item>
-        <item name="windowSplashScreenBackground">#141218</item>
+        <item name="windowSplashScreenBackground">#041044</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
     </style>
 
