@@ -1,9 +1,10 @@
-package com.fongmi.android.tv.player.engine;
+package com.fongmi.android.tv.player.ijk;
+
+import android.util.Log;
 
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
-import androidx.media3.common.MediaTitle;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.Tracks;
@@ -11,32 +12,36 @@ import androidx.media3.common.Tracks;
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.Track;
+import com.fongmi.android.tv.player.engine.PlayerEngine;
+import com.fongmi.android.tv.player.engine.PlaySpec;
 import com.fongmi.android.tv.player.exo.ExoUtil;
-import com.fongmi.android.tv.player.mpv.MpvSimplePlayer;
 import com.fongmi.android.tv.utils.ResUtil;
 
-import android.util.Log;
-
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MpvPlayerEngine implements PlayerEngine {
+/**
+ * 老版 ijkplayer（k0.8.8）引擎，按 PlayerEngine 接口接入 PlayerManager。
+ * 软解/硬解：硬解走 ijk 的 mediacodec 路径，软解走 ffmpeg，切换需重建播放器。
+ */
+public class IjkPlayerEngine implements PlayerEngine {
 
-    private MpvSimplePlayer player;
+    private static final String TAG = "IjkPlayerEngine";
+
+    private IjkSimplePlayer player;
     private int decode;
 
-    public MpvPlayerEngine(int decode, Player.Listener listener) {
+    public IjkPlayerEngine(int decode, Player.Listener listener) {
         this.decode = decode;
         this.player = buildPlayer(listener);
     }
 
     public static boolean isAvailable() {
-        return MpvSimplePlayer.isAvailable();
+        return IjkSimplePlayer.isAvailable();
     }
 
     public static String getAvailabilityError() {
-        return MpvSimplePlayer.getAvailabilityError();
+        return IjkSimplePlayer.getAvailabilityError();
     }
 
     @Override
@@ -67,11 +72,6 @@ public class MpvPlayerEngine implements PlayerEngine {
     }
 
     @Override
-    public boolean canSetDecodeWithoutRebuild() {
-        return true;
-    }
-
-    @Override
     public boolean isHard() {
         return decode == HARD;
     }
@@ -95,7 +95,7 @@ public class MpvPlayerEngine implements PlayerEngine {
             player.prepare();
             player.play();
         } catch (Exception e) {
-            Log.w("MpvPlayerEngine", "start failed, retry after stop+clear.", e);
+            Log.w(TAG, "start failed, retry after stop+clear.", e);
             try {
                 player.stop();
             } catch (Exception ignored) {
@@ -109,7 +109,7 @@ public class MpvPlayerEngine implements PlayerEngine {
                 player.prepare();
                 player.play();
             } catch (Exception e2) {
-                Log.e("MpvPlayerEngine", "start retry failed.", e2);
+                Log.e(TAG, "start retry failed.", e2);
             }
         }
     }
@@ -157,56 +157,6 @@ public class MpvPlayerEngine implements PlayerEngine {
     }
 
     @Override
-    public long getTextOffsetMs() {
-        return player.getTextOffsetMs();
-    }
-
-    @Override
-    public void setTextOffsetMs(long offsetMs) {
-        player.setTextOffsetMs(offsetMs);
-    }
-
-    @Override
-    public long getAudioOffsetMs() {
-        return player.getAudioOffsetMs();
-    }
-
-    @Override
-    public void setAudioOffsetMs(long offsetMs) {
-        player.setAudioOffsetMs(offsetMs);
-    }
-
-    @Override
-    public boolean canSetSubtitleStyle() {
-        return true;
-    }
-
-    @Override
-    public void addSubtitleSize() {
-        player.addSubtitleSize();
-    }
-
-    @Override
-    public void subSubtitleSize() {
-        player.subSubtitleSize();
-    }
-
-    @Override
-    public void addSubtitlePosition() {
-        player.addSubtitlePosition();
-    }
-
-    @Override
-    public void subSubtitlePosition() {
-        player.subSubtitlePosition();
-    }
-
-    @Override
-    public void resetSubtitleStyle() {
-        player.resetSubtitleStyle();
-    }
-
-    @Override
     public boolean haveTrack(int type) {
         return player.getCurrentTracks().containsType(type);
     }
@@ -217,22 +167,18 @@ public class MpvPlayerEngine implements PlayerEngine {
     }
 
     @Override
-    public List<MediaTitle> getCurrentMediaTitles() {
-        return Collections.emptyList();
-    }
-
-    @Override
     public String getErrorMessage(PlaybackException e) {
-        return e.getMessage() == null ? "MPV 播放失败" : e.getMessage();
+        return e.getMessage() == null ? "IJK 播放失败" : e.getMessage();
     }
 
     @Override
     public ErrorAction handleError(PlaybackException e) {
-        return ErrorAction.FATAL;
+        // 给一次软/硬解切换重试的机会：硬解失败（老盒子 mediacodec 不支持该编码）时降级软解
+        return ErrorAction.DECODE;
     }
 
-    private MpvSimplePlayer buildPlayer(Player.Listener listener) {
-        MpvSimplePlayer player = new MpvSimplePlayer(App.get(), decode);
+    private IjkSimplePlayer buildPlayer(Player.Listener listener) {
+        IjkSimplePlayer player = new IjkSimplePlayer(App.get(), decode);
         player.addListener(listener);
         player.setPlayWhenReady(true);
         return player;

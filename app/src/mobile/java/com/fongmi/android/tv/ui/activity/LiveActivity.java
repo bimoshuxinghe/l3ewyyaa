@@ -932,7 +932,7 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
 
     private void prepareChannelSwitch() {
         player().reset();
-        if (player().isMpv()) {
+        if (player().isIjk()) {
             hideError();
             hideProgress();
         } else {
@@ -946,7 +946,7 @@ public class LiveActivity extends PlaybackActivity implements CustomKeyDown.List
     private void start(Result result) {
         mPlaybackKey = result.getRealUrl();
         startPlayer(mPlaybackKey, result, false, getHome().getTimeout(), buildMetadata());
-        mPendingPlay = !player().isMpv();
+        mPendingPlay = !player().isIjk();
         if (mPendingPlay) player().pause();
     }
 

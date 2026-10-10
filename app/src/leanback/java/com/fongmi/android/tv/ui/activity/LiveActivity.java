@@ -489,7 +489,7 @@ public class LiveActivity extends PlaybackActivity implements GroupAdapter.OnCli
 
     @Override
     protected void onPrepare() {
-        // 切台 / 换源开始播放准备前，务必先清掉上一次残留的"MPV播放失败"提示框。
+        // 切台 / 换源开始播放准备前，务必先清掉上一次残留的播放失败提示框。
         // 否则如果上一个频道报错后立即切台，新频道的 onPrepare 不会调 showProgress
         // （比如直接走到 STATE_READY），错误 UI 就会永久卡在画面上。
         hideError();
