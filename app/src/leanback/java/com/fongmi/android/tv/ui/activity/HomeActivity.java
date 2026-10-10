@@ -162,8 +162,16 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         if (original.getData() != null) redirect.setData(original.getData());
         if (original.getExtras() != null) redirect.putExtras(original.getExtras());
         redirect.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(redirect);
-        finish();
+        // 先让全屏启动图显示一会儿（窗口背景 @drawable/splash_background），再进影院模式
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                startActivity(redirect);
+                overridePendingTransition(0, 0);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+            finish();
+        }, 1200);
         return;
     }
 

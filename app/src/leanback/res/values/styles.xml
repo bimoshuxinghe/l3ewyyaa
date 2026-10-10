@@ -16,6 +16,11 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
     </style>
 
+    <!-- 全屏原图启动页：不用系统 Splash 图标框（会裁成圆/圆角方），直接铺满 16:9 原图 -->
+    <style name="Theme.SplashFull" parent="Theme.Base">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+
     <style name="Theme.App" parent="Theme.Base" />
 
     <style name="Theme.Crash" parent="Theme.Base">

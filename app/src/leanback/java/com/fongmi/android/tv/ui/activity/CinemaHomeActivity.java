@@ -125,7 +125,6 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
     }
 
