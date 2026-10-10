@@ -26,19 +26,28 @@
             android:name="design_height_in_dp"
             android:value="540" />
 
+        <!-- 启动页：极轻全屏星落图，冷启动直接显示图片后进入影院模式主页 -->
         <activity
-            android:name=".ui.activity.HomeActivity"
+            android:name=".ui.activity.SplashActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="true"
-            android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape"
-            android:theme="@style/Theme.SplashFull">
+            android:theme="@style/Theme.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.activity.HomeActivity"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.App">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH" />
             </intent-filter>

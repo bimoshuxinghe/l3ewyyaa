@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 启动画面：星落图全屏铺满，不使用系统 Splash 图标框（会裁成圆/圆角方块） -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="fill"
+    android:src="@drawable/ic_splash_full" />

@@ -10,15 +10,9 @@
         <item name="android:windowAnimationStyle">@style/NoAnim</item>
     </style>
 
-    <style name="Theme.Splash" parent="Theme.SplashScreen">
-        <item name="postSplashScreenTheme">@style/Theme.App</item>
-        <item name="windowSplashScreenBackground">#0A1030</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-    </style>
-
-    <!-- 全屏原图启动页：不用系统 Splash 图标框（会裁成圆/圆角方），直接铺满 16:9 原图 -->
-    <style name="Theme.SplashFull" parent="Theme.Base">
-        <item name="android:windowBackground">@drawable/splash_background</item>
+    <!-- 启动画面改为星落图全屏 windowBackground，不再显示居中图标（同手机版方案） -->
+    <style name="Theme.Splash" parent="Theme.Base">
+        <item name="android:windowBackground">@drawable/splash_full</item>
     </style>
 
     <style name="Theme.App" parent="Theme.Base" />
