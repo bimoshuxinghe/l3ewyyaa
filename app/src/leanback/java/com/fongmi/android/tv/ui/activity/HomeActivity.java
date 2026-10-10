@@ -154,16 +154,17 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // 普通UI已移除：HomeActivity 仅作为桌面入口壳，无条件重定向到影院模式（CinemaHomeActivity）
+        // 普通UI已移除：HomeActivity 仅作为桌面入口壳，无条件重定向到影院模式（CinemaHomeActivity）。
+        // 必须在 super.onCreate 之前重定向并 return，否则 BaseActivity 会加载普通 UI 布局导致崩溃
         Intent original = getIntent();
         Intent redirect = new Intent(this, CinemaHomeActivity.class);
         redirect.setAction(original.getAction());
         if (original.getData() != null) redirect.setData(original.getData());
         if (original.getExtras() != null) redirect.putExtras(original.getExtras());
         redirect.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        super.onCreate(savedInstanceState);
         startActivity(redirect);
         finish();
+        return;
     }
 
     private final List<Vod> mHomeRecommends = new ArrayList<>();
