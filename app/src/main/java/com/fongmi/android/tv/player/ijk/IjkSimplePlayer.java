@@ -15,6 +15,7 @@ import android.view.TextureView;
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.common.Format;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.PlaybackParameters;
@@ -92,6 +93,8 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
     private PlaybackException playerError;
     private Tracks currentTracks;
     private VideoSize videoSize;
+    private boolean openRetryAttempted;
+    private boolean retryWithSoftDecode;
     private Surface textureSurface;
     private Surface currentSurface;
     private Object currentVideoOutput;
@@ -403,6 +406,16 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
                 invalidateState();
                 return;
             }
+            if (!openRetryAttempted && !released && mediaItem != null) {
+                openRetryAttempted = true;
+                retryWithSoftDecode = true;
+                loading = true;
+                playbackState = Player.STATE_BUFFERING;
+                playerError = null;
+                invalidateState();
+                reloadCurrent();
+                return;
+            }
             setError("IJK 播放失败 (" + describeError(what, extra) + ")");
         });
         return true;
@@ -422,6 +435,8 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
                 }
             } else if (what == IMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START) {
                 markRenderedFirstFrame();
+                // 首帧渲染后补一次轨道构建（HLS 下 ijk 轨道信息可能到这一步才可用）
+                buildTracks();
             }
             invalidateState();
         });
@@ -449,11 +464,28 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
             } else {
                 videoSize = VideoSize.UNKNOWN;
             }
+            buildTracks();
             invalidateState();
         });
     }
 
     // ---------------- 内部装载/停止 ----------------
+
+    /** 首次打开失败后的自救：软解 + 放宽探测参数，重新走一遍装载流程 */
+    private void reloadCurrent() {
+        try {
+            manualStop = false;
+            if (ijk != null) {
+                try {
+                    ijk.stop();
+                } catch (Throwable ignored) {
+                }
+            }
+            loadIjk(positionMs > 0 ? positionMs : C.TIME_UNSET);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
 
     private void loadIjk(long startPositionMs) {
         if (ijk == null) {
@@ -497,7 +529,7 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
         boolean hard = decode == com.fongmi.android.tv.player.engine.PlayerEngine.HARD;
         // player 类
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "start-on-prepared", 0);
-        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", hard ? 1 : 0);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", (hard && !retryWithSoftDecode) ? 1 : 0);
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-auto-rotate", 1);
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-handle-resolution-change", 1);
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1);
@@ -510,8 +542,14 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "enable-accurate-seek", 1);
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", 10 * 1024 * 1024);
         // format 类：缩短起播探测时间（低端盒子首帧更快），保留足够探测精度
-        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", 2097152);
-        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "analyzeduration", 2000000);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", retryWithSoftDecode ? 5242880 : 3145728);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "analyzeduration", retryWithSoftDecode ? 5000000 : 3000000);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect_streamed", 1);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect_at_eof", 1);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect_delay_max", 2);
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "rtsp_transport", "tcp");
+        mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "safe", 0);
         mp.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "flush_packets", 1);
     }
 
@@ -740,11 +778,20 @@ public final class IjkSimplePlayer extends SimpleBasePlayer implements IMediaPla
             return;
         }
         List<Tracks.Group> groups = new ArrayList<>();
+        boolean hasVideo = false;
         for (int index = 0; index < infos.length; index++) {
             int type = infos[index].getTrackType();
             int trackType = toMedia3Type(type);
             if (trackType == C.TRACK_TYPE_UNKNOWN) continue;
+            if (trackType == C.TRACK_TYPE_VIDEO) hasVideo = true;
             groups.add(new Tracks.Group(new TrackGroup("ijk-" + type + "-" + index, buildFormat(index, type)), false, new int[]{C.FORMAT_HANDLED}, new boolean[]{isTrackSelected(infos, index, type)}));
+        }
+        // ijk 0.8.8 对 HLS 直播常常不吐轨道信息：只要画面已经渲染出来（videoSize 有效），
+        // 就合成一条兜底视频轨道，避免"获取不到视轨"
+        if (!hasVideo && videoSize != null && videoSize.width > 0) {
+            Format pseudo = new Format.Builder().setId("ijk-video-pseudo").setSampleMimeType(MimeTypes.VIDEO_H264)
+                    .setWidth(videoSize.width).setHeight(videoSize.height).build();
+            groups.add(0, new Tracks.Group(new TrackGroup("ijk-video-pseudo"), false, new int[]{C.FORMAT_HANDLED}, new boolean[]{true}));
         }
         currentTracks = groups.isEmpty() ? Tracks.EMPTY : new Tracks(groups);
     }
