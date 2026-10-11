@@ -78,8 +78,3 @@
 # JNA desktop-only API references are unavailable on Android.
 -dontwarn java.awt.Component
 
-
-# IjkPlayer (k0.8.8，JNI 回调不可混淆)
--keep class tv.danmaku.ijk.media.player.** { *; }
--keep class tv.danmaku.ijk.media.player.misc.** { *; }
--dontwarn tv.danmaku.ijk.media.player.**
