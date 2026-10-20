@@ -50,6 +50,11 @@ public class ImgUtil {
     private static final Cache<String, Image> CACHE = CacheBuilder.newBuilder().maximumWeight(MAX_CACHE_SIZE).weigher((String key, Image value) -> value.data().length).build();
 
     private static final Set<String> failed = Collections.synchronizedSet(new HashSet<>());
+    // 图片重试：失败一次就永久黑名单会导致海报只显示前几张（网络抖动即空白），
+    // 改为后台延迟重试（不占用主线程/焦点响应），超过上限才真正放弃
+    private static final java.util.Map<String, Integer> attempts = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final android.os.Handler retryHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private static final int MAX_ATTEMPTS = 3;
 
     public static void logo(ImageView view) {
         try {
@@ -85,6 +90,7 @@ public class ImgUtil {
         if (TextUtils.isEmpty(url) || failed.contains(url)) view.setImageDrawable(getTextDrawable(text, vod));
         else try {
             RequestBuilder<Drawable> builder = Glide.with(view).load(getUrl(url)).listener(getListener(text, url, view, vod));
+            if (com.fongmi.android.tv.utils.Perf.isLowEnd()) builder.dontAnimate();
             if (vod) builder.centerCrop().override(getTargetWidth()).into(view);
             else builder.fitCenter().override(getTargetWidth()).into(view);
         } catch (Throwable e) {
@@ -150,13 +156,24 @@ public class ImgUtil {
         return new RequestListener<>() {
             @Override
             public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
+                int count = attempts.merge(url, 1, Integer::sum);
+                if (count < MAX_ATTEMPTS) {
+                    // 错峰重试：避免同一时刻并发再次失败，且不占主线程
+                    retryHandler.postDelayed(() -> {
+                        failed.remove(url);
+                        load(text, url, view, vod);
+                    }, 500L * count);
+                } else {
+                    failed.add(url);
+                }
                 view.setImageDrawable(getTextDrawable(text, vod));
-                failed.add(url);
                 return true;
             }
 
             @Override
             public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                attempts.remove(url);
+                failed.remove(url);
                 return false;
             }
         };
