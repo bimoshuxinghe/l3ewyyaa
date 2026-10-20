@@ -105,7 +105,7 @@ public class LiveConfig extends BaseConfig {
     @Override
     protected Config defaultConfig() {
         Config config = Config.live();
-        // 零配置默认直播源：内置合并列表（央视频 /ysp 在上 + 咪咕 9979 在下）
+        // 零配置默认直播源：内置央视频全频道列表（/ysp → ysp-live v9.5 网关 9979）
         if (TextUtils.isEmpty(config.getUrl())) {
             config.url(Server.get().getAddress(true) + "/ysp?list=live").update();
         }
@@ -120,7 +120,7 @@ public class LiveConfig extends BaseConfig {
 
     @Override
     protected void load(Config config) throws Throwable {
-        // 老版本内置咪咕默认源 → 迁移到合并列表（央视频在上 + 咪咕在下），仅限本机内置源
+        // 老版本内置咪咕默认源 → 迁移到内置央视频列表，仅限本机内置源
         String url = config.getUrl();
         if (url != null && url.contains("127.0.0.1") && url.contains("/migu?list=live")) {
             config.setUrl(Server.get().getAddress(true) + "/ysp?list=live");
@@ -155,7 +155,7 @@ public class LiveConfig extends BaseConfig {
 
     private void parseText(Config config, String text) {
         Live live = new Live(UrlUtil.getName(config.getUrl()), config.getUrl()).sync();
-        // 内置直播源（央视频 /ysp 合并列表 / 咪咕 /migu）：注入默认 EPG 与频道台标。
+        // 内置央视频直播源（/ysp?list=live，含历史 /migu?list=live）：注入默认 EPG 与频道台标。
         // 必须在 LiveParser.text 之前设置，否则频道无法继承 live 的 epg/logo 模板。
         if (config.getUrl().contains("/ysp?list=live") || config.getUrl().contains("/migu?list=live")) {
             live.setEpg("https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz");

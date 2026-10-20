@@ -34,7 +34,9 @@ import com.fongmi.android.tv.utils.ResUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class TrackDialog extends BaseBottomSheetDialog implements TrackAdapter.OnClickListener {
 
@@ -134,13 +136,21 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
 
     private void addTrack(List<Track> items) {
         List<Tracks.Group> groups = player.getCurrentTracks().getGroups();
+        Map<String, Integer> seen = new HashMap<>();
+        Map<String, Integer> nameSeen = new HashMap<>();
         for (int i = 0; i < groups.size(); i++) {
             Tracks.Group trackGroup = groups.get(i);
             if (trackGroup.getType() != type) continue;
             for (int j = 0; j < trackGroup.length; j++) {
                 Format format = trackGroup.getTrackFormat(j);
                 String name = format.label != null ? format.label : provider.getTrackName(format);
-                Track item = new Track(type, name, PlayerHelper.describeFormat(format));
+                // 重名音轨加序号，避免列表里两条显示一模一样无法区分
+                int nameOcc = nameSeen.merge(name, 1, Integer::sum) - 1;
+                if (nameOcc > 0) name = name + " (" + (nameOcc + 1) + ")";
+                // 网盘多音轨常出现参数完全相同的两条音轨，用独立 CSV 段 ",##序号" 区分，保证能精确切换第 2、3 条
+                String base = PlayerHelper.describeFormat(format);
+                int occurrence = seen.merge(base, 1, Integer::sum) - 1;
+                Track item = new Track(type, name, base + ",##" + occurrence);
                 item.setSelected(trackGroup.isTrackSelected(j));
                 items.add(item);
             }
@@ -149,6 +159,8 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
 
     @Override
     public void onItemClick(Track item) {
+        // 音轨不允许反选：置空音轨选择会导致 EXO 直接没声音，点击已选中的音轨视为保持不变
+        if (item.getType() == C.TRACK_TYPE_AUDIO && !item.isSelected()) item.setSelected(true);
         player.setTrack(Arrays.asList(item.key(player.getKey()).save()));
         dismiss();
     }

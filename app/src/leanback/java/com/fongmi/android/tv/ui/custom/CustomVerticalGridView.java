@@ -39,6 +39,7 @@ public class CustomVerticalGridView extends VerticalGridView {
     public CustomVerticalGridView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         setMoveTop(true);
+        setItemAnimator(null);
     }
 
     @Override
@@ -85,7 +86,8 @@ public class CustomVerticalGridView extends VerticalGridView {
         pressUp = KeyUtil.isUpKey(event);
         pressDown = KeyUtil.isDownKey(event);
         if (pressUp && getSelectedPosition() > 0) {
-            setSelectedPositionSmooth(getSelectedPosition() - 1);
+            // 直接定位，不走平滑滚动动画，避免 ↑ 键感觉“不跟手”
+            setSelectedPosition(getSelectedPosition() - 1);
             return true;
         }
         return super.dispatchKeyEvent(event);

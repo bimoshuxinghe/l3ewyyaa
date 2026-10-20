@@ -78,7 +78,8 @@ public class CustomKeyDownLive extends GestureDetector.SimpleOnGestureListener {
         if (text.length() >= 4) return;
         text.append(getNumber(keyCode));
         listener.onShow(text.toString());
-        App.post(runnable, 2000);
+        // 数字选台防抖缩短到 1s，按完台号更快跳台
+        App.post(runnable, 1000);
     }
 
     @Override
