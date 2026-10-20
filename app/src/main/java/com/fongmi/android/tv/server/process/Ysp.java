@@ -47,7 +47,7 @@ public class Ysp implements Process {
                 return newFixedLengthResponse(Status.NOT_FOUND, MIME_PLAINTEXT, "央视频旧版取流地址已失效，请重新加载直播源列表");
             }
             boolean list = url.equals("/ysp") || url.equals("/ysp/");
-            String target = list ? GATEWAY + "/all.m3u" + buildQuery(params) : GATEWAY + url.substring(4) + rawQuery(session);
+            String target = list ? GATEWAY + "/all.m3u" + buildQuery(params) : GATEWAY + url.substring(4) + buildQuery(params);
             String body = fetchUntilReady(target);
             if (body == null || body.isEmpty()) {
                 return newFixedLengthResponse(Status.OK, MIME_PLAINTEXT, "#EXTM3U\n# 央视频列表加载中，请稍后重试\n");
@@ -68,11 +68,6 @@ public class Ysp implements Process {
             q.append(enc(e.getKey())).append('=').append(enc(e.getValue()));
         }
         return q.length() == 0 ? "" : "?" + q;
-    }
-
-    private String rawQuery(IHTTPSession session) {
-        String query = session.getQueryString();
-        return query == null || query.isEmpty() ? "" : "?" + query;
     }
 
     /** 网关未就绪（首启解压 assets、端口尚未绑定）时重试，最长 8s；HTTP 层错误不重试。 */
