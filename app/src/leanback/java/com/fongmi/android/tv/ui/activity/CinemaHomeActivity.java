@@ -83,6 +83,7 @@ public class CinemaHomeActivity extends BaseActivity implements
     private List<String> mCurrentBackdrops = new ArrayList<>();
     private int mCurrentBackdropIndex = 0;
     private int mAppliedFocusColor = -1;
+    private android.widget.ImageView mBrandIntro;
     private final Random mRandom = new Random();
     private final Handler mBackdropHandler = new Handler(Looper.getMainLooper());
     private Runnable mBackdropRunnable;
@@ -135,8 +136,34 @@ public class CinemaHomeActivity extends BaseActivity implements
         checkAction(intent);
     }
 
+    /** 冷启动品牌页：全屏「星落」启动图，任意按键跳过，约 2.4 秒自动淡出。 */
+    private void showBrandIntro(Bundle savedInstanceState) {
+        if (savedInstanceState != null || findViewById(android.R.id.content).findViewWithTag("brandIntro") != null) return;
+        android.widget.ImageView intro = new android.widget.ImageView(this);
+        intro.setTag("brandIntro");
+        intro.setImageResource(R.drawable.splash_brand);
+        intro.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+        intro.setBackgroundColor(0xFF0A0E23);
+        android.view.ViewGroup content = findViewById(android.R.id.content);
+        content.addView(intro, new android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+        mBrandIntro = intro;
+        intro.postDelayed(this::hideBrandIntro, 2400);
+    }
+
+    private void hideBrandIntro() {
+        final android.widget.ImageView view = mBrandIntro;
+        if (view == null) return;
+        mBrandIntro = null;
+        view.animate().alpha(0f).setDuration(450).withEndAction(() -> {
+            android.view.ViewGroup parent = (android.view.ViewGroup) view.getParent();
+            if (parent != null) parent.removeView(view);
+        }).start();
+    }
+
     @Override
     protected void initView(Bundle savedInstanceState) {
+        showBrandIntro(savedInstanceState);
         if (!Guard.enforce(this)) return; // 远程服务开关：未获放行则终止初始化（保持弹窗提示流程，onResume/onPause 已加空判防 NPE）
         mConfigReady = true; // 标记 initView 走完，onDestroy 据此决定是否清理 smart play
         mClock = Clock.create(mBinding.clock).format("MM/dd E HH:mm");
@@ -734,6 +761,11 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // 品牌启动图期间：任意按键直接跳过
+        if (mBrandIntro != null) {
+            hideBrandIntro();
+            return true;
+        }
         if (KeyUtil.isMenuKey(event)) {
             if (getHome() != null) {
                 com.fongmi.android.tv.ui.dialog.SiteDialog.create().show(this);
