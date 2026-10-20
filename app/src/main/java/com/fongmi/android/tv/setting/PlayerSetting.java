@@ -54,7 +54,8 @@ public class PlayerSetting {
     }
 
     public static boolean isMpvVulkan() {
-        return Prefers.getBoolean("mpv_vulkan", true);
+        // 默认关闭 Vulkan：盒子 GPU 的 Vulkan 驱动易致 libplacebo native 崩溃，统一走 GLES
+        return Prefers.getBoolean("mpv_vulkan", false);
     }
 
     public static void putMpvVulkan(boolean vulkan) {
@@ -398,4 +399,64 @@ public class PlayerSetting {
     public static void putMpvSubtitlePosition(float value) {
         Prefers.put("mpv_subtitle_position", value);
     }
+
+    // ===== MPV(MpvSimplePlayer) 适配层：mpv 专属偏好 + 委托 SubtitleSetting/PreloadSetting/DecodeSetting =====
+
+    public static int getMpvCacheSecs() {
+        return com.fongmi.android.tv.setting.PreloadSetting.getTimeSeconds();
+    }
+
+    public static int getSubtitleStyleSource() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getStyleMode();
+    }
+
+    public static float getMpvSubtitleScaleValue(android.content.Context context) {
+        return Prefers.getFloat("mpv_subtitle_scale", 1f);
+    }
+
+    public static int getSubtitleForegroundColor() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getTextColor();
+    }
+
+    public static float getSubtitleForegroundOpacity() {
+        return android.graphics.Color.alpha(getSubtitleForegroundColor()) / 255f;
+    }
+
+    public static int getSubtitleBackgroundColor() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getBackgroundColor();
+    }
+
+    public static float getSubtitleBackgroundOpacity() {
+        return android.graphics.Color.alpha(getSubtitleBackgroundColor()) / 255f;
+    }
+
+    public static int getSubtitleEdgeColor() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getEdgeColor();
+    }
+
+    public static float getSubtitleEdgeOpacity() {
+        return android.graphics.Color.alpha(getSubtitleEdgeColor()) / 255f;
+    }
+
+    public static int getSubtitleEdgeType() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getEdgeType();
+    }
+
+    public static float getSubtitleEdgeWidth() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getEdgeWidth();
+    }
+
+    public static float getSubtitleShadow() {
+        return com.fongmi.android.tv.setting.SubtitleSetting.getShadow();
+    }
+
+    /** 副字幕轨：-2=关 -1=自动 >=0 指定轨道 id。 */
+    public static int getSubtitleSecondaryTrack() {
+        return Prefers.getInt("mpv_subtitle_secondary_track", -1);
+    }
+
+    public static float getSubtitleSecondaryPosition() {
+        return Prefers.getFloat("mpv_subtitle_secondary_position", 100f);
+    }
+
 }

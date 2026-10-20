@@ -85,15 +85,6 @@ public final class MpvUtil {
         builder.addPreInitStringOption("framedrop", "vo");
         builder.addPreInitStringOption("video-sync", "audio");
         builder.addPreInitStringOption("interpolation", "no");
-        // 对齐参考播放器实测配方：渲染质量（色带/缩放/字幕混色）
-        builder.addPreInitStringOption("dither-depth", "auto");
-        builder.addPreInitStringOption("temporal-dither", "yes");
-        builder.addPreInitStringOption("temporal-dither-period", "2");
-        builder.addPreInitStringOption("scale", "lanczos");
-        builder.addPreInitStringOption("dscale", "mitchell");
-        builder.addPreInitStringOption("cscale", "lanczos");
-        builder.addPreInitStringOption("correct-downscaling", "yes");
-        builder.addPreInitStringOption("sigmoid-upscaling", "yes");
         // GitHub mpv#18286：gpu-next 下字幕继承 HDR 色彩空间导致色偏，字幕在视频帧后混合
         builder.addPreInitStringOption("blend-subtitles", "video");
         addPreloadOptions(builder);

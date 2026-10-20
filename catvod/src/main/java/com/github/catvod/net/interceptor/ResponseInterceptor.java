@@ -43,6 +43,21 @@ public class ResponseInterceptor implements Interceptor {
         redirectMap.clear();
     }
 
+    /** 按 URL host 匹配配置 headers（供 MPV 的 FFmpeg HTTP 栈手动合并，行为与 check() 一致）。 */
+    public java.util.Map<String, String> getMatchedHeaders(String url) {
+        java.util.Map<String, String> result = new java.util.LinkedHashMap<>();
+        if (url == null || url.isEmpty()) return result;
+        String host;
+        try {
+            host = okhttp3.HttpUrl.parse(url).host();
+        } catch (Exception e) {
+            return result;
+        }
+        if (host == null || host.isEmpty()) return result;
+        for (Header item : headers) if (Util.containOrMatch(host, item.getHost())) Json.toMap(item.getHeader()).forEach(result::put);
+        return result;
+    }
+
     @NonNull
     @Override
     public Response intercept(@NonNull Chain chain) throws IOException {
