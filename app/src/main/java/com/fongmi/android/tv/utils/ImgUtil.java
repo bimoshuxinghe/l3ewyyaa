@@ -108,10 +108,11 @@ public class ImgUtil {
             return;
         }
         try {
+            float scale = com.fongmi.android.tv.utils.Perf.imageScale();
             Glide.with(view)
                 .load(getUrl(url))
                 .centerCrop()
-                .override(ResUtil.getScreenWidth(), ResUtil.getScreenHeight())
+                .override((int) (ResUtil.getScreenWidth() * scale), (int) (ResUtil.getScreenHeight() * scale))
                 .listener(getListener(text, url, view, true))
                 .error(R.drawable.artwork)
                 .into(view);

@@ -1018,9 +1018,34 @@ public final class MpvSimplePlayer extends SimpleBasePlayer implements MPVLib.Ev
         // 字幕混合：在视频帧之后混合字幕，确保字幕色彩不受 HDR tone mapping 影响
         // GitHub mpv#18286: gpu-next 下字幕继承 HDR 色彩空间导致色偏
         setMpvOption("blend-subtitles", "video");
+        // 低端盒子（晶晨 S905L3A / Mali-450 等）GPU 极弱：用最省的缩放器与关闭着色器增强
+        if (com.fongmi.android.tv.utils.Perf.isLowEnd()) applyLowEndRenderOptions();
         // 注意：不启用 deband 滤镜
         // GitHub mpv#10323 确认 deband 在 gpu-next 上会导致绿色色偏
         // GitHub mpv#9285 确认 deband 可能加剧绿色色偏问题
+    }
+
+    /**
+     * 低端盒子渲染优化：Mali-450 等弱 GPU 上，mpv 默认缩放器(spline36/mitchell)与
+     * 抖动/下采样增强会吃掉大量 GPU，导致掉帧。此处全部换成最省力的组合：
+     * scale/cscale/dscale=bilinear + 关闭抖动/deband/下采样校正/sigmoid，
+     * 保留 mediacodec 硬解（VPU）与帧丢弃策略。
+     */
+    private void applyLowEndRenderOptions() {
+        setMpvOption("scale", "bilinear");
+        setMpvOption("cscale", "bilinear");
+        setMpvOption("dscale", "bilinear");
+        setMpvOption("dither", "no");
+        setMpvOption("deband", "no");
+        setMpvOption("correct-downscaling", "no");
+        setMpvOption("sigmoid-upscaling", "no");
+        setMpvOption("interpolation", "no");
+        setMpvOption("framedrop", "vo");
+        setMpvOption("video-sync", "audio");
+        setMpvOption("vd-lavc-threads", String.valueOf(Math.max(1, Runtime.getRuntime().availableProcessors())));
+        setMpvOption("vd-lavc-skiploopfilter", "all");
+        setMpvOption("demuxer-max-bytes", "32MiB");
+        setMpvOption("demuxer-readahead-secs", "10");
     }
 
     private String getMpvVo() {

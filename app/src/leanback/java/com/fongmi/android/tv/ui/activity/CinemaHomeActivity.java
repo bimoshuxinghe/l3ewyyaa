@@ -379,6 +379,14 @@ public class CinemaHomeActivity extends BaseActivity implements
     private void loadCoverBg(String name, String coverUrl) {
         if (TextUtils.equals(mLastCoverUrl, coverUrl)) return;
         mLastCoverUrl = coverUrl;
+        // 低端机：直接显示，跳过 400ms 淡入淡出动画（动画期间持续占用 GPU 合成）
+        if (com.fongmi.android.tv.utils.Perf.isLowEnd()) {
+            mBinding.coverBg.clearAnimation();
+            mBinding.coverBg.setAlpha(0.92f);
+            mBinding.coverBg.setVisibility(View.VISIBLE);
+            ImgUtil.loadBackdrop(name, coverUrl, mBinding.coverBg);
+            return;
+        }
         boolean isFirstLoad = mBinding.coverBg.getVisibility() != View.VISIBLE;
         if (isFirstLoad) {
             mBinding.coverBg.setVisibility(View.VISIBLE);
@@ -396,6 +404,8 @@ public class CinemaHomeActivity extends BaseActivity implements
     private void startBackdropRotation(String itemName) {
         stopBackdropRotation();
         if (mCurrentBackdrops == null || mCurrentBackdrops.size() <= 1) return;
+        // 低端盒子（晶晨 S905L3A 等）GPU 弱，背景轮换会周期性解码大图导致遥控器卡顿
+        if (com.fongmi.android.tv.utils.Perf.isLowEnd()) return;
         mBackdropRunnable = new Runnable() {
             @Override
             public void run() {
