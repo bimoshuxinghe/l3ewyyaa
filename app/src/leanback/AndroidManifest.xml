@@ -27,7 +27,7 @@
             android:value="540" />
 
         <activity
-            android:name=".ui.activity.HomeActivity"
+            android:name=".ui.activity.CinemaHomeActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="true"
             android:launchMode="singleTop"
@@ -91,13 +91,6 @@
         </activity>
 
         <activity
-            android:name=".ui.activity.CinemaHomeActivity"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
-            android:launchMode="singleTop"
-            android:screenOrientation="sensorLandscape"
-            android:theme="@style/Theme.Splash" />
-
-        <activity
             android:name=".ui.activity.CastActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="true"
@@ -119,14 +112,14 @@
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
             android:exported="true"
             android:launchMode="singleTop"
-            android:parentActivityName=".ui.activity.HomeActivity"
+            android:parentActivityName=".ui.activity.CinemaHomeActivity"
             android:screenOrientation="sensorLandscape" />
 
         <activity
             android:name=".ui.activity.VideoActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|navigation"
             android:launchMode="singleTop"
-            android:parentActivityName=".ui.activity.HomeActivity"
+            android:parentActivityName=".ui.activity.CinemaHomeActivity"
             android:screenOrientation="sensorLandscape" />
 
         <activity

@@ -47,7 +47,7 @@ public class CrashActivity extends BaseActivity {
         String[] lines = log.split("\n");
         for (int i = lines.length - 1; i >= 0; i--) {
             if (lines[i].isEmpty()) continue;
-            if (lines[i].contains(HomeActivity.class.getSimpleName())) {
+            if (lines[i].contains(CinemaHomeActivity.class.getSimpleName())) {
                 Prefers.put("crash", true);
                 break;
             }

@@ -53,7 +53,7 @@ import com.fongmi.android.tv.impl.CustomTarget;
 import com.fongmi.android.tv.model.SiteViewModel;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlayerManager;
-import com.fongmi.android.tv.player.PreloadManager;
+import com.fongmi.android.tv.player.media.PlaySpec;
 import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
@@ -495,14 +495,6 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     private void getPlayer(Flag flag, Episode episode) {
         mBinding.widget.title.setText(getString(R.string.detail_title, mBinding.name.getText(), episode.getName()));
-        Result preload = PreloadManager.get().get(getKey(), flag.getFlag(), episode);
-        if (preload != null) {
-            mBinding.widget.title.setSelected(true);
-            updateHistory(episode);
-            showProgress();
-            setPlayer(preload);
-            return;
-        }
         mViewModel.playerContent(getKey(), flag.getFlag(), episode.getUrl());
         mBinding.widget.title.setSelected(true);
         updateHistory(episode);
@@ -1263,7 +1255,19 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         Flag flag = getFlag();
         Episode episode = mEpisodeAdapter.getNext();
         if (flag == null || episode == null || episode.isSelected()) return;
-        PreloadManager.get().preload(getKey(), flag.getFlag(), episode, isUseParse());
+        if (!player().canPreloadNext()) return;
+        String key = getHistoryKey();
+        String url = episode.getUrl();
+        Task.execute(() -> {
+            try {
+                Result result = SiteApi.playerContent(key, flag.getFlag(), url);
+                App.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    player().preload(PlaySpec.from(result, key, buildMetadata()), 0);
+                });
+            } catch (Exception ignored) {
+            }
+        });
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -1570,7 +1574,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             exitFullscreen();
         } else {
             mViewModel.stopSearch();
-            if (isTaskRoot()) startActivity(new Intent(this, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            if (isTaskRoot()) startActivity(new Intent(this, CinemaHomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
             super.onBackInvoked();
         }
     }
