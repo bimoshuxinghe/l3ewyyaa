@@ -54,7 +54,7 @@ public class TmdbDialog extends BaseAlertDialog {
     protected void initEvent() {
         binding.positive.setOnClickListener(this::onPositive);
         binding.negative.setOnClickListener(this::onNegative);
-        binding.scan.setOnClickListener(v -> MiguLoginDialog.showQr(requireActivity(), MiguLoginDialog.TYPE_TMDB));
+        binding.scan.setOnClickListener(v -> QrBindDialog.showQr(requireActivity(), QrBindDialog.TYPE_TMDB));
         binding.apiKey.setOnEditorActionListener((textView, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) binding.positive.performClick();
             return true;

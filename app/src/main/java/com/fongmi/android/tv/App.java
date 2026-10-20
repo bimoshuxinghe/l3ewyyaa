@@ -90,7 +90,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
         Task.execute(() -> Guard.prefetch());
         // 咪咕直播代理（Python 版）：异步初始化 Chaquopy + 9979 HTTP 服务，不阻塞主线程/开屏
         // （首次初始化解压 assets 需数秒~十几秒，全部放后台线程；直播列表/播放请求侧 awaitReady 兜底）
-        com.fongmi.chaquo.MiguServer.start();
+        com.fongmi.chaquo.YspServer.start();
         registerActivityLifecycleCallbacks(this);
     }
 
