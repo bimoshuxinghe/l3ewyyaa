@@ -78,7 +78,7 @@ public class TrackUtil {
         if (overrideMap.isEmpty()) return;
         TrackSelectionParameters.Builder builder = player.getTrackSelectionParameters().buildUpon();
         for (int type : types) builder.clearOverridesOfType(type);
-        overrideMap.forEach((group, selectedIndex) -> builder.setOverrideForType(new TrackSelectionOverride(group.getMediaTrackGroup(), List.of(selectedIndex)));
+        overrideMap.forEach((group, selectedIndex) -> builder.setOverrideForType(new TrackSelectionOverride(group.getMediaTrackGroup(), List.of(selectedIndex))));
         player.setTrackSelectionParameters(builder.build());
     }
 
