@@ -81,6 +81,21 @@ public final class MpvUtil {
         MpvPlayerConfig.Builder builder = new MpvPlayerConfig.Builder().addConfigDirectory(Path.mpv()).addAndroidDefaults(buildAndroidOptions(cacheDir)).addTlsCaFileFromAsset(App.get(), ASSET_CA_FILE, Path.files(ASSET_CA_FILE)).addAndroidSubtitleOptions(App.get(), buildSubtitleOptions());
         // 播放日志落盘（诊断 MPV 启动/渲染问题，可用内置服务器 /mpvlog 导出）
         builder.addPreInitStringOption("log-file", new File(cacheDir, "mpv.log").getAbsolutePath());
+        // 对齐参考播放器实测配方：流畅度（帧丢弃/音画同步）
+        builder.addPreInitStringOption("framedrop", "vo");
+        builder.addPreInitStringOption("video-sync", "audio");
+        builder.addPreInitStringOption("interpolation", "no");
+        // 对齐参考播放器实测配方：渲染质量（色带/缩放/字幕混色）
+        builder.addPreInitStringOption("dither-depth", "auto");
+        builder.addPreInitStringOption("temporal-dither", "yes");
+        builder.addPreInitStringOption("temporal-dither-period", "2");
+        builder.addPreInitStringOption("scale", "lanczos");
+        builder.addPreInitStringOption("dscale", "mitchell");
+        builder.addPreInitStringOption("cscale", "lanczos");
+        builder.addPreInitStringOption("correct-downscaling", "yes");
+        builder.addPreInitStringOption("sigmoid-upscaling", "yes");
+        // GitHub mpv#18286：gpu-next 下字幕继承 HDR 色彩空间导致色偏，字幕在视频帧后混合
+        builder.addPreInitStringOption("blend-subtitles", "video");
         addPreloadOptions(builder);
         return builder.build();
     }

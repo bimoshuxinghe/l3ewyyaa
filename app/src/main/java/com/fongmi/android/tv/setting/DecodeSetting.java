@@ -31,8 +31,10 @@ public class DecodeSetting {
     }
 
     public static @DolbyVisionOutputPolicy.Mode int getDolbyVisionOutputPolicy() {
-        int mode = Prefers.getInt("decode_dolby_vision_output_policy", DolbyVisionOutputPolicy.AUTO);
-        return mode >= DolbyVisionOutputPolicy.AUTO && mode <= DolbyVisionOutputPolicy.ASSUME_UNSUPPORTED ? mode : DolbyVisionOutputPolicy.AUTO;
+        // 默认 ASSUME_UNSUPPORTED：禁用固件 DV 直通（盒子上易 native 崩溃），
+        // 固定走 gpu-next + libplacebo 处理 DV P5（色彩正确，与参考播放器一致）
+        int mode = Prefers.getInt("decode_dolby_vision_output_policy", DolbyVisionOutputPolicy.ASSUME_UNSUPPORTED);
+        return mode >= DolbyVisionOutputPolicy.AUTO && mode <= DolbyVisionOutputPolicy.ASSUME_UNSUPPORTED ? mode : DolbyVisionOutputPolicy.ASSUME_UNSUPPORTED;
     }
 
     public static void putDolbyVisionOutputPolicy(@DolbyVisionOutputPolicy.Mode int mode) {
