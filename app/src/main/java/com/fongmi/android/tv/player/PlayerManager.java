@@ -613,9 +613,19 @@ public class PlayerManager implements ParseCallback {
         if (PlayerEngineFactory.matches(engine, spec)) return;
         PlayerEngine old = engine;
         player.removeListener(listener);
-        engine = PlayerEngineFactory.create(decode, spec, listener);
+        engine = createEngineSafely(spec);
         setPlayer(engine.getPlayer());
         old.release();
+    }
+
+    /** 引擎创建失败（如 MPV native 初始化异常）时自动回退 EXO，避免整个页面闪退。 */
+    private PlayerEngine createEngineSafely(PlaySpec spec) {
+        try {
+            return PlayerEngineFactory.create(decode, spec, listener);
+        } catch (Throwable e) {
+            e.printStackTrace();
+            return PlayerEngineFactory.create(decode, com.fongmi.android.tv.player.engine.PlayerEngine.Type.EXO, listener);
+        }
     }
 
     public void browse(PlaySpec spec) {

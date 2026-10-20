@@ -329,50 +329,40 @@ public class CinemaHomeActivity extends BaseActivity implements
 
     private void updateCoverBg(Vod item) {
         String itemName = item.getName();
-        // 优先使用 TMDB API 获取横屏背景图、剧情简介和标题 Logo
-        if (Setting.hasTmdbApiKey()) {
-            final String fallbackUrl = getFallbackCoverUrl(item);
-            com.fongmi.android.tv.utils.TmdbUtil.searchAsync(itemName, result -> {
-                runOnUiThread(() -> {
-                    if (!TextUtils.equals(mCurrentHeroName, itemName)) return;
-                    // 使用 TMDB 标题 Logo 替换左侧文字标题
-                    if (result.hasLogoUrl()) {
-                        loadTitleLogo(itemName, result.getLogoUrl());
-                    } else {
-                        showTitleText();
-                    }
-                    // 保存多张背景图并启动随机轮换
-                    if (result.hasBackdrops()) {
-                        mCurrentBackdrops = new ArrayList<>(result.getBackdrops());
-                    } else if (result.hasBackdrop()) {
-                        mCurrentBackdrops.clear();
-                        mCurrentBackdrops.add(result.getBackdropUrl());
-                    }
-                    if (!mCurrentBackdrops.isEmpty()) {
-                        mCurrentBackdropIndex = mRandom.nextInt(mCurrentBackdrops.size());
-                        loadCoverBg(itemName, mCurrentBackdrops.get(mCurrentBackdropIndex));
-                        startBackdropRotation(itemName);
-                    } else if (!TextUtils.isEmpty(fallbackUrl)) {
-                        loadCoverBg(itemName, fallbackUrl);
-                    } else {
-                        hideCoverBg();
-                    }
-                    // 使用 TMDB 剧情简介更新
-                    if (result.hasOverview()) {
-                        mBinding.tip.setText(result.getOverview());
-                    }
-                });
+        final String fallbackUrl = getFallbackCoverUrl(item);
+        // 统一走 searchAsync：已配置 TMDB 用 TMDB，未配置（或 TMDB 无结果）内部自动豆瓣兜底，
+        // 全部为空时再用站点提供的图片
+        com.fongmi.android.tv.utils.TmdbUtil.searchAsync(itemName, result -> {
+            runOnUiThread(() -> {
+                if (!TextUtils.equals(mCurrentHeroName, itemName)) return;
+                // 使用标题 Logo 替换左侧文字标题
+                if (result.hasLogoUrl()) {
+                    loadTitleLogo(itemName, result.getLogoUrl());
+                } else {
+                    showTitleText();
+                }
+                // 保存多张背景图并启动随机轮换
+                if (result.hasBackdrops()) {
+                    mCurrentBackdrops = new ArrayList<>(result.getBackdrops());
+                } else if (result.hasBackdrop()) {
+                    mCurrentBackdrops.clear();
+                    mCurrentBackdrops.add(result.getBackdropUrl());
+                }
+                if (!mCurrentBackdrops.isEmpty()) {
+                    mCurrentBackdropIndex = mRandom.nextInt(mCurrentBackdrops.size());
+                    loadCoverBg(itemName, mCurrentBackdrops.get(mCurrentBackdropIndex));
+                    startBackdropRotation(itemName);
+                } else if (!TextUtils.isEmpty(fallbackUrl)) {
+                    loadCoverBg(itemName, fallbackUrl);
+                } else {
+                    hideCoverBg();
+                }
+                // 使用剧情简介更新
+                if (result.hasOverview()) {
+                    mBinding.tip.setText(result.getOverview());
+                }
             });
-            return;
-        }
-        // 没有配置 TMDB API Key，使用站点提供的图片
-        showTitleText();
-        String coverUrl = getFallbackCoverUrl(item);
-        if (TextUtils.isEmpty(coverUrl)) {
-            hideCoverBg();
-            return;
-        }
-        loadCoverBg(itemName, coverUrl);
+        });
     }
 
     private String getFallbackCoverUrl(Vod item) {
