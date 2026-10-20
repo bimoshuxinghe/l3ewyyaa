@@ -1,22 +1,24 @@
 package com.fongmi.android.tv.player;
 
 import android.net.Uri;
-import android.os.SystemClock;
 import android.text.TextUtils;
-import android.util.Log;
-import com.github.catvod.crawler.SpiderDebug;
-import java.io.IOException;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
+import androidx.media3.common.Format;
+import androidx.media3.common.MediaChapter;
+import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.MediaTitle;
 import androidx.media3.common.PlaybackException;
+import androidx.media3.common.PlaybackParameters;
 import androidx.media3.common.Player;
+import androidx.media3.common.TrackSelectionOverride;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.VideoSize;
+import androidx.media3.ui.PlayerView;
 import androidx.media3.ui.danmaku.DanmakuConfig;
 
 import com.fongmi.android.tv.App;
@@ -27,15 +29,23 @@ import com.fongmi.android.tv.bean.Result;
 import com.fongmi.android.tv.bean.Sub;
 import com.fongmi.android.tv.bean.Track;
 import com.fongmi.android.tv.impl.ParseCallback;
-import com.fongmi.android.tv.player.engine.ExoPlayerEngine;
-import com.fongmi.android.tv.player.engine.PlaySpec;
+import com.fongmi.android.tv.player.effect.PlayerEffectManager;
+import com.fongmi.android.tv.player.effect.audio.AudioEffectBands;
 import com.fongmi.android.tv.player.engine.PlayerEngine;
+import com.fongmi.android.tv.player.engine.PlayerEngine.SecondarySubtitleState;
+import com.fongmi.android.tv.player.engine.PlayerEngineFactory;
+import com.fongmi.android.tv.player.media.MediaItemFactory;
+import com.fongmi.android.tv.player.media.PlaySpec;
+import com.fongmi.android.tv.player.parse.ParseJob;
+import com.fongmi.android.tv.player.track.TrackUtil;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.setting.PreloadSetting;
+import com.fongmi.android.tv.setting.SpeedSetting;
+import com.fongmi.android.tv.setting.SubtitleSetting;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Util;
-import com.github.catvod.net.OkHttp;
 import com.google.common.net.HttpHeaders;
 
 import java.util.HashMap;
@@ -45,34 +55,40 @@ import java.util.Map;
 
 public class PlayerManager implements ParseCallback {
 
-    private static final String TAG = "PlayerManager";
+    private static final float SUB_SCALE_STEP = 0.1f;
+    private static final float SUB_POSITION_STEP = 5.0f;
+
+    private final PlayerEffectManager effects;
     private final Runnable runnable;
     private final Callback callback;
+    private PendingPreload pendingPreload;
     private PlayerEngine engine;
     private VideoSize videoSize;
     private ParseJob parseJob;
     private PlaySpec spec;
     private Player player;
+
     private long pendingStartPositionMs;
     private boolean danmakuEnabled;
-
     private boolean initTrack;
     private int retry;
+    private int decode;
 
     public PlayerManager(Callback callback) {
-        this.runnable = () -> callback.onError(ResUtil.getString(R.string.error_play_timeout));
-        this.engine = createEngine(PlayerEngine.HARD);
-        this.player = engine.getPlayer();
         this.callback = callback;
+        this.decode = PlayerEngine.HARD;
+        this.runnable = this::onPlayTimeout;
         this.pendingStartPositionMs = C.TIME_UNSET;
+        this.engine = PlayerEngineFactory.create(decode, listener);
+        this.effects = new PlayerEffectManager(() -> engine);
         this.danmakuEnabled = DanmakuSetting.isShow();
+        this.player = engine.getPlayer();
     }
 
     public void release() {
-        try { if (player != null) player.removeListener(listener); } catch (Exception e) { e.printStackTrace(); }
         App.removeCallbacks(runnable);
-        if (engine == null) return;
-        try { engine.release(); } catch (Exception e) { e.printStackTrace(); }
+        if (player != null) player.removeListener(listener);
+        if (engine != null) engine.release();
         engine = null;
         player = null;
     }
@@ -81,12 +97,33 @@ public class PlayerManager implements ParseCallback {
         return player;
     }
 
+    private void setPlayer(Player player) {
+        this.player = player;
+        callback.onPlayerRebuild(player);
+    }
+
     public Tracks getCurrentTracks() {
-        return engine.getCurrentTracks();
+        return player.getCurrentTracks();
+    }
+
+    public int getAudioChannelCount() {
+        return engine == null ? Format.NO_VALUE : engine.getAudioChannelCount();
+    }
+
+    public List<MediaChapter> getCurrentMediaChapters() {
+        return player.getCurrentMediaChapters();
+    }
+
+    public List<MediaEdition> getCurrentMediaEditions() {
+        return player.getCurrentMediaEditions();
     }
 
     public List<MediaTitle> getCurrentMediaTitles() {
-        return engine.getCurrentMediaTitles();
+        return player.getCurrentMediaTitles();
+    }
+
+    public boolean haveTitle() {
+        return !getCurrentMediaTitles().isEmpty();
     }
 
     public MediaItem getCurrentMediaItem() {
@@ -117,8 +154,28 @@ public class PlayerManager implements ParseCallback {
         return spec != null ? spec.getDanmakus() : List.of();
     }
 
+    private void notifyDanmakuSourceChanged() {
+        callback.onDanmakuSourceChanged(getSelectedDanmakuUri());
+    }
+
     public MediaMetadata getMetadata() {
         return spec != null ? spec.getMetadata() : null;
+    }
+
+    public String getMediaTitle() {
+        MediaMetadata metadata = getMetadata();
+        if (metadata == null) return "";
+        CharSequence title = !TextUtils.isEmpty(metadata.displayTitle) ? metadata.displayTitle : metadata.title;
+        if (TextUtils.isEmpty(title)) title = metadata.artist;
+        return TextUtils.isEmpty(title) ? "" : title.toString();
+    }
+
+    public void setMetadata(@NonNull MediaMetadata metadata) {
+        if (spec == null || metadata.equals(spec.getMetadata())) return;
+        spec.setMetadata(metadata);
+        if (TextUtils.isEmpty(spec.getUrl())) return;
+        MediaItem current = player.getCurrentMediaItem();
+        if (current != null) player.replaceMediaItem(player.getCurrentMediaItemIndex(), current.buildUpon().setMediaMetadata(metadata).build());
     }
 
     public Map<String, String> getHeaders() {
@@ -129,8 +186,20 @@ public class PlayerManager implements ParseCallback {
         return player.getPlaybackParameters().speed;
     }
 
+    public String getSpeedText() {
+        return String.format(Locale.getDefault(), "%.2f", getSpeed());
+    }
+
     public boolean isEmpty() {
         return spec == null || TextUtils.isEmpty(spec.getUrl());
+    }
+
+    public boolean hasPlaySpec() {
+        return spec != null;
+    }
+
+    public boolean canPreloadNext() {
+        return PreloadSetting.isEnabled() && PreloadSetting.isNextEpisodeEnabled() && engine != null && engine.getType() == PlayerEngine.Type.EXO;
     }
 
     public boolean isPortrait() {
@@ -142,19 +211,23 @@ public class PlayerManager implements ParseCallback {
     }
 
     public boolean isLive() {
-        return engine.isLive();
+        return player.getCurrentMediaItem() != null && player.isCurrentMediaItemLive();
     }
 
     public boolean isVod() {
-        return engine.isVod();
+        return player.getCurrentMediaItem() != null && !player.isCurrentMediaItemLive();
     }
 
     public boolean haveTrack(int type) {
-        return engine.haveTrack(type);
+        return TrackUtil.count(getCurrentTracks(), type) > 0;
     }
 
-    public boolean haveTitle() {
-        return engine.haveTitle();
+    public boolean haveEdition() {
+        return !getCurrentMediaEditions().isEmpty();
+    }
+
+    public boolean haveChapter() {
+        return !getCurrentMediaChapters().isEmpty();
     }
 
     public boolean haveDanmaku() {
@@ -185,21 +258,56 @@ public class PlayerManager implements ParseCallback {
         return (getVideoWidth() == 0 && getVideoHeight() == 0) ? "" : getVideoWidth() + " x " + getVideoHeight();
     }
 
-    public String getSpeedText() {
-        return String.format(Locale.getDefault(), "%.2f", getSpeed());
-    }
-
     public String getDecodeText() {
-        return engine.getDecodeText();
+        return ResUtil.getStringArray(R.array.select_decode)[decode];
     }
 
     public String getEngineText() {
-        return ResUtil.getString(R.string.play_exo);
+        return ResUtil.getString(isMpv() ? R.string.play_mpv : R.string.play_exo);
+    }
+
+    public int getEngine() {
+        return isMpvEngine() ? PlayerSetting.ENGINE_MPV : PlayerSetting.ENGINE_EXO;
+    }
+
+    public void setEngine(int targetEngine) {
+        PlayerSetting.putEngine(targetEngine);
+        if (isEmpty() || PlayerEngineFactory.matches(engine, spec)) return;
+        PlaybackSnapshot snapshot = PlaybackSnapshot.capture(player);
+        startCurrent(snapshot.positionMs());
+        snapshot.restore(player);
+    }
+
+    public void toggleEngine() {
+        setEngine(isMpv() ? PlayerSetting.ENGINE_EXO : PlayerSetting.ENGINE_MPV);
+    }
+
+    public boolean canSetAudioSetting() {
+        return effects.canSetAudioSetting();
+    }
+
+    public AudioEffectBands getAudioSettingBands() {
+        return effects.getAudioSettingBands();
+    }
+
+    public int getAudioSettingError() {
+        return effects.getAudioSettingError();
+    }
+
+    public boolean canSetVideoSetting() {
+        return effects.canSetVideoSetting();
+    }
+
+    public int getVideoSettingError() {
+        return effects.getVideoSettingError();
+    }
+
+    public boolean supportsVideoSharpness() {
+        return effects.supportsVideoSharpness();
     }
 
     public String getPositionTime(long delta) {
-        long time = Math.max(0, Math.min(getPosition() + delta, Math.max(0, getDuration())));
-        return Util.timeMs(time);
+        return Util.timeMs(Math.clamp(getPosition() + delta, 0, Math.max(0, getDuration())));
     }
 
     public long getDuration() {
@@ -211,29 +319,60 @@ public class PlayerManager implements ParseCallback {
     }
 
     public void setSub(Sub sub) {
+        if (sub == null || sub.isEmpty()) return;
         if (spec != null) spec.setSub(sub);
-        setMediaItem(Constant.TIMEOUT_PLAY, getSwitchPosition());
+        if (engine.addSubtitle(sub)) play();
+        else startCurrent();
     }
 
-    public void setFormat(String format) {
-        if (spec != null) spec.setFormat(format);
-        setMediaItem();
+    public boolean canSetSubtitleStyle() {
+        return engine != null;
+    }
+
+    public void addSubtitleSize() {
+        adjustSubtitleScale(SUB_SCALE_STEP);
+    }
+
+    public void subSubtitleSize() {
+        adjustSubtitleScale(-SUB_SCALE_STEP);
+    }
+
+    public void addSubtitlePosition() {
+        adjustSubtitlePosition(SUB_POSITION_STEP);
+    }
+
+    public void subSubtitlePosition() {
+        adjustSubtitlePosition(-SUB_POSITION_STEP);
+    }
+
+    public void resetSubtitleStyle() {
+        SubtitleSetting.resetAdjust();
+        applySubtitleStyle();
+    }
+
+    private void adjustSubtitleScale(float delta) {
+        SubtitleSetting.putScale(SubtitleSetting.getScale() + delta);
+        applySubtitleStyle();
+    }
+
+    private void adjustSubtitlePosition(float delta) {
+        SubtitleSetting.putPosition(SubtitleSetting.getPosition() + delta);
+        applySubtitleStyle();
+    }
+
+    public void selectChapter(MediaChapter chapter) {
+        player.selectChapter(chapter);
+    }
+
+    public void selectEdition(MediaEdition edition) {
+        player.selectEdition(edition);
     }
 
     public void setTitle(MediaTitle title) {
-        if (spec != null) spec.setUrl(spec.getUri().buildUpon().fragment("title=" + title.index).build().toString());
+        if (spec == null) return;
+        spec.setUrl(spec.getUri().buildUpon().fragment("title=" + title.index).build().toString());
         setMediaItem();
         seekTo(0);
-    }
-
-    public static MediaMetadata buildMetadata(String title, String artist, String artUri) {
-        Uri artwork = TextUtils.isEmpty(artUri) ? null : Uri.parse(artUri);
-        return new MediaMetadata.Builder().setTitle(title).setArtist(artist).setArtworkUri(artwork).build();
-    }
-
-    public void setMetadata(MediaMetadata data) {
-        if (spec != null) spec.setMetadata(data);
-        try { engine.setMetadata(data); } catch (Exception e) { e.printStackTrace(); }
     }
 
     public void setDanmakuConfig(DanmakuConfig config) {
@@ -246,6 +385,18 @@ public class PlayerManager implements ParseCallback {
         callback.onDanmakuEnabledChanged(danmakuEnabled);
     }
 
+    public void applySubtitleStyle() {
+        if (engine != null) engine.applySubtitleStyle();
+    }
+
+    public SecondarySubtitleState getSecondarySubtitleState() {
+        return engine == null ? SecondarySubtitleState.EMPTY : engine.getSecondarySubtitleState();
+    }
+
+    public void setSecondarySubtitleSelection(@Nullable TrackSelectionOverride selection) {
+        if (engine != null) engine.setSecondarySubtitleSelection(selection);
+    }
+
     public void sendDanmaku(String text) {
         callback.onDanmakuSent(text);
     }
@@ -253,8 +404,10 @@ public class PlayerManager implements ParseCallback {
     public String setSpeed(float speed) {
         try {
             if (!player.isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH)) return getSpeedText();
-            player.setPlaybackParameters(player.getPlaybackParameters().withSpeed(speed));
-        } catch (Exception e) { e.printStackTrace(); }
+            player.setPlaybackParameters(player.getPlaybackParameters().withSpeed(SpeedSetting.clamp(speed)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return getSpeedText();
     }
 
@@ -277,77 +430,123 @@ public class PlayerManager implements ParseCallback {
         return setSpeed(getSpeed() == 1 ? PlayerSetting.getSpeed() : 1);
     }
 
+    public boolean supportsSkipSilence() {
+        return effects.supportsSkipSilence();
+    }
+
+    public boolean isSkipSilence() {
+        return effects.isSkipSilence();
+    }
+
+    public void setSkipSilenceEnabled(boolean enabled) {
+        effects.setSkipSilenceEnabled(enabled);
+    }
+
+    public void setTrack(Track track) {
+        TrackUtil.setTrackSelection(player, track);
+    }
+
     public void setTrack(List<Track> tracks) {
-        if (!tracks.isEmpty()) try { engine.setTrack(tracks); } catch (Exception e) { e.printStackTrace(); }
+        if (!tracks.isEmpty()) TrackUtil.setTrackSelection(player, tracks);
+    }
+
+    public void setVideoSetting(int preset) {
+        effects.setVideoSetting(preset);
+    }
+
+    public void refreshVideoSetting() {
+        effects.refreshVideoSetting();
+    }
+
+    public void previewVideoSetting(boolean original) {
+        effects.previewVideoSetting(original);
+    }
+
+    public void setAudioSetting(int preset) {
+        effects.setAudioSetting(preset);
+    }
+
+    public void refreshAudioSetting() {
+        effects.refreshAudioSetting();
+    }
+
+    public void previewAudioSetting(boolean original) {
+        effects.previewAudioSetting(original);
+    }
+
+    private boolean isMpvEngine() {
+        return engine != null && engine.getType() == PlayerEngine.Type.MPV;
+    }
+
+    public boolean isMpv() {
+        return isMpvEngine();
     }
 
     public void play() {
-        try { player.play(); } catch (Exception e) { e.printStackTrace(); }
+        try {
+            player.play();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void pause() {
-        try { player.pause(); } catch (Exception e) { e.printStackTrace(); }
+        try {
+            player.pause();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void stop() {
-        try { player.stop(); } catch (Exception e) { e.printStackTrace(); }
+        engine.stop();
         stopParse();
     }
 
     public void clearMediaItems() {
-        try { player.clearMediaItems(); } catch (Exception e) { e.printStackTrace(); }
+        try {
+            player.clearMediaItems();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean isRepeatOne() {
-        return engine.isRepeatOne();
+        return player.getRepeatMode() == Player.REPEAT_MODE_ONE;
     }
 
     public void setRepeatOne(boolean repeat) {
-        try { engine.setRepeatOne(repeat); } catch (Exception e) { e.printStackTrace(); }
+        player.setRepeatMode(repeat ? Player.REPEAT_MODE_ONE : Player.REPEAT_MODE_OFF);
+    }
+
+    public void replay(long positionMs) {
+        if (positionMs == C.TIME_UNSET) player.seekToDefaultPosition();
+        else player.seekTo(positionMs);
+        player.play();
     }
 
     public void seekTo(long time) {
-        try { player.seekTo(time); } catch (Exception e) { e.printStackTrace(); }
+        try {
+            player.seekTo(time);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public long getTextOffsetMs() {
-        try { return engine.getTextOffsetMs(); } catch (Exception e) { e.printStackTrace(); return 0; }
+        return player.isCommandAvailable(Player.COMMAND_GET_TEXT_OFFSET) ? player.getTextOffsetMs() : 0;
     }
 
     public void setTextOffsetMs(long offsetMs) {
-        try { engine.setTextOffsetMs(offsetMs); } catch (Exception e) { e.printStackTrace(); }
+        if (player.isCommandAvailable(Player.COMMAND_SET_TEXT_OFFSET)) player.setTextOffsetMs(offsetMs);
     }
 
     public long getAudioOffsetMs() {
-        try { return engine.getAudioOffsetMs(); } catch (Exception e) { e.printStackTrace(); return 0; }
+        return player.isCommandAvailable(Player.COMMAND_GET_AUDIO_OFFSET) ? player.getAudioOffsetMs() : 0;
     }
 
     public void setAudioOffsetMs(long offsetMs) {
-        try { engine.setAudioOffsetMs(offsetMs); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public boolean canSetSubtitleStyle() {
-        try { return engine.canSetSubtitleStyle(); } catch (Exception e) { e.printStackTrace(); return false; }
-    }
-
-    public void addSubtitleSize() {
-        try { engine.addSubtitleSize(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void subSubtitleSize() {
-        try { engine.subSubtitleSize(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void addSubtitlePosition() {
-        try { engine.addSubtitlePosition(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void subSubtitlePosition() {
-        try { engine.subSubtitlePosition(); } catch (Exception e) { e.printStackTrace(); }
-    }
-
-    public void resetSubtitleStyle() {
-        try { engine.resetSubtitleStyle(); } catch (Exception e) { e.printStackTrace(); }
+        if (player.isCommandAvailable(Player.COMMAND_SET_AUDIO_OFFSET)) player.setAudioOffsetMs(offsetMs);
     }
 
     public void reset() {
@@ -359,106 +558,101 @@ public class PlayerManager implements ParseCallback {
         spec = null;
     }
 
+    public boolean preload(PlaySpec spec, long startPositionMs) {
+        if (!canPreloadNext() || spec == null || !PlayerEngineFactory.matches(engine, spec)) return false;
+        pendingPreload = new PendingPreload(spec.checkUa(), Math.max(0, startPositionMs));
+        startPreloadIfReady();
+        return true;
+    }
+
+    public void clearPreload() {
+        pendingPreload = null;
+        if (engine != null) engine.clearPreload();
+    }
+
+    public void bindPlayerView(PlayerView playerView) {
+        if (engine != null) engine.bindPlayerView(playerView);
+    }
+
     public void resetTrack() {
-        try { engine.resetTrack(); } catch (Exception e) { e.printStackTrace(); }
+        TrackUtil.reset(player);
     }
 
     public void toggleDecode() {
-        try { engine.setDecode(engine.isHard() ? PlayerEngine.SOFT : PlayerEngine.HARD); } catch (Exception e) { e.printStackTrace(); }
-        if (engine.canSetDecodeWithoutRebuild()) return;
-        rebuildPlayer();
-        setMediaItem();
+        setDecode(isHard() ? PlayerEngine.SOFT : PlayerEngine.HARD);
     }
 
-    public void toggleEngine() {
-        // Only ExoPlayer engine is available; no-op.
+    private void handleDecodeError(PlaybackException e) {
+        if (++retry > 1) callback.onError(engine.getErrorMessage(e));
+        else retryDecode(isHard() ? PlayerEngine.SOFT : PlayerEngine.HARD);
     }
 
-    public void setEngine(int target) {
-        PlayerSetting.putEngine(PlayerSetting.ENGINE_EXO);
+    private void retryDecode(int decode) {
+        setDecode(decode);
+        PlaybackSnapshot snapshot = PlaybackSnapshot.capture(player);
+        startCurrent(snapshot.positionMs());
+        snapshot.restore(player);
     }
 
-    private void rebuildPlayer() {
-        Player oldPlayer = player;
-        PlayerEngine oldEngine = engine;
-        // 1. 旧 player 先 stop / removeListener（避免硬软解切换时旧 player 还在回调 listener，
-        //    或与新 rebuild 的 Player 在 MediaCodec 层竞争状态导致 IllegalStateException / Native crash）
-        if (oldPlayer != null) {
-            try { oldPlayer.stop(); } catch (Throwable e) { e.printStackTrace(); }
-            try { oldPlayer.removeListener(listener); } catch (Throwable e) { e.printStackTrace(); }
-        }
-        try {
-            player = oldEngine != null ? oldEngine.rebuild(listener) : null;
-            if (player != null) {
-                try { player.addListener(listener); } catch (Throwable e) { e.printStackTrace(); }
-            }
-            callback.onPlayerRebuild(player);
-        } catch (Throwable e) {
-            e.printStackTrace();
-            if (callback != null) {
-                callback.onError(oldEngine != null && e instanceof PlaybackException ? oldEngine.getErrorMessage((PlaybackException) e) : e.getMessage());
-            }
-        }
-        // 2. 延迟清理旧 engine 残留资源（给新 player 一点时间稳定，避免同一路解码资源冲突）
-        if (oldEngine != null) {
-            final PlayerEngine delayedRelease = oldEngine;
-            // 注意：这里不直接 release engine（因为 engine 引用本身没有变，只是内部 player 被 rebuild 了）
-            // 真实需要延迟释放的是旧 player 对象，但 PlayerEngine 内部会自己处理 rebuild 前后资源交接；
-            // 这里只额外延迟触发一次 stop 兜底，避免旧 MediaCodec 句柄残留
-            com.fongmi.android.tv.App.post(() -> {
-                try { if (oldPlayer != null && oldPlayer != player) oldPlayer.release(); } catch (Throwable ignored) {}
-            }, 500);
-        }
+    private void setDecode(int decode) {
+        this.decode = decode;
+        engine.setDecode(decode);
+        callback.onDecodeChanged();
     }
 
-    private long getSwitchPosition() {
-        if (player == null) return C.TIME_UNSET;
-        long position = player.getCurrentPosition();
-        return position > 0 ? position : C.TIME_UNSET;
+    private boolean isHard() {
+        return decode == PlayerEngine.HARD;
     }
 
-    private PlayerEngine createEngine(int decode) {
-        return new ExoPlayerEngine(decode, listener);
+    private void onPlayTimeout() {
+        callback.onError(ResUtil.getString(R.string.error_play_timeout));
+        stop();
     }
 
-    private boolean isMpvEngine() {
-        return false;
-    }
-
-    public boolean isMpv() {
-        return false;
+    private void ensureEngine(PlaySpec spec) {
+        if (PlayerEngineFactory.matches(engine, spec)) return;
+        PlayerEngine old = engine;
+        player.removeListener(listener);
+        engine = PlayerEngineFactory.create(decode, spec, listener);
+        setPlayer(engine.getPlayer());
+        old.release();
     }
 
     public void browse(PlaySpec spec) {
+        browse(spec, C.TIME_UNSET);
+    }
+
+    public void browse(PlaySpec spec, long startPositionMs) {
         reset();
         clear();
         stopParse();
-        start(spec, Constant.TIMEOUT_PLAY);
+        start(spec, Constant.TIMEOUT_PLAY, startPositionMs);
     }
 
     public void start(PlaySpec spec, long timeout) {
         start(spec, timeout, C.TIME_UNSET);
     }
 
-    public void start(PlaySpec spec, long timeout, long positionMs) {
+    public void start(PlaySpec spec, long timeout, long startPositionMs) {
         this.spec = spec;
-        setMediaItem(timeout, positionMs);
+        setMediaItem(timeout, startPositionMs);
     }
 
     public void parse(String key, Result result, boolean useParse, MediaMetadata metadata) {
         parse(key, result, useParse, metadata, C.TIME_UNSET);
     }
 
-    public void parse(String key, Result result, boolean useParse, MediaMetadata metadata, long positionMs) {
+    public void parse(String key, Result result, boolean useParse, MediaMetadata metadata, long startPositionMs) {
         stopParse();
+        pendingStartPositionMs = startPositionMs;
         spec = PlaySpec.fromParse(result, key, metadata);
-        pendingStartPositionMs = positionMs;
         parseJob = ParseJob.create(this).start(result, useParse);
     }
 
     private void stopParse() {
         if (parseJob != null) parseJob.stop();
         parseJob = null;
+        pendingStartPositionMs = C.TIME_UNSET;
     }
 
     public void setMediaItem() {
@@ -469,25 +663,33 @@ public class PlayerManager implements ParseCallback {
         setMediaItem(timeout, C.TIME_UNSET);
     }
 
-    private void setMediaItem(long timeout, long positionMs) {
+    private void setMediaItem(long timeout, long startPositionMs) {
         if (spec == null || spec.getUrl() == null) return;
-        ensureEngineForSpec();
-        try {
-            engine.start(spec.checkUa(), positionMs);
-        } catch (Exception e) {
-            e.printStackTrace();
-            if (callback != null) callback.onError(engine != null && e instanceof PlaybackException ? engine.getErrorMessage((PlaybackException) e) : e.getMessage());
-        }
-        pendingStartPositionMs = C.TIME_UNSET;
+        ensureEngine(spec.checkUa());
+        pendingPreload = null;
+        initTrack = false;
+        engine.start(spec, startPositionMs);
+        notifyDanmakuSourceChanged();
         App.post(runnable, timeout);
         callback.onPrepare();
-        initTrack = false;
     }
 
-    private void ensureEngineForSpec() {
-        // Only ExoPlayer engine is available; no engine switching needed.
+    private void startCurrent() {
+        startCurrent(getPosition());
     }
 
+    private void startCurrent(long startPositionMs) {
+        setMediaItem(Constant.TIMEOUT_PLAY, startPositionMs);
+    }
+
+    private void startPreloadIfReady() {
+        PendingPreload preload = pendingPreload;
+        if (preload == null || player.getPlaybackState() != Player.STATE_READY) return;
+        pendingPreload = null;
+        engine.preload(preload.spec(), preload.startPositionMs());
+    }
+
+    @Nullable
     public Uri getSelectedDanmakuUri() {
         Danmaku item = spec != null ? spec.getSelectedDanmaku() : null;
         return item == null ? null : item.getUri();
@@ -495,7 +697,7 @@ public class PlayerManager implements ParseCallback {
 
     public void setDanmaku(Danmaku item) {
         if (spec == null) return;
-        spec.setDanmaku(item);
+        spec.selectDanmaku(item);
         notifyDanmakuSourceChanged();
     }
 
@@ -503,10 +705,6 @@ public class PlayerManager implements ParseCallback {
         if (spec == null) return;
         spec.toggleDanmaku(item);
         notifyDanmakuSourceChanged();
-    }
-
-    private void notifyDanmakuSourceChanged() {
-        callback.onDanmakuSourceChanged(getSelectedDanmakuUri());
     }
 
     public void addDanmaku(Danmaku item) {
@@ -519,11 +717,13 @@ public class PlayerManager implements ParseCallback {
         if (headers != null) headers.remove(HttpHeaders.RANGE);
         if (spec != null) spec.setHeaders(headers);
         if (spec != null) spec.setUrl(url);
-        setMediaItem(Constant.TIMEOUT_PLAY, pendingStartPositionMs);
+        startCurrent(pendingStartPositionMs);
+        pendingStartPositionMs = C.TIME_UNSET;
     }
 
     @Override
     public void onParseError() {
+        pendingStartPositionMs = C.TIME_UNSET;
         callback.onError(ResUtil.getString(R.string.error_play_parse));
     }
 
@@ -533,7 +733,14 @@ public class PlayerManager implements ParseCallback {
 
         void onTracksChanged();
 
-        void onTitlesChanged();
+        default void onDecodeChanged() {
+        }
+
+        default void onMediaOptionsChanged() {
+        }
+
+        default void onTitlesChanged() {
+        }
 
         void onError(String msg);
 
@@ -548,11 +755,34 @@ public class PlayerManager implements ParseCallback {
         void onDanmakuSent(String text);
     }
 
+    private record PendingPreload(PlaySpec spec, long startPositionMs) {
+    }
+
+    private record PlaybackSnapshot(long positionMs, boolean playWhenReady, PlaybackParameters playbackParameters, int repeatMode, float volume, long audioOffsetMs, long textOffsetMs) {
+
+        private static PlaybackSnapshot capture(Player player) {
+            float volume = player.isCommandAvailable(Player.COMMAND_GET_VOLUME) ? player.getVolume() : Float.NaN;
+            long audioOffsetMs = player.isCommandAvailable(Player.COMMAND_GET_AUDIO_OFFSET) ? player.getAudioOffsetMs() : C.TIME_UNSET;
+            long textOffsetMs = player.isCommandAvailable(Player.COMMAND_GET_TEXT_OFFSET) ? player.getTextOffsetMs() : C.TIME_UNSET;
+            return new PlaybackSnapshot(player.getCurrentPosition(), player.getPlayWhenReady(), player.getPlaybackParameters(), player.getRepeatMode(), volume, audioOffsetMs, textOffsetMs);
+        }
+
+        private void restore(Player player) {
+            if (player.isCommandAvailable(Player.COMMAND_SET_SPEED_AND_PITCH)) player.setPlaybackParameters(playbackParameters);
+            if (player.isCommandAvailable(Player.COMMAND_SET_REPEAT_MODE)) player.setRepeatMode(repeatMode);
+            if (!Float.isNaN(volume) && player.isCommandAvailable(Player.COMMAND_SET_VOLUME)) player.setVolume(volume);
+            if (audioOffsetMs != C.TIME_UNSET && player.isCommandAvailable(Player.COMMAND_SET_AUDIO_OFFSET)) player.setAudioOffsetMs(audioOffsetMs);
+            if (textOffsetMs != C.TIME_UNSET && player.isCommandAvailable(Player.COMMAND_SET_TEXT_OFFSET)) player.setTextOffsetMs(textOffsetMs);
+            if (player.isCommandAvailable(Player.COMMAND_PLAY_PAUSE)) player.setPlayWhenReady(playWhenReady);
+        }
+    }
+
     private final Player.Listener listener = new Player.Listener() {
 
         @Override
         public void onPlaybackStateChanged(int state) {
             if (state == Player.STATE_READY || state == Player.STATE_ENDED) App.removeCallbacks(runnable);
+            if (state == Player.STATE_READY) startPreloadIfReady();
         }
 
         @Override
@@ -563,9 +793,9 @@ public class PlayerManager implements ParseCallback {
         @Override
         public void onTracksChanged(@NonNull Tracks tracks) {
             if (tracks.isEmpty() || initTrack) return;
-            setTrack(Track.find(getKey()));
-            callback.onTracksChanged();
             initTrack = true;
+            TrackUtil.setTrackSelection(player, Track.find(getKey()));
+            callback.onTracksChanged();
         }
 
         @Override
@@ -574,17 +804,29 @@ public class PlayerManager implements ParseCallback {
         }
 
         @Override
+        public void onMediaChaptersChanged(@NonNull List<MediaChapter> chapters) {
+            callback.onMediaOptionsChanged();
+        }
+
+        @Override
+        public void onMediaEditionsChanged(@NonNull List<MediaEdition> editions) {
+            callback.onMediaOptionsChanged();
+        }
+
+        @Override
         public void onPlayerError(@NonNull PlaybackException e) {
+            if (spec == null) return;
             PlayerEngine.ErrorAction action = engine.handleError(e);
-            if (action == PlayerEngine.ErrorAction.RECOVERED) {
-                notifyDanmakuSourceChanged();
-            } else if (action == PlayerEngine.ErrorAction.FATAL) {
-                callback.onError(engine.getErrorMessage(e));
-            } else if (++retry > 1) {
-                callback.onError(engine.getErrorMessage(e));
-            } else {
-                toggleDecode();
+            if (action != PlayerEngine.ErrorAction.RECOVERED) App.removeCallbacks(runnable);
+            switch (action) {
+                case DECODE -> handleDecodeError(e);
+                case RECOVERED -> notifyDanmakuSourceChanged();
+                case FATAL -> callback.onError(engine.getErrorMessage(e));
             }
         }
     };
+
+    public static MediaMetadata buildMetadata(String title, String artist, String artUri) {
+        return MediaItemFactory.buildMetadata(title, artist, artUri, null);
+    }
 }

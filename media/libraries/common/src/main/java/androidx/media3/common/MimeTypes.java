@@ -110,6 +110,7 @@ public final class MimeTypes {
   public static final String AUDIO_DTS_HD = BASE_TYPE_AUDIO + "/vnd.dts.hd";
   public static final String AUDIO_DTS_MA = BASE_TYPE_AUDIO + "/vnd.dts.hd;profile=ma";
   public static final String AUDIO_DTS_EXPRESS = BASE_TYPE_AUDIO + "/vnd.dts.hd;profile=lbr";
+  public static final String AUDIO_DTS_HD_MA = BASE_TYPE_AUDIO + "/vnd.dts.hd;profile=dtsma";
 
   @UnstableApi
   public static final String AUDIO_DTS_UHD_P2 = BASE_TYPE_AUDIO + "/vnd.dts.uhd;profile=p2";
@@ -228,6 +229,9 @@ public final class MimeTypes {
    * registered codec types</a>.
    */
   @UnstableApi public static final String CODEC_E_AC3_JOC = "ec+3";
+
+  /** Codec marker for Dolby TrueHD streams that carry a Dolby Atmos presentation. */
+  @UnstableApi public static final String CODEC_TRUEHD_ATMOS = "truehd-atmos";
 
   private static final ArrayList<CustomMimeType> customMimeTypes = new ArrayList<>();
 
@@ -742,6 +746,8 @@ public final class MimeTypes {
         return C.ENCODING_DTS;
       case MimeTypes.AUDIO_DTS_HD:
         return C.ENCODING_DTS_HD;
+      case MimeTypes.AUDIO_DTS_HD_MA:
+        return C.ENCODING_DTS_HD_MA;
       case MimeTypes.AUDIO_DTS_EXPRESS:
         return C.ENCODING_DTS_HD;
       case MimeTypes.AUDIO_DTS_UHD_P2:

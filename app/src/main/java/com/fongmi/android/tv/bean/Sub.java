@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.bean;
 
+import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -34,6 +35,15 @@ public class Sub {
         return sub;
     }
 
+    public static Sub from(String name, String url, String lang, String format) {
+        Sub sub = new Sub();
+        sub.name = name;
+        sub.url = url;
+        sub.lang = lang;
+        sub.format = format;
+        return sub;
+    }
+
     public String getUrl() {
         return TextUtils.isEmpty(url) ? "" : url;
     }
@@ -52,6 +62,26 @@ public class Sub {
 
     public int getFlag() {
         return flag == 0 ? C.SELECTION_FLAG_DEFAULT : flag;
+    }
+
+    public int getRawFlag() {
+        return flag;
+    }
+
+    public void setFlag(int flag) {
+        this.flag = flag;
+    }
+
+    public boolean isForced() {
+        return (flag & C.SELECTION_FLAG_FORCED) != 0;
+    }
+
+    public boolean isEmpty() {
+        return url == null || url.isEmpty();
+    }
+
+    public Uri getUri() {
+        return isEmpty() ? null : UrlUtil.uri(getUrl());
     }
 
     public void trans() {

@@ -123,6 +123,7 @@ public final class SubtitleView extends FrameLayout {
   private float defaultTextSize;
   private float bottomPaddingFraction;
   private float bitmapSizeScale = 1.0f;
+  private float textSizeScale = 1.0f;
   private float bottomPosition;
   private boolean applyEmbeddedStyles;
   private boolean applyEmbeddedFontSizes;
@@ -322,6 +323,18 @@ public final class SubtitleView extends FrameLayout {
   public void setBottomPosition(float bottomPosition) {
     this.bottomPosition = bottomPosition;
     updateOutput();
+  }
+
+  /** Sets a scale factor applied to subtitle sizes regardless of cue format. */
+  public void setTextSizeScale(float textSizeScale) {
+    applyTextSizeScale(textSizeScale);
+    updateOutput();
+  }
+
+  private void applyTextSizeScale(float textSizeScale) {
+    defaultTextSizeType = Cue.TEXT_SIZE_TYPE_FRACTIONAL;
+    defaultTextSize = DEFAULT_TEXT_SIZE_FRACTION * textSizeScale;
+    this.textSizeScale = textSizeScale;
   }
 
   public float getTextSize() {

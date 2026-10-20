@@ -445,4 +445,14 @@
         <item>12</item>
         <item>15</item>
     </string-array>
+
+    <string name="error_audio_effect_unsupported">当前播放模式下音频设置不可用</string>
+    <string name="error_audio_effect_tunnel">隧道模式下音频设置不可用</string>
+    <string name="error_audio_effect_passthrough">音频直通时音频设置不可用</string>
+    <string name="error_audio_effect_apply">音频设置应用失败</string>
+    <string name="error_video_effect_unsupported">当前播放模式下视频设置不可用</string>
+    <string name="error_video_effect_decode">视频设置需要硬件解码</string>
+    <string name="error_video_effect_drm">DRM 视频无法使用视频设置</string>
+    <string name="error_video_effect_tunnel">隧道模式下视频设置不可用</string>
+    <string name="error_video_effect_dolby_vision_passthrough">杜比视界直通时视频设置不可用</string>
 </resources>

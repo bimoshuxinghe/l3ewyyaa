@@ -81,6 +81,21 @@ public final class C {
   /** Represents an unset or unknown percentage. */
   @UnstableApi public static final int PERCENTAGE_UNSET = -1;
 
+  /**
+   * Decode mode for video playback. One of {@link #DECODE_SOFTWARE} or {@link #DECODE_HARDWARE}.
+   */
+  @Documented
+  @Retention(RetentionPolicy.SOURCE)
+  @Target(TYPE_USE)
+  @IntDef({DECODE_SOFTWARE, DECODE_HARDWARE})
+  public @interface DecodeMode {}
+
+  /** Decode video using software decoders. */
+  public static final int DECODE_SOFTWARE = 0;
+
+  /** Decode video using platform hardware decoders. */
+  public static final int DECODE_HARDWARE = 1;
+
   /** The number of milliseconds in one second. */
   @UnstableApi public static final long MILLIS_PER_SECOND = 1_000L;
 
@@ -184,8 +199,8 @@ public final class C {
    * #ENCODING_PCM_FLOAT_BIG_ENDIAN}, {@link #ENCODING_PCM_DOUBLE}, {@link
    * #ENCODING_PCM_DOUBLE_BIG_ENDIAN}, {@link #ENCODING_MP3}, {@link #ENCODING_AC3}, {@link
    * #ENCODING_E_AC3}, {@link #ENCODING_E_AC3_JOC}, {@link #ENCODING_AC4}, {@link #ENCODING_DTS},
-   * {@link #ENCODING_DTS_HD}, {@link #ENCODING_DOLBY_TRUEHD}, {@link #ENCODING_OPUS} or {@link
-   * #ENCODING_DSD}.
+   * {@link #ENCODING_DTS_HD}, {@link #ENCODING_DTS_HD_MA}, {@link #ENCODING_DOLBY_TRUEHD}, {@link
+   * #ENCODING_OPUS}, {@link #ENCODING_DTS_UHD_P2} or {@link #ENCODING_DSD}.
    */
   @Documented
   @Retention(RetentionPolicy.SOURCE)
@@ -217,9 +232,10 @@ public final class C {
     ENCODING_AC4,
     ENCODING_DTS,
     ENCODING_DTS_HD,
+    ENCODING_DTS_HD_MA,
     ENCODING_DOLBY_TRUEHD,
-    ENCODING_OPUS,
     ENCODING_DTS_UHD_P2,
+    ENCODING_OPUS,
     ENCODING_DSD,
   })
   public @interface Encoding {}
@@ -327,6 +343,9 @@ public final class C {
 
   /** See {@link AudioFormat#ENCODING_DTS_HD}. */
   public static final int ENCODING_DTS_HD = AudioFormat.ENCODING_DTS_HD;
+
+  /** See {@link AudioFormat#ENCODING_DTS_HD_MA}. */
+  public static final int ENCODING_DTS_HD_MA = AudioFormat.ENCODING_DTS_HD_MA;
 
   /** See {@link AudioFormat#ENCODING_DTS_UHD_P2}. */
   public static final int ENCODING_DTS_UHD_P2 = AudioFormat.ENCODING_DTS_UHD_P2;

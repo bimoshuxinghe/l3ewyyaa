@@ -121,6 +121,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       private int audioSessionId;
       private float volume;
       private float unmuteVolume;
+      private long audioOffsetMs;
+      private long textOffsetMs;
       private VideoSize videoSize;
       private CueGroup currentCues;
       private DeviceInfo deviceInfo;
@@ -129,6 +131,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       private Size surfaceSize;
       private boolean newlyRenderedFirstFrame;
       private Metadata timedMetadata;
+      private ImmutableList<MediaChapter> currentMediaChapters;
+      private ImmutableList<MediaEdition> currentMediaEditions;
       @Nullable private ImmutableList<MediaItemData> playlist;
       private Timeline timeline;
       @Nullable private Tracks currentTracks;
@@ -168,6 +172,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
         audioSessionId = C.AUDIO_SESSION_ID_UNSET;
         volume = 1f;
         unmuteVolume = 1f;
+        audioOffsetMs = 0;
+        textOffsetMs = 0;
         videoSize = VideoSize.UNKNOWN;
         currentCues = CueGroup.EMPTY_TIME_ZERO;
         deviceInfo = DeviceInfo.UNKNOWN;
@@ -176,6 +182,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
         surfaceSize = Size.UNKNOWN;
         newlyRenderedFirstFrame = false;
         timedMetadata = new Metadata(/* presentationTimeUs= */ C.TIME_UNSET);
+        currentMediaChapters = ImmutableList.of();
+        currentMediaEditions = ImmutableList.of();
         playlist = ImmutableList.of();
         timeline = Timeline.EMPTY;
         currentTracks = null;
@@ -215,6 +223,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
         this.audioSessionId = state.audioSessionId;
         this.volume = state.volume;
         this.unmuteVolume = state.unmuteVolume;
+        this.audioOffsetMs = state.audioOffsetMs;
+        this.textOffsetMs = state.textOffsetMs;
         this.videoSize = state.videoSize;
         this.currentCues = state.currentCues;
         this.deviceInfo = state.deviceInfo;
@@ -223,6 +233,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
         this.surfaceSize = state.surfaceSize;
         this.newlyRenderedFirstFrame = state.newlyRenderedFirstFrame;
         this.timedMetadata = state.timedMetadata;
+        this.currentMediaChapters = state.currentMediaChapters;
+        this.currentMediaEditions = state.currentMediaEditions;
         this.timeline = state.timeline;
         if (state.timeline instanceof PlaylistTimeline) {
           this.playlist = ((PlaylistTimeline) state.timeline).playlist;
@@ -478,6 +490,30 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       }
 
       /**
+       * Sets the audio playback offset in milliseconds.
+       *
+       * @param audioOffsetMs The audio playback offset, in milliseconds.
+       * @return This builder.
+       */
+      @CanIgnoreReturnValue
+      public Builder setAudioOffsetMs(long audioOffsetMs) {
+        this.audioOffsetMs = audioOffsetMs;
+        return this;
+      }
+
+      /**
+       * Sets the text display offset in milliseconds.
+       *
+       * @param textOffsetMs The text display offset, in milliseconds.
+       * @return This builder.
+       */
+      @CanIgnoreReturnValue
+      public Builder setTextOffsetMs(long textOffsetMs) {
+        this.textOffsetMs = textOffsetMs;
+        return this;
+      }
+
+      /**
        * Sets the current video size.
        *
        * @param videoSize The current video size.
@@ -579,6 +615,30 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       @CanIgnoreReturnValue
       public Builder setTimedMetadata(Metadata timedMetadata) {
         this.timedMetadata = timedMetadata;
+        return this;
+      }
+
+      /**
+       * Sets the available seekable chapters for the current media item.
+       *
+       * @param currentMediaChapters The available seekable chapters.
+       * @return This builder.
+       */
+      @CanIgnoreReturnValue
+      public Builder setCurrentMediaChapters(List<MediaChapter> currentMediaChapters) {
+        this.currentMediaChapters = ImmutableList.copyOf(currentMediaChapters);
+        return this;
+      }
+
+      /**
+       * Sets the available selectable editions for the current media item.
+       *
+       * @param currentMediaEditions The available selectable editions.
+       * @return This builder.
+       */
+      @CanIgnoreReturnValue
+      public Builder setCurrentMediaEditions(List<MediaEdition> currentMediaEditions) {
+        this.currentMediaEditions = ImmutableList.copyOf(currentMediaEditions);
         return this;
       }
 
@@ -904,6 +964,12 @@ public abstract class SimpleBasePlayer extends BasePlayer {
     @FloatRange(from = 0, to = 1.0)
     public final float unmuteVolume;
 
+    /** The audio display offset, in milliseconds. */
+    public final long audioOffsetMs;
+
+    /** The text display offset, in milliseconds. */
+    public final long textOffsetMs;
+
     /** The current video size. */
     public final VideoSize videoSize;
 
@@ -931,6 +997,12 @@ public abstract class SimpleBasePlayer extends BasePlayer {
 
     /** The most recent timed metadata. */
     public final Metadata timedMetadata;
+
+    /** The current media chapter entries. */
+    public final ImmutableList<MediaChapter> currentMediaChapters;
+
+    /** The current media edition entries. */
+    public final ImmutableList<MediaEdition> currentMediaEditions;
 
     /** The {@link Timeline}. */
     public final Timeline timeline;
@@ -1117,6 +1189,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       this.audioSessionId = builder.audioSessionId;
       this.volume = builder.volume;
       this.unmuteVolume = builder.unmuteVolume;
+      this.audioOffsetMs = builder.audioOffsetMs;
+      this.textOffsetMs = builder.textOffsetMs;
       this.videoSize = builder.videoSize;
       this.currentCues = builder.currentCues;
       this.deviceInfo = builder.deviceInfo;
@@ -1125,6 +1199,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       this.surfaceSize = builder.surfaceSize;
       this.newlyRenderedFirstFrame = builder.newlyRenderedFirstFrame;
       this.timedMetadata = builder.timedMetadata;
+      this.currentMediaChapters = builder.currentMediaChapters;
+      this.currentMediaEditions = builder.currentMediaEditions;
       this.timeline = builder.timeline;
       this.currentTracks = checkNotNull(currentTracks);
       this.currentMetadata = currentMetadata;
@@ -1195,6 +1271,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
           && audioAttributes.equals(state.audioAttributes)
           && volume == state.volume
           && unmuteVolume == state.unmuteVolume
+          && audioOffsetMs == state.audioOffsetMs
+          && textOffsetMs == state.textOffsetMs
           && videoSize.equals(state.videoSize)
           && currentCues.equals(state.currentCues)
           && deviceInfo.equals(state.deviceInfo)
@@ -1203,6 +1281,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
           && surfaceSize.equals(state.surfaceSize)
           && newlyRenderedFirstFrame == state.newlyRenderedFirstFrame
           && timedMetadata.equals(state.timedMetadata)
+          && currentMediaChapters.equals(state.currentMediaChapters)
+          && currentMediaEditions.equals(state.currentMediaEditions)
           && timeline.equals(state.timeline)
           && currentTracks.equals(state.currentTracks)
           && currentMetadata.equals(state.currentMetadata)
@@ -1241,6 +1321,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       result = 31 * result + audioAttributes.hashCode();
       result = 31 * result + Float.floatToRawIntBits(volume);
       result = 31 * result + Float.floatToRawIntBits(unmuteVolume);
+      result = 31 * result + (int) (audioOffsetMs ^ (audioOffsetMs >>> 32));
+      result = 31 * result + (int) (textOffsetMs ^ (textOffsetMs >>> 32));
       result = 31 * result + videoSize.hashCode();
       result = 31 * result + currentCues.hashCode();
       result = 31 * result + deviceInfo.hashCode();
@@ -1249,6 +1331,8 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       result = 31 * result + surfaceSize.hashCode();
       result = 31 * result + (newlyRenderedFirstFrame ? 1 : 0);
       result = 31 * result + timedMetadata.hashCode();
+      result = 31 * result + currentMediaChapters.hashCode();
+      result = 31 * result + currentMediaEditions.hashCode();
       result = 31 * result + timeline.hashCode();
       result = 31 * result + currentTracks.hashCode();
       result = 31 * result + currentMetadata.hashCode();
@@ -2676,6 +2760,30 @@ public abstract class SimpleBasePlayer extends BasePlayer {
   }
 
   @Override
+  public final List<MediaChapter> getCurrentMediaChapters() {
+    verifyApplicationThreadAndInitState();
+    return state.currentMediaChapters;
+  }
+
+  @Override
+  public final List<MediaEdition> getCurrentMediaEditions() {
+    verifyApplicationThreadAndInitState();
+    return state.currentMediaEditions;
+  }
+
+  @Override
+  public final boolean selectChapter(MediaChapter chapter) {
+    verifyApplicationThreadAndInitState();
+    return handleSelectChapter(chapter);
+  }
+
+  @Override
+  public final boolean selectEdition(MediaEdition edition) {
+    verifyApplicationThreadAndInitState();
+    return handleSelectEdition(edition);
+  }
+
+  @Override
   public final TrackSelectionParameters getTrackSelectionParameters() {
     verifyApplicationThreadAndInitState();
     return state.trackSelectionParameters;
@@ -2832,6 +2940,44 @@ public abstract class SimpleBasePlayer extends BasePlayer {
   public final float getVolume() {
     verifyApplicationThreadAndInitState();
     return state.volume;
+  }
+
+  @Override
+  public final void setAudioOffsetMs(long audioOffsetMs) {
+    verifyApplicationThreadAndInitState();
+    State state = this.state;
+    if (!shouldHandleCommand(Player.COMMAND_SET_AUDIO_OFFSET)) {
+      return;
+    }
+    updateStateForPendingOperation(
+        /* pendingOperation= */ handleSetAudioOffsetMs(audioOffsetMs),
+        /* placeholderStateSupplier= */ () ->
+            state.buildUpon().setAudioOffsetMs(audioOffsetMs).build());
+  }
+
+  @Override
+  public final long getAudioOffsetMs() {
+    verifyApplicationThreadAndInitState();
+    return state.audioOffsetMs;
+  }
+
+  @Override
+  public final void setTextOffsetMs(long textOffsetMs) {
+    verifyApplicationThreadAndInitState();
+    State state = this.state;
+    if (!shouldHandleCommand(Player.COMMAND_SET_TEXT_OFFSET)) {
+      return;
+    }
+    updateStateForPendingOperation(
+        /* pendingOperation= */ handleSetTextOffsetMs(textOffsetMs),
+        /* placeholderStateSupplier= */ () ->
+            state.buildUpon().setTextOffsetMs(textOffsetMs).build());
+  }
+
+  @Override
+  public final long getTextOffsetMs() {
+    verifyApplicationThreadAndInitState();
+    return state.textOffsetMs;
   }
 
   @Override
@@ -3343,6 +3489,56 @@ public abstract class SimpleBasePlayer extends BasePlayer {
   }
 
   /**
+   * Handles calls to {@link Player#selectChapter}.
+   *
+   * @param chapter The chapter to select.
+   * @return Whether the chapter selection was handled.
+   */
+  @ForOverride
+  protected boolean handleSelectChapter(MediaChapter chapter) {
+    return false;
+  }
+
+  /**
+   * Handles calls to {@link Player#selectEdition}.
+   *
+   * @param edition The edition to select.
+   * @return Whether the edition selection was handled.
+   */
+  @ForOverride
+  protected boolean handleSelectEdition(MediaEdition edition) {
+    return false;
+  }
+
+  /**
+   * Handles calls to {@link Player#setAudioOffsetMs}.
+   *
+   * <p>Will only be called if {@link Player#COMMAND_SET_AUDIO_OFFSET} is available.
+   *
+   * @param audioOffsetMs The requested audio display offset, in milliseconds.
+   * @return A {@link ListenableFuture} indicating the completion of all immediate {@link State}
+   *     changes caused by this call.
+   */
+  @ForOverride
+  protected ListenableFuture<?> handleSetAudioOffsetMs(long audioOffsetMs) {
+    throw new IllegalStateException("Missing implementation to handle COMMAND_SET_AUDIO_OFFSET");
+  }
+
+  /**
+   * Handles calls to {@link Player#setTextOffsetMs}.
+   *
+   * <p>Will only be called if {@link Player#COMMAND_SET_TEXT_OFFSET} is available.
+   *
+   * @param textOffsetMs The requested text display offset, in milliseconds.
+   * @return A {@link ListenableFuture} indicating the completion of all immediate {@link State}
+   *     changes caused by this call.
+   */
+  @ForOverride
+  protected ListenableFuture<?> handleSetTextOffsetMs(long textOffsetMs) {
+    throw new IllegalStateException("Missing implementation to handle COMMAND_SET_TEXT_OFFSET");
+  }
+
+  /**
    * Handles calls to {@link Player#setPlaylistMetadata}.
    *
    * <p>Will only be called if {@link Player#COMMAND_SET_PLAYLIST_METADATA} is available.
@@ -3739,6 +3935,16 @@ public abstract class SimpleBasePlayer extends BasePlayer {
       listeners.queueEvent(
           Player.EVENT_TRACKS_CHANGED,
           listener -> listener.onTracksChanged(newState.currentTracks));
+    }
+    if (!previousState.currentMediaChapters.equals(newState.currentMediaChapters)) {
+      listeners.queueEvent(
+          Player.EVENT_MEDIA_CHAPTERS_CHANGED,
+          listener -> listener.onMediaChaptersChanged(newState.currentMediaChapters));
+    }
+    if (!previousState.currentMediaEditions.equals(newState.currentMediaEditions)) {
+      listeners.queueEvent(
+          Player.EVENT_MEDIA_EDITIONS_CHANGED,
+          listener -> listener.onMediaEditionsChanged(newState.currentMediaEditions));
     }
     if (!previousState.currentMetadata.equals(newState.currentMetadata)) {
       listeners.queueEvent(

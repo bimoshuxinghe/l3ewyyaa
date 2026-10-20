@@ -8,7 +8,6 @@ import android.os.IBinder;
 import android.os.SystemClock;
 
 import com.fongmi.android.tv.App;
-import com.fongmi.android.tv.player.Source;
 import com.fongmi.android.tv.utils.UrlUtil;
 import com.forcetech.Util;
 import com.github.catvod.net.OkHttp;
@@ -37,7 +36,7 @@ public class Force implements Source.Extractor, ServiceConnection {
         String scheme = Util.scheme(url);
         if (!set.contains(scheme)) init(scheme);
         while (!set.contains(scheme)) SystemClock.sleep(10);
-        Uri uri = Uri.parse(url);
+        Uri uri = UrlUtil.uri(url);
         int port = Util.port(scheme);
         String id = uri.getLastPathSegment();
         String cmd = "http://127.0.0.1:" + port + "/cmd.xml?cmd=switch_chan&server=" + uri.getHost() + ":" + uri.getPort() + "&id=" + id;

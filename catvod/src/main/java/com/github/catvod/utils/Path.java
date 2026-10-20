@@ -1,6 +1,7 @@
 package com.github.catvod.utils;
 
 import android.os.Environment;
+import android.os.StatFs;
 
 import com.github.catvod.Init;
 import com.orhanobut.logger.Logger;
@@ -74,6 +75,14 @@ public class Path {
         return mkdir(new File(cache() + File.separator + "exo"));
     }
 
+    public static File mpvCache() {
+        return mkdir(new File(cache() + File.separator + "mpv"));
+    }
+
+    public static File mpv() {
+        return mkdir(new File(tv() + File.separator + "mpv"));
+    }
+
     public static File epg() {
         return mkdir(new File(cache() + File.separator + "epg"));
     }
@@ -120,6 +129,10 @@ public class Path {
 
     public static File thunder(String name) {
         return mkdir(new File(thunder(), name));
+    }
+
+    public static File mpv(String name) {
+        return new File(mpv(), name);
     }
 
     public static File local(String path) {
@@ -179,6 +192,23 @@ public class Path {
             return file;
         } catch (IOException e) {
             return file;
+        }
+    }
+
+    public static long size(File file) {
+        if (file == null) return 0;
+        if (!file.isDirectory()) return file.length();
+        long total = 0;
+        for (File child : list(file)) total += size(child);
+        return total;
+    }
+
+    public static long available(File file) {
+        try {
+            StatFs stat = new StatFs(file.getAbsolutePath());
+            return stat.getAvailableBlocksLong() * stat.getBlockSizeLong();
+        } catch (Exception e) {
+            return 0;
         }
     }
 

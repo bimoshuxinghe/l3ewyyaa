@@ -795,7 +795,7 @@ public class CinemaHomeActivity extends BaseActivity implements
             LiveConfig.get().clear();
             VodConfig.get().clear();
             com.github.catvod.net.OkHttp.get().clear();
-            com.fongmi.android.tv.player.Source.get().exit();
+            com.fongmi.android.tv.player.extractor.Source.get().exit();
             com.fongmi.android.tv.server.Server.get().stop();
         }
         com.fongmi.android.tv.db.AppDatabase.backup();

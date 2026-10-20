@@ -52,6 +52,7 @@ if (mediaDir.exists()) {
             substitute module('androidx.media3:media3-decoder-ffmpeg') using project(':lib-decoder-ffmpeg')
             substitute module('androidx.media3:media3-extractor') using project(':lib-extractor')
             substitute module('androidx.media3:media3-effect') using project(':lib-effect')
+            substitute module('androidx.media3:media3-mpvplayer') using project(':lib-mpvplayer')
         }
     }
 }

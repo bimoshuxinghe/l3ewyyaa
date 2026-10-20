@@ -1,0 +1,11 @@
+# Proguard rules specific to the mpv player module.
+
+# This prevents the names of native methods from being obfuscated.
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# libplayer resolves this bridge class and its Java callbacks by name.
+-keep class is.xyz.mpv.MPVLib {
+  *;
+}

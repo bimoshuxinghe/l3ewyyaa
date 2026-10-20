@@ -1,106 +1,66 @@
 package com.fongmi.android.tv.player.engine;
 
-import androidx.media3.common.MediaMetadata;
-import androidx.media3.common.MediaTitle;
+import androidx.annotation.Nullable;
+import androidx.media3.common.C;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
-import androidx.media3.common.Tracks;
+import androidx.media3.common.TrackSelectionOverride;
+import androidx.media3.ui.PlayerView;
 
-import com.fongmi.android.tv.bean.Track;
+import com.fongmi.android.tv.bean.Sub;
+import com.fongmi.android.tv.player.effect.PlayerEffect;
+import com.fongmi.android.tv.player.media.PlaySpec;
 
-import java.util.Collections;
 import java.util.List;
 
 public interface PlayerEngine {
 
-    int SOFT = 0;
-    int HARD = 1;
+    int SOFT = C.DECODE_SOFTWARE;
+    int HARD = C.DECODE_HARDWARE;
+
+    Type getType();
+
+    default boolean needsRebuild() {
+        return false;
+    }
 
     Player getPlayer();
 
+    int getAudioChannelCount();
+
     void release();
-
-    Player rebuild(Player.Listener listener);
-
-    int getDecode();
 
     void setDecode(int decode);
 
-    default boolean canSetDecodeWithoutRebuild() {
+    default PlayerEffect getEffect() {
+        return PlayerEffect.NONE;
+    }
+
+    void start(PlaySpec spec, long startPositionMs);
+
+    default void preload(PlaySpec spec, long startPositionMs) {
+    }
+
+    default void clearPreload() {
+    }
+
+    default void bindPlayerView(PlayerView playerView) {
+    }
+
+    void stop();
+
+    default void applySubtitleStyle() {
+    }
+
+    default SecondarySubtitleState getSecondarySubtitleState() {
+        return SecondarySubtitleState.EMPTY;
+    }
+
+    default void setSecondarySubtitleSelection(@Nullable TrackSelectionOverride selection) {
+    }
+
+    default boolean addSubtitle(Sub sub) {
         return false;
-    }
-
-    boolean isHard();
-
-    String getDecodeText();
-
-    void start(PlaySpec spec);
-
-    default void start(PlaySpec spec, long positionMs) {
-        start(spec);
-        if (positionMs > 0) getPlayer().seekTo(positionMs);
-    }
-
-    void setMetadata(MediaMetadata data);
-
-    boolean isLive();
-
-    boolean isVod();
-
-    void setTrack(List<Track> tracks);
-
-    void resetTrack();
-
-    boolean haveTrack(int type);
-
-    Tracks getCurrentTracks();
-
-    default boolean haveTitle() {
-        return false;
-    }
-
-    default boolean isRepeatOne() {
-        return false;
-    }
-
-    default void setRepeatOne(boolean repeat) {
-    }
-
-    default long getTextOffsetMs() {
-        return 0;
-    }
-
-    default void setTextOffsetMs(long offsetMs) {
-    }
-
-    default long getAudioOffsetMs() {
-        return 0;
-    }
-
-    default void setAudioOffsetMs(long offsetMs) {
-    }
-
-    default boolean canSetSubtitleStyle() {
-        return false;
-    }
-
-    default void addSubtitleSize() {
-    }
-
-    default void subSubtitleSize() {
-    }
-
-    default void addSubtitlePosition() {
-    }
-
-    default void subSubtitlePosition() {
-    }
-
-    default void resetSubtitleStyle() {
-    }
-
-    default List<MediaTitle> getCurrentMediaTitles() {
-        return Collections.emptyList();
     }
 
     String getErrorMessage(PlaybackException e);
@@ -111,5 +71,19 @@ public interface PlayerEngine {
         RECOVERED,
         DECODE,
         FATAL
+    }
+
+    enum Type {
+        EXO,
+        MPV
+    }
+
+    record SecondarySubtitleState(@Nullable TrackSelectionOverride primarySelection, @Nullable TrackSelectionOverride explicitSelection, List<TrackSelectionOverride> secondaryCandidates, boolean secondaryPromotedToPrimary) {
+
+        public static final SecondarySubtitleState EMPTY = new SecondarySubtitleState(null, null, List.of(), false);
+
+        public SecondarySubtitleState {
+            secondaryCandidates = List.copyOf(secondaryCandidates);
+        }
     }
 }

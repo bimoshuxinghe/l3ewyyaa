@@ -78,6 +78,12 @@ public final class CaptionStyleCompat {
           Color.WHITE,
           /* typeface= */ null);
 
+  /** Default edge width in density-independent pixels. */
+  public static final float DEFAULT_EDGE_WIDTH = 2f;
+
+  /** Default shadow offset in density-independent pixels. */
+  public static final float DEFAULT_SHADOW_OFFSET = 2f;
+
   /** The preferred foreground color. */
   public final int foregroundColor;
 
@@ -105,6 +111,12 @@ public final class CaptionStyleCompat {
 
   /** The preferred typeface, or {@code null} if unspecified. */
   @Nullable public final Typeface typeface;
+
+  /** The preferred edge width in density-independent pixels. */
+  public final float edgeWidth;
+
+  /** The preferred shadow offset in density-independent pixels. */
+  public final float shadowOffset;
 
   /**
    * Creates a {@link CaptionStyleCompat} equivalent to a provided {@link CaptionStyle}.
@@ -138,11 +150,43 @@ public final class CaptionStyleCompat {
       @EdgeType int edgeType,
       int edgeColor,
       @Nullable Typeface typeface) {
+    this(
+        foregroundColor,
+        backgroundColor,
+        windowColor,
+        edgeType,
+        edgeColor,
+        typeface,
+        DEFAULT_EDGE_WIDTH,
+        DEFAULT_SHADOW_OFFSET);
+  }
+
+  /**
+   * @param foregroundColor See {@link #foregroundColor}.
+   * @param backgroundColor See {@link #backgroundColor}.
+   * @param windowColor See {@link #windowColor}.
+   * @param edgeType See {@link #edgeType}.
+   * @param edgeColor See {@link #edgeColor}.
+   * @param typeface See {@link #typeface}.
+   * @param edgeWidth See {@link #edgeWidth}.
+   * @param shadowOffset See {@link #shadowOffset}.
+   */
+  public CaptionStyleCompat(
+      int foregroundColor,
+      int backgroundColor,
+      int windowColor,
+      @EdgeType int edgeType,
+      int edgeColor,
+      @Nullable Typeface typeface,
+      float edgeWidth,
+      float shadowOffset) {
     this.foregroundColor = foregroundColor;
     this.backgroundColor = backgroundColor;
     this.windowColor = windowColor;
     this.edgeType = edgeType;
     this.edgeColor = edgeColor;
     this.typeface = typeface;
+    this.edgeWidth = edgeWidth;
+    this.shadowOffset = shadowOffset;
   }
 }

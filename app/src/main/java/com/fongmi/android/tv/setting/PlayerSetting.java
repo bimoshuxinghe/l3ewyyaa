@@ -19,6 +19,10 @@ public class PlayerSetting {
     public static final int ENGINE_EXO = 0;
     public static final int ENGINE_MPV = 1;
 
+    // ExoPlayer 渲染视图类型
+    public static final int RENDER_SURFACE = 0;
+    public static final int RENDER_TEXTURE = 1;
+
     // DV7 处理模式常量
     public static final int DV7_AUTO = 0;        // 自动检测
     public static final int DV7_CONVERT = 1;     // 转为DV8.1
@@ -35,6 +39,34 @@ public class PlayerSetting {
 
     public static boolean isMpv() {
         return getEngine() == ENGINE_MPV;
+    }
+
+    public static boolean isExo() {
+        return getEngine() == ENGINE_EXO;
+    }
+
+    public static boolean isLibass() {
+        return Prefers.getBoolean("player_libass", true);
+    }
+
+    public static void putLibass(boolean libass) {
+        Prefers.put("player_libass", libass);
+    }
+
+    public static boolean isMpvVulkan() {
+        return Prefers.getBoolean("mpv_vulkan", true);
+    }
+
+    public static void putMpvVulkan(boolean vulkan) {
+        Prefers.put("mpv_vulkan", vulkan);
+    }
+
+    public static boolean isMpvGpuNext() {
+        return Prefers.getBoolean("mpv_gpu_next", false);
+    }
+
+    public static void putMpvGpuNext(boolean gpuNext) {
+        Prefers.put("mpv_gpu_next", gpuNext);
     }
 
     public static int getDv7HandlingMode() {

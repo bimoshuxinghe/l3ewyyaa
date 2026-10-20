@@ -7,7 +7,6 @@ import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.api.config.LiveConfig;
 import com.fongmi.android.tv.bean.Core;
 import com.fongmi.android.tv.exception.ExtractException;
-import com.fongmi.android.tv.player.Source;
 import com.fongmi.android.tv.setting.LiveSetting;
 import com.fongmi.android.tv.utils.Download;
 import com.fongmi.android.tv.utils.ResUtil;
