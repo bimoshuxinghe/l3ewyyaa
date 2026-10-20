@@ -3,6 +3,7 @@ package com.fongmi.android.tv.utils;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.fongmi.android.tv.api.DoubanApi;
 import com.fongmi.android.tv.setting.Setting;
 import com.github.catvod.net.OkHttp;
 import com.google.gson.JsonArray;
@@ -59,7 +60,8 @@ public class TmdbUtil {
      * @return TmdbResult，未找到返回空结果
      */
     public static TmdbResult search(String name) {
-        if (TextUtils.isEmpty(name) || !Setting.hasTmdbApiKey()) return TmdbResult.empty();
+        if (TextUtils.isEmpty(name)) return TmdbResult.empty();
+        if (!Setting.hasTmdbApiKey()) return DoubanApi.fallback(name); // 未配置 TMDB：豆瓣兜底
         String apiKey = Setting.getTmdbApiKey();
         String baseUrl = getBaseUrl();
         Log.d(TAG, "search: name=" + name + ", baseUrl=" + baseUrl);
@@ -83,7 +85,7 @@ public class TmdbUtil {
         }
 
         Log.w(TAG, "No result found for: " + name);
-        return TmdbResult.empty();
+        return DoubanApi.fallback(name); // TMDB 无结果：豆瓣兜底
     }
 
     private static TmdbResult searchMulti(String baseUrl, String apiKey, String name) {
@@ -236,7 +238,7 @@ public class TmdbUtil {
      * @param callback 回调接口
      */
     public static void searchAsync(String name, SearchResultCallback callback) {
-        if (TextUtils.isEmpty(name) || !Setting.hasTmdbApiKey()) {
+        if (TextUtils.isEmpty(name)) {
             callback.onResult(TmdbResult.empty());
             return;
         }
@@ -261,6 +263,7 @@ public class TmdbUtil {
         }
         new Thread(() -> {
             TmdbResult result = search(name);
+            if (result.isEmpty()) result = DoubanApi.fallback(name); // TMDB 无结果：豆瓣兜底
             if (result.hasBackdrops()) {
                 Setting.putTmdbBackdrops(name, result.getBackdrops());
             } else if (result.hasBackdrop()) {
