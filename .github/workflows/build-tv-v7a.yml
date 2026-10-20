@@ -34,7 +34,16 @@ jobs:
           python-version: '3.10'
 
       - name: Accept SDK licenses
-        run: yes | sdkmanager --licenses
+        run: |
+          SDKM="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -path '*/bin/*' | head -1)"
+          if [ -n "$SDKM" ]; then
+            yes | "$SDKM" --licenses > /dev/null || true
+          fi
+          # 兜底：直接写入许可证哈希，避免依赖 sdkmanager 的 PATH
+          mkdir -p "$ANDROID_HOME/licenses"
+          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          printf "84831b9409646a918e30573bab4c7c8a12b03355" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          printf "504667f4c0de7af1a06de9f4b1727b84351f2914" > "$ANDROID_HOME/licenses/android-ndk-license"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
