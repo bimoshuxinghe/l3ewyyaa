@@ -62,7 +62,7 @@ public class PlayerSetting {
     }
 
     public static boolean isMpvGpuNext() {
-        return Prefers.getBoolean("mpv_gpu_next", false);
+        return Prefers.getBoolean("mpv_gpu_next", true); // 默认 gpu-next：libmpv 未编译经典 gpu VO，vo=gpu 会初始化失败退回首页
     }
 
     public static void putMpvGpuNext(boolean gpuNext) {

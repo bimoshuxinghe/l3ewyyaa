@@ -79,6 +79,8 @@ public final class MpvUtil {
         File cacheDir = Path.mpvCache();
         AndroidFontConfig.prepare();
         MpvPlayerConfig.Builder builder = new MpvPlayerConfig.Builder().addConfigDirectory(Path.mpv()).addAndroidDefaults(buildAndroidOptions(cacheDir)).addTlsCaFileFromAsset(App.get(), ASSET_CA_FILE, Path.files(ASSET_CA_FILE)).addAndroidSubtitleOptions(App.get(), buildSubtitleOptions());
+        // 播放日志落盘（诊断 MPV 启动/渲染问题，可用内置服务器 /mpvlog 导出）
+        builder.addPreInitStringOption("log-file", new File(cacheDir, "mpv.log").getAbsolutePath());
         addPreloadOptions(builder);
         return builder.build();
     }
