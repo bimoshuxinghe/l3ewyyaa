@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- 16:9 banner with icon at 60% size centered on white background -->
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/ic_banner_full"
+    android:src="@drawable/ic_splash_bg"
     android:gravity="fill" />

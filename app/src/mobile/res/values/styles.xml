@@ -8,7 +8,10 @@
 
     <style name="Theme.Splash" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.App</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <!-- 开屏只显示横版原图：隐藏中央方块图标，背景用图边缘同色深藏青 -->
+        <item name="windowSplashScreenBackground">#00010E</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
+        <item name="android:windowBackground">#00010E</item>
     </style>
 
     <style name="Theme.App" parent="Theme.Base" />

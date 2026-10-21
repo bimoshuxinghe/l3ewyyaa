@@ -169,6 +169,8 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         }
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
+        // 开屏页：全屏显示横版原图，停留后渐隐（重定向大屏UI的分支在上面已 return，不会重复叠加）
+        com.fongmi.android.tv.utils.SplashOverlay.show(this);
     }
 
     private final List<Vod> mHomeRecommends = new ArrayList<>();

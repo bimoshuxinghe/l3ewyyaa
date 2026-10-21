@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 开屏不显示中央图标（只展示横版原图），用全透明占位满足 SplashScreen API 必填约束 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <solid android:color="#00000000" />
+
+</shape>

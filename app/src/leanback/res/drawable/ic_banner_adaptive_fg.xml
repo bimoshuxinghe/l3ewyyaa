@@ -3,7 +3,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <bitmap
-            android:src="@drawable/ic_banner_full"
+            android:src="@drawable/ic_splash_bg"
             android:gravity="fill"
             android:tileMode="disabled" />
     </item>
