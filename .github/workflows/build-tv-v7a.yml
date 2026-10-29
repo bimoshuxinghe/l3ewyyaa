@@ -83,6 +83,29 @@ jobs:
           echo "=== APK Collection Results ===" >> build.log
           find . -name "*.apk" -type f -not -path "*/.gradle/*" -not -path "*/Release/apk/*" >> build.log 2>&1
 
+      # 诊断：确认 Chaquopy 资源在 APK 里的真实文件名（不同版本后缀不同：
+      # app.zip / app.mp3 / app.imy），用于核对 Platform 里 sys.path 的拼法。
+      - name: Inspect chaquopy assets
+        if: success()
+        run: |
+          APK=$(ls Release/apk/*.apk 2>/dev/null | head -1)
+          echo "=== chaquopy entries in $APK ==="
+          unzip -l "$APK" | grep -i "chaquopy" | head -40
+          echo "=== native libs ==="
+          unzip -l "$APK" | grep -E "lib/.*\.so" | head -20
+          rm -rf /tmp/apkdump && mkdir -p /tmp/apkdump && cd /tmp/apkdump
+          unzip -o -q "$APK" "assets/chaquopy/build.json" || echo "build.json not in apk"
+          python3 - <<'PY'
+          import json, os
+          p = 'assets/chaquopy/build.json'
+          if os.path.exists(p):
+              d = json.load(open(p))
+              print('python_version:', d.get('python_version'))
+              print('assets:', sorted(d.get('assets', {}).keys()))
+          else:
+              print('build.json not found')
+          PY
+
       - name: Upload APK
         if: success()
         uses: actions/upload-artifact@v4
