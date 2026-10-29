@@ -2,12 +2,49 @@ import os
 import sys
 import types
 import tempfile
-import requests
 from importlib.machinery import SourceFileLoader
 import json
 import time
 
 STREAM_PROXY_MIME = 'application/x-codex-stream-url'
+
+
+def _fix_requirements():
+    """自愈：手动重新挂载 pip 依赖包（requirements zip）。
+
+    Chaquopy 启动时 java.android.importer.initialize 应把 app / requirements /
+    stdlib-<abi> 三个 AssetFinder 挂进 sys.path，但设备上出现过 import app
+    成功而 requests（requirements zip）缺失的情况（No module named
+    'requests'）。这里手动把 requirements entry 重新挂上并校验。
+    """
+    import pkgutil
+    try:
+        from java.android import importer as _importer
+        prefix = _importer.ASSET_PREFIX
+    except Exception as e:
+        raise ImportError('requirements fix: cannot access java.android.importer: %r' % (e,))
+    entry = os.path.join(prefix, 'requirements')
+    if entry not in sys.path:
+        sys.path.insert(0, entry)
+    try:
+        finder = pkgutil.get_importer(entry)
+    except Exception as e:
+        raise ImportError('requirements fix: hook failed for %s: %r' % (entry, e))
+    if not hasattr(finder, 'zip_files'):
+        raise ImportError('requirements fix: %s resolved to %r (not an AssetFinder); sys.path=%r'
+                          % (entry, finder, sys.path))
+    try:
+        import importlib
+        importlib.invalidate_caches()
+    except Exception:
+        pass
+
+
+try:
+    import requests
+except ImportError:
+    _fix_requirements()
+    import requests
 
 # 内置 python 源码根目录（本文件所在目录），使 `base.spider` 等内置模块
 # 在加载站源脚本时始终可被 import（站源里的 sys.path.append('..') 依赖
