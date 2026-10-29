@@ -41,7 +41,7 @@ fun Project.configureCommonConfig(android: BaseExtension, libs: VersionCatalog) 
       testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
-    lintOptions.checkTestSources = true
+    lintOptions.setCheckTestSources(true)
 
     dependencies {
       // Add the missing annotations to all compile classpaths to satisfy Javac
