@@ -12,17 +12,22 @@ from importlib.util import spec_from_loader, module_from_spec
 # lxml 在 Python 3.11 下没有 API 21 (Android 5.0) 的原生 wheel，
 # 因此改用兼容层：能用 lxml 就用 lxml，否则回退到标准库实现。
 #
-# 注意：Chaquopy 下 app 资产以 zip 形式挂载（AssetZipFile），__file__ 是 zip 内的
-# 虚拟路径，磁盘上并不存在，不能按文件路径加载。必须优先走正常 import（zip
-# importer 可直接供应 app 根目录的模块）；SourceFileLoader 仅作磁盘场景兜底。
+# 注意：htmlcompat.py 位于 base 包内（base/htmlcompat.py），必须优先用
+# `from base import htmlcompat` 加载；顶层 import 在 zip 挂载（AssetZipFile）
+# 下会 ModuleNotFoundError，导致掉进按文件路径加载的分支，而 __file__ 是
+# zip 内虚拟路径，磁盘上不存在，最终 FileNotFoundError（真机已复现）。
 try:
-    import htmlcompat
+    from base import htmlcompat
 except ImportError:
-    _htmlcompat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'htmlcompat.py')
-    _htmlcompat_loader = SourceFileLoader('htmlcompat', _htmlcompat_path)
-    _htmlcompat_spec = spec_from_loader('htmlcompat', _htmlcompat_loader)
-    htmlcompat = module_from_spec(_htmlcompat_spec)
-    _htmlcompat_loader.exec_module(htmlcompat)
+    try:
+        import htmlcompat
+    except ImportError:
+        # 最后兜底：仅适用于磁盘上有真实文件的场景（如本地调试）。
+        _htmlcompat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'htmlcompat.py')
+        _htmlcompat_loader = SourceFileLoader('htmlcompat', _htmlcompat_path)
+        _htmlcompat_spec = spec_from_loader('htmlcompat', _htmlcompat_loader)
+        htmlcompat = module_from_spec(_htmlcompat_spec)
+        _htmlcompat_loader.exec_module(htmlcompat)
 etree = htmlcompat.etree
 
 
