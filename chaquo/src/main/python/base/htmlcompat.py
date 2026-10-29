@@ -88,6 +88,10 @@ class _Element:
     def getchildren(self):
         return list(self._children)
 
+    def __iter__(self):
+        """与 lxml 一致：迭代直接子元素。"""
+        return iter(self._children)
+
     # ---- 属性 ----
 
     def get(self, key, default=None):

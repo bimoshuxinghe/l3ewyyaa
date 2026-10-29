@@ -8,6 +8,7 @@ import com.github.catvod.utils.Util;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +56,10 @@ public class OkDns implements Dns {
         if (isIpAddress(target)) {
             return Dns.SYSTEM.lookup(target);
         }
-        List<InetAddress> addresses = (doh != null ? doh : Dns.SYSTEM).lookup(target);
+        // okhttp 5.x 的 Dns.SYSTEM / DnsOverHttps 可能返回不可变列表
+        // （如 Arrays.asList），List.sort() 内部调用 set() 会抛
+        // UnsupportedOperationException，包一层 ArrayList 再排序。
+        List<InetAddress> addresses = new ArrayList<>((doh != null ? doh : Dns.SYSTEM).lookup(target));
         addresses.sort((a, b) -> {
             boolean aIsV4 = a instanceof Inet4Address;
             boolean bIsV4 = b instanceof Inet4Address;
