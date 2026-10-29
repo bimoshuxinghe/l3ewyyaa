@@ -12,13 +12,17 @@ from importlib.util import spec_from_loader, module_from_spec
 # lxml 在 Python 3.11 下没有 API 21 (Android 5.0) 的原生 wheel，
 # 因此改用兼容层：能用 lxml 就用 lxml，否则回退到标准库实现。
 #
-# 注意：本文件可能通过 SourceFileLoader 以脚本方式单独加载（没有包上下文），
-# 所以这里不能使用相对导入，改为按文件路径动态加载同目录下的 htmlcompat.py。
-_htmlcompat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'htmlcompat.py')
-_htmlcompat_loader = SourceFileLoader('htmlcompat', _htmlcompat_path)
-_htmlcompat_spec = spec_from_loader('htmlcompat', _htmlcompat_loader)
-htmlcompat = module_from_spec(_htmlcompat_spec)
-_htmlcompat_loader.exec_module(htmlcompat)
+# 注意：Chaquopy 下 app 资产以 zip 形式挂载（AssetZipFile），__file__ 是 zip 内的
+# 虚拟路径，磁盘上并不存在，不能按文件路径加载。必须优先走正常 import（zip
+# importer 可直接供应 app 根目录的模块）；SourceFileLoader 仅作磁盘场景兜底。
+try:
+    import htmlcompat
+except ImportError:
+    _htmlcompat_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'htmlcompat.py')
+    _htmlcompat_loader = SourceFileLoader('htmlcompat', _htmlcompat_path)
+    _htmlcompat_spec = spec_from_loader('htmlcompat', _htmlcompat_loader)
+    htmlcompat = module_from_spec(_htmlcompat_spec)
+    _htmlcompat_loader.exec_module(htmlcompat)
 etree = htmlcompat.etree
 
 

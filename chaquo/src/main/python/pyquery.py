@@ -26,27 +26,30 @@ import re
 try:
     from base import htmlcompat
 except Exception:
-    # 站源可能以 SourceFileLoader 方式单独加载本文件（无包上下文），
-    # 按文件路径动态加载 base/htmlcompat.py。
-    import os
-    from importlib.machinery import SourceFileLoader
-    from importlib.util import spec_from_loader, module_from_spec
+    try:
+        import htmlcompat
+    except Exception:
+        # 站源可能以 SourceFileLoader 方式单独加载本文件（无包上下文），
+        # 按文件路径动态加载 base/htmlcompat.py。
+        import os
+        from importlib.machinery import SourceFileLoader
+        from importlib.util import spec_from_loader, module_from_spec
 
-    _here = os.path.dirname(os.path.abspath(__file__))
-    _candidates = [
-        os.path.join(_here, 'base', 'htmlcompat.py'),
-        os.path.join(os.path.dirname(_here), 'base', 'htmlcompat.py'),
-    ]
-    htmlcompat = None
-    for _p in _candidates:
-        if os.path.exists(_p):
-            _loader = SourceFileLoader('htmlcompat', _p)
-            _spec = spec_from_loader('htmlcompat', _loader)
-            htmlcompat = module_from_spec(_spec)
-            _loader.exec_module(htmlcompat)
-            break
-    if htmlcompat is None:
-        raise ImportError('pyquery fallback: base/htmlcompat.py not found')
+        _here = os.path.dirname(os.path.abspath(__file__))
+        _candidates = [
+            os.path.join(_here, 'base', 'htmlcompat.py'),
+            os.path.join(os.path.dirname(_here), 'base', 'htmlcompat.py'),
+        ]
+        htmlcompat = None
+        for _p in _candidates:
+            if os.path.exists(_p):
+                _loader = SourceFileLoader('htmlcompat', _p)
+                _spec = spec_from_loader('htmlcompat', _loader)
+                htmlcompat = module_from_spec(_spec)
+                _loader.exec_module(htmlcompat)
+                break
+        if htmlcompat is None:
+            raise ImportError('pyquery fallback: base/htmlcompat.py not found')
 
 _no_default = object()
 
