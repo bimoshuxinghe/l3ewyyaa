@@ -82,10 +82,16 @@ fun Project.configureCommonConfig(android: BaseExtension, libs: VersionCatalog) 
     }
   }
 
-  extensions.configure<KotlinAndroidProjectExtension>("kotlin") {
-    compilerOptions {
-      freeCompilerArgs.add("-Xannotation-default-target=param-property")
-      freeCompilerArgs.add("-Xwarning-level=OPT_IN_USAGE:error")
+  // AGP 9 会自动注册 kotlin 扩展；AGP 8.5 下只有应用了 Kotlin 插件的
+  // 模块才有该扩展，放到 afterEvaluate 中按需配置，纯 Java 模块跳过。
+  project.afterEvaluate {
+    if (pluginManager.hasPlugin("org.jetbrains.kotlin.android")) {
+      extensions.configure<KotlinAndroidProjectExtension>("kotlin") {
+        compilerOptions {
+          freeCompilerArgs.add("-Xannotation-default-target=param-property")
+          freeCompilerArgs.add("-Xwarning-level=OPT_IN_USAGE:error")
+        }
+      }
     }
   }
 
