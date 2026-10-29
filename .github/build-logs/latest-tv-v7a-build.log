@@ -49,8 +49,8 @@ Warning: Python version 3.11 may have fewer packages available. If you experienc
 > Task :media:build-logic:processResources
 
 > Task :media:build-logic:compileKotlin FAILED
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:44:17 Unresolved reference: checkTestSources
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1793282939776.json
+e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:44:17 Unresolved reference: setCheckTestSources
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1793283258384.json
 
 FAILURE: Build failed with an exception.
 
@@ -318,5 +318,5 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/8.9/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 
-BUILD FAILED in 1m 59s
+BUILD FAILED in 2m
 22 actionable tasks: 22 executed
