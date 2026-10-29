@@ -11,6 +11,17 @@ android {
     defaultConfig {
         minSdk libs.versions.minSdk.get().toInteger()
         targetSdk libs.versions.targetSdk.get().toInteger()
+        python {
+            // 使用 Python 3.10（与 fix/danmaku-fongmi-port 分支一致，该分支
+            // 已验证 Chaquopy 17.0.0 + AGP 9.4 的组合可正常构建运行）。
+            // 注意：Chaquopy 官方仓库中 lxml/ujson 等原生包最低只提供
+            // android_24 wheel，而本项目 minSdk=21（Android 5.0），因此
+            // requirements.txt 中不含这些包，HTML 解析由 htmlcompat 兜底。
+            version = "3.10"
+            pip {
+                install("-r", "requirements.txt")
+            }
+        }
     }
 
     flavorDimensions = ["abi"]
@@ -26,43 +37,16 @@ android {
         }
     }
 
+    sourceSets {
+        main {
+            python.srcDirs = ["src/main/python"]
+        }
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled = true
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21
-    }
-}
-
-// Chaquopy 15.x 使用顶层 `chaquopy` 块（旧版 `python { }` 块仅在 14 及更早版本可用）。
-chaquopy {
-    defaultConfig {
-        // 使用 Python 3.11。Chaquopy 15.0.1 内置 CPython 3.11.6，
-        // 其原生库不依赖 API 23 才引入的 __register_atfork 等符号，
-        // 因此可以在 minSdk 21（Android 5.0）设备上正常运行。
-        version = "3.11"
-
-        pip {
-            // Chaquopy 官方原生包仓库。带 C 扩展的包（如 pycryptodome）只在
-            // 这里提供 android_<api>_<abi> 标签的 wheel，PyPI 上没有。
-            //
-            // 注意：本项目 minSdk=21，pip 会请求 android_21_<abi> 标签，
-            // 该仓库中确实存在 cp311 + android_21 的 wheel，可正常安装。
-            options("--extra-index-url", "https://chaquo.com/pypi-13.1/")
-
-            // 目标解释器固定为 Chaquopy 内置的 Python 3.11.6，但 pip 默认用
-            // 构建机上 host Python 的小版本号判断 Requires-Python，
-            // host 为 3.11.0~3.11.4 时会误拒一些包。这里忽略该检查，
-            // 因为实际运行的解释器版本是确定的。
-            options("--ignore-requires-python")
-
-            install("-r", "requirements.txt")
-        }
-    }
-
-    sourceSets {
-        main {
-            srcDir("src/main/python")
-        }
     }
 }
 

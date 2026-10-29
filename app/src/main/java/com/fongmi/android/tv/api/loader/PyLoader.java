@@ -9,39 +9,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Python 爬虫加载器。
- *
- * <p>基于 Chaquopy 15.0.1 内置的 Python 3.11 解释器。Chaquopy 15.0.1 配套的
- * CPython 3.11.6 原生库不依赖 {@code __register_atfork} 等 API 23 才引入的
- * libc 符号，因此可在 minSdk 21（Android 5.0）设备上正常加载运行。
- *
- * <p>解释器为<b>惰性启动</b>：只有真正出现 {@code .py} 站源时才初始化，
- * 避免拖慢 App 启动。初始化失败（设备缺少对应 ABI 原生库等）时会记录日志并
- * 降级为 {@link SpiderNull}，与原实现加载失败时的降级路径一致，
- * 不会影响 JS / JAR(csp_) 爬虫。
+ * Python 爬虫加载器，行为与 fix/danmaku-fongmi-port 分支保持一致：
+ * 构造时即启动 Chaquopy（官方 17.0.0 插件、Python 3.10 解释器），
+ * 单个站源加载失败时降级为 {@link SpiderNull}，不影响 JS / JAR(csp_) 爬虫。
  */
 public class PyLoader {
 
     private final ConcurrentHashMap<String, Spider> spiders;
-    private volatile Loader loader;
+    private final Loader loader;
     private volatile String recent;
 
     public PyLoader() {
         spiders = new ConcurrentHashMap<>();
-    }
-
-    private Loader loader() {
-        Loader local = loader;
-        if (local == null) {
-            synchronized (this) {
-                local = loader;
-                if (local == null) {
-                    local = new Loader();
-                    loader = local;
-                }
-            }
-        }
-        return local;
+        loader = new Loader();
     }
 
     public void clear() {
@@ -57,7 +37,7 @@ public class PyLoader {
     public Spider getSpider(String key, String api, String ext) {
         return spiders.computeIfAbsent(key, k -> {
             try {
-                Spider spider = loader().spider(api);
+                Spider spider = loader.spider(api);
                 spider.siteKey = key;
                 spider.init(App.get(), ext);
                 return spider;

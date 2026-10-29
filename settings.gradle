@@ -7,12 +7,6 @@ pluginManagement {
         maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
         maven { url = uri("https://maven.aliyun.com/repository/public") }
     }
-    // 本项目使用 Gradle 9.6 + AGP 9.4，而官方 Chaquopy 15.0.1 插件依赖
-    // Gradle 9 已移除的 org.gradle.util.VersionNumber 与 Project.exec，
-    // 直接使用会在配置阶段崩溃。
-    // 这里引入本仓库内打过补丁的 Chaquopy 15.0.1 插件副本（源码见
-    // chaquopy-gradle-plugin-local/），补丁与官方 upstream 一致。
-    includeBuild("chaquopy-gradle-plugin-local")
 }
 
 plugins {
