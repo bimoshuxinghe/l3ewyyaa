@@ -6,6 +6,19 @@ plugins {
     id "com.chaquo.python" version "15.0.1" apply false
 }
 
+// AGP 8.6 的 lint 内嵌 Kotlin 编译器为 2.0.x，分析 Kotlin 2.2 元数据的依赖
+// （如 okhttp 5.3.2）会报 metadata 不兼容；lintVital 只影响 release 检查、
+// 不影响 APK 产物，CI 构建统一关闭。
+subprojects {
+    afterEvaluate {
+        if (it.hasProperty('android')) {
+            it.android {
+                lint { checkReleaseBuilds = false }
+            }
+        }
+    }
+}
+
 tasks.register('clean', Delete) {
     delete rootProject.layout.buildDirectory
 }

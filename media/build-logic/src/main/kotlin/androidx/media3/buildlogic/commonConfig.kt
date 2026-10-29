@@ -24,6 +24,7 @@ import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
 
 fun Project.configureCommonConfig(android: BaseExtension, libs: VersionCatalog) {
@@ -88,6 +89,9 @@ fun Project.configureCommonConfig(android: BaseExtension, libs: VersionCatalog) 
     if (pluginManager.hasPlugin("org.jetbrains.kotlin.android")) {
       extensions.configure<KotlinAndroidProjectExtension>("kotlin") {
         compilerOptions {
+          // 与 commonConfig 中 Java compileOptions 的 1.8 保持一致，
+          // 否则 AGP/KGP 的 JVM-target 一致性检查会失败。
+          jvmTarget.set(JvmTarget.JVM_1_8)
           freeCompilerArgs.add("-Xannotation-default-target=param-property")
           freeCompilerArgs.add("-Xwarning-level=OPT_IN_USAGE:error")
         }
