@@ -49,26 +49,9 @@ Warning: Python version 3.11 may have fewer packages available. If you experienc
 > Task :media:build-logic:processResources
 
 > Task :media:build-logic:compileKotlin FAILED
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:35:27 6 type arguments expected for interface CommonExtension<BuildFeaturesT : BuildFeatures, BuildTypeT : BuildType, DefaultConfigT : DefaultConfig, ProductFlavorT : ProductFlavor, AndroidResourcesT : AndroidResources, InstallationT : Installation>
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:39:5 Unresolved reference: compileSdk
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:41:5 Unresolved reference: defaultConfig
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:42:7 Unresolved reference: minSdk
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:44:7 Unresolved reference: testInstrumentationRunner
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:49:7 Unresolved reference: testInstrumentationRunnerArguments
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:52:5 Unresolved reference: lint
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:52:10 Variable expected
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:75:5 Unresolved reference: compileOptions
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:76:7 Unresolved reference: sourceCompatibility
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:77:7 Unresolved reference: targetCompatibility
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:81:5 Unresolved reference: testOptions
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:82:7 Unresolved reference: unitTests
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:83:9 Unresolved reference: it
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:85:9 Unresolved reference: it
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:86:9 Unresolved reference: it
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:88:7 Unresolved reference: unitTests
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:88:17 Variable expected
-e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/androidx/media3/buildlogic/commonConfig.kt:91:7 Unresolved reference: execution
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1793280803375.json
+e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/media3.android-application.gradle.kts:23:35 Type mismatch: inferred type is BaseAppModuleExtension but CommonExtension<BuildFeatures, BuildType, DefaultConfig, ProductFlavor, AndroidResources, Installation> was expected
+e: file:///home/runner/work/l3ewyyaa/l3ewyyaa/media/build-logic/src/main/kotlin/media3.android-library.gradle.kts:23:35 Type mismatch: inferred type is LibraryExtension but CommonExtension<BuildFeatures, BuildType, DefaultConfig, ProductFlavor, AndroidResources, Installation> was expected
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_4-1793281318055.json
 
 FAILURE: Build failed with an exception.
 
