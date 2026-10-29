@@ -436,4 +436,13 @@
         <item>12</item>
         <item>15</item>
     </string-array>
+    <string name="player_low_spec">低配模式</string>
+    <string name="player_low_spec_auto">自动</string>
+    <string name="player_low_spec_low">低配</string>
+    <string name="player_low_spec_high">高配</string>
+    <string name="player_cache_size">缓存大小</string>
+    <string name="player_danmaku_render">弹幕渲染</string>
+    <string name="danmaku_render_auto">自动</string>
+    <string name="danmaku_render_view">主线程</string>
+    <string name="danmaku_render_surface">独立线程</string>
 </resources>

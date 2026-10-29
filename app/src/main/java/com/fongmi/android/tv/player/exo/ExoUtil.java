@@ -53,7 +53,9 @@ import java.util.stream.Collectors;
 public class ExoUtil {
 
     public static void setPlayerView(PlayerView view) {
-        view.setRender(PlayerSetting.getRender());
+        // 低配机强制 SurfaceView：TextureView 需要 GPU 额外做一次图层合成，
+        // 4K 场景下会明显增加合成开销并加剧掉帧。
+        view.setRender(DeviceProfile.isLowSpec() ? 0 : PlayerSetting.getRender());
         view.getSubtitleView().setStyle(getCaptionStyle());
         view.getSubtitleView().setApplyEmbeddedStyles(true);
         view.getSubtitleView().setApplyEmbeddedFontSizes(false);
@@ -179,6 +181,19 @@ public class ExoUtil {
     }
 
     private static LoadControl buildLoadControl() {
+        if (DeviceProfile.isLowSpec()) {
+            // 低配机不能照搬 50 秒缓冲：4K 20Mbps 下相当于常驻上百 MB，1GB 内存的盒子会
+            // 不停 GC 从而拖垮播放器。这里压到 15s/30s，并额外加一道 64MB 字节上限，
+            // 让字节阈值与时间阈值同时生效。
+            return new DefaultLoadControl.Builder().setBufferDurationsMs(
+                    DeviceProfile.LOW_SPEC_MIN_BUFFER_MS * PlayerSetting.getBuffer(),
+                    DeviceProfile.LOW_SPEC_MAX_BUFFER_MS * PlayerSetting.getBuffer(),
+                    DeviceProfile.LOW_SPEC_BUFFER_FOR_PLAYBACK_MS,
+                    DeviceProfile.LOW_SPEC_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+                    .setTargetBufferBytes(DeviceProfile.LOW_SPEC_TARGET_BUFFER_BYTES)
+                    .setPrioritizeTimeOverSizeThresholds(false)
+                    .build();
+        }
         return new DefaultLoadControl.Builder().setBufferDurationsMs(DefaultLoadControl.DEFAULT_MIN_BUFFER_MS * PlayerSetting.getBuffer(), DefaultLoadControl.DEFAULT_MAX_BUFFER_MS * PlayerSetting.getBuffer(), 500, 1500).build();
     }
 
@@ -192,13 +207,26 @@ public class ExoUtil {
         if (!allowDolbyVision() || dv7Strip) builder.setPreferredVideoMimeTypes(MimeTypes.VIDEO_H265, MimeTypes.VIDEO_H264, MimeTypes.VIDEO_AV1, MimeTypes.VIDEO_VP9, MimeTypes.VIDEO_VP8);
         builder.setPreferredTextLanguage(Locale.getDefault().getISO3Language());
         builder.setTunnelingEnabled(PlayerSetting.isTunnel());
-        builder.setForceHighestSupportedBitrate(allowDolbyVision() && !dv7Strip);
+        // 强制最高码率会把 4K 高码率轨顶到最前面，低配盒子直接解码不过来。
+        builder.setForceHighestSupportedBitrate(!DeviceProfile.isLowSpec() && allowDolbyVision() && !dv7Strip);
+        if (DeviceProfile.isLowSpec()) {
+            // 低配机限制轨道分辨率与码率，宁可选 1080P 也不要硬吃 4K。
+            // exceed 保证源里只有 4K 一条轨时仍然放行，不会因为限制而选不到轨道。
+            builder.setMaxVideoSize(DeviceProfile.LOW_SPEC_MAX_VIDEO_HEIGHT * 16 / 9, DeviceProfile.LOW_SPEC_MAX_VIDEO_HEIGHT);
+            builder.setMaxVideoBitrate(DeviceProfile.LOW_SPEC_MAX_VIDEO_BITRATE);
+            builder.setExceedVideoConstraintsIfNecessary(true);
+        }
         trackSelector.setParameters(builder.build());
         return trackSelector;
     }
 
     private static RenderersFactory buildRenderersFactory(int renderMode) {
-        return new DefaultRenderersFactory(App.get()).setEnableDecoderFallback(true).setExtensionRendererMode(renderMode);
+        // 低配机关掉解码器 fallback：905L3 硬解 4K 失败后会回落到系统软件解码器
+        // （仓库里 ffmpeg 视频软解未实现，ExperimentalFfmpegVideoRenderer 直接返回不支持），
+        // A53 四核软解 4K 必然打满 CPU。关掉后解码失败直接报错，而不是卡死。
+        return new DefaultRenderersFactory(App.get())
+                .setEnableDecoderFallback(!DeviceProfile.isLowSpec())
+                .setExtensionRendererMode(renderMode);
     }
 
     private static MediaSource.Factory buildMediaSourceFactory() {

@@ -445,4 +445,13 @@
         <item>12</item>
         <item>15</item>
     </string-array>
+    <string name="player_low_spec">Low-spec mode</string>
+    <string name="player_low_spec_auto">Auto</string>
+    <string name="player_low_spec_low">Low</string>
+    <string name="player_low_spec_high">High</string>
+    <string name="player_cache_size">Cache size</string>
+    <string name="player_danmaku_render">Danmaku render</string>
+    <string name="danmaku_render_auto">Auto</string>
+    <string name="danmaku_render_view">Main thread</string>
+    <string name="danmaku_render_surface">Own thread</string>
 </resources>

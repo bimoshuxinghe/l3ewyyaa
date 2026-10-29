@@ -13,6 +13,8 @@ import com.fongmi.android.tv.databinding.ActivitySettingPlayerBinding;
 import com.fongmi.android.tv.impl.BufferListener;
 import com.fongmi.android.tv.impl.SpeedListener;
 import com.fongmi.android.tv.impl.UaListener;
+import com.fongmi.android.tv.player.exo.DeviceProfile;
+import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
@@ -56,6 +58,9 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
+        mBinding.lowSpecText.setText(getLowSpecText());
+        mBinding.cacheSizeText.setText(String.valueOf(PlayerSetting.getCacheSize()));
+        mBinding.danmakuRenderText.setText(getDanmakuRenderText());
         mBinding.preloadText.setText(getPreloadText());
         mBinding.controllerAlphaText.setText(getControllerTransparencyText());
         mBinding.controllerAlphaSlider.setValue(PlayerSetting.getControllerTransparency());
@@ -77,6 +82,9 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.scale.setOnClickListener(this::setScale);
         mBinding.speed.setOnClickListener(this::onSpeed);
         mBinding.buffer.setOnClickListener(this::onBuffer);
+        mBinding.lowSpec.setOnClickListener(this::setLowSpec);
+        mBinding.cacheSize.setOnClickListener(this::setCacheSize);
+        mBinding.danmakuRender.setOnClickListener(this::setDanmakuRender);
         mBinding.preload.setOnClickListener(this::onPreload);
         mBinding.controllerAlphaSlider.addOnChangeListener((slider, value, fromUser) -> {
             PlayerSetting.putControllerTransparency((int) value);
@@ -164,6 +172,50 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     public void setBuffer(int times) {
         mBinding.bufferText.setText(String.valueOf(times));
         PlayerSetting.putBuffer(times);
+    }
+
+    private String getLowSpecText() {
+        int mode = PlayerSetting.getLowSpecMode();
+        if (mode == DeviceProfile.MODE_FORCE_LOW) return getString(R.string.player_low_spec_low);
+        if (mode == DeviceProfile.MODE_FORCE_HIGH) return getString(R.string.player_low_spec_high);
+        return getString(R.string.player_low_spec_auto);
+    }
+
+    private void setLowSpec(View view) {
+        // 档位变化会同时影响弹幕渲染方式，下一次进入播放页生效。
+        PlayerSetting.putLowSpecMode((PlayerSetting.getLowSpecMode() + 1) % 3);
+        mBinding.lowSpecText.setText(getLowSpecText());
+    }
+
+    private void setCacheSize(View view) {
+        int[] steps = {128, 256, 512, 1024};
+        int size = PlayerSetting.getCacheSize();
+        int next = steps[0];
+        for (int i = 0; i < steps.length; i++) {
+            if (steps[i] == size) {
+                next = steps[(i + 1) % steps.length];
+                break;
+            }
+        }
+        PlayerSetting.putCacheSize(next);
+        mBinding.cacheSizeText.setText(String.valueOf(next));
+    }
+
+    private String getDanmakuRenderText() {
+        switch (DanmakuSetting.getRenderMode()) {
+            case DanmakuSetting.RENDER_MODE_VIEW:
+                return getString(R.string.danmaku_render_view);
+            case DanmakuSetting.RENDER_MODE_SURFACE:
+                return getString(R.string.danmaku_render_surface);
+            default:
+                return getString(R.string.danmaku_render_auto);
+        }
+    }
+
+    private void setDanmakuRender(View view) {
+        // 弹幕层已创建时不会热切换，下一次进入播放页生效。
+        DanmakuSetting.putRenderMode((DanmakuSetting.getRenderMode() + 1) % 3);
+        mBinding.danmakuRenderText.setText(getDanmakuRenderText());
     }
 
     private void onPreload(View view) {

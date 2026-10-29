@@ -13,7 +13,7 @@ import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.HttpDataSource;
 import androidx.media3.datasource.cache.CacheDataSource;
-import androidx.media3.datasource.cache.NoOpCacheEvictor;
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor;
 import androidx.media3.datasource.cache.SimpleCache;
 import androidx.media3.datasource.okhttp.OkHttpDataSource;
 import androidx.media3.exoplayer.DefaultLoadControl;
@@ -29,6 +29,7 @@ import androidx.media3.extractor.ExtractorsFactory;
 import androidx.media3.extractor.ts.TsExtractor;
 
 import com.fongmi.android.tv.App;
+import com.fongmi.android.tv.setting.PlayerSetting;
 import com.github.catvod.net.OkHttp;
 import com.github.catvod.utils.Path;
 
@@ -141,7 +142,13 @@ public class MediaSourceFactory implements MediaSource.Factory {
     }
 
     private static SimpleCache getCache() {
-        if (cache == null) cache = new SimpleCache(Path.exo(), new NoOpCacheEvictor(), new StandaloneDatabaseProvider(App.get()));
+        // 原实现用 NoOpCacheEvictor，缓存只增不减：4K 网盘播放会持续写盘且永不回收，
+        // 低配盒子（905L3 等）存储与 IO 都很弱，磁盘写入抢占会进一步放大卡顿。
+        // 这里改为 LRU 驱逐并限制缓存上限。
+        if (cache == null) {
+            long maxCacheBytes = PlayerSetting.getCacheSize() * 1024L * 1024L;
+            cache = new SimpleCache(Path.exo(), new LeastRecentlyUsedCacheEvictor(maxCacheBytes), new StandaloneDatabaseProvider(App.get()));
+        }
         return cache;
     }
 }

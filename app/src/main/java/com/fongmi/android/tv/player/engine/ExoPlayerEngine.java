@@ -12,6 +12,7 @@ import androidx.media3.common.Tracks;
 
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.bean.Track;
+import com.fongmi.android.tv.player.exo.DeviceProfile;
 import com.fongmi.android.tv.player.exo.ErrorMsgProvider;
 import com.fongmi.android.tv.player.exo.ExoUtil;
 import com.fongmi.android.tv.player.exo.TrackUtil;
@@ -275,7 +276,20 @@ public class ExoPlayerEngine implements PlayerEngine {
             startInternal(position);
             return ErrorAction.RECOVERED;
         }
+        // 低配机（905L3 等）上 4K 硬解失败后若继续切软解，系统软件解码器会把 CPU 打满，
+        // 表现为画面彻底卡死、遥控器按键完全无响应。这里直接报 FATAL 让上层提示错误，
+        // 用户仍可手动切换软解或换个分辨率重试。
+        if (DeviceProfile.isLowSpec() && isHighResolution()) {
+            Log.w("ExoPlayerEngine", "4K decode failed on low-spec device, skip software fallback to avoid CPU lock-up.");
+            return ErrorAction.FATAL;
+        }
         return ErrorAction.DECODE;
+    }
+
+    /** 当前选中轨道是否为 4K（高度 &gt;= 1440）。 */
+    private boolean isHighResolution() {
+        Format format = getSelectedVideoFormat();
+        return format != null && format.height >= 1440;
     }
 
     /**

@@ -5,9 +5,17 @@ import android.text.TextUtils;
 import androidx.media3.ui.danmaku.DanmakuConfig;
 
 import com.fongmi.android.tv.api.config.VodConfig;
+import com.fongmi.android.tv.player.exo.DeviceProfile;
 import com.github.catvod.utils.Prefers;
 
 public class DanmakuSetting {
+
+    /** 弹幕渲染模式：自动。低配机走独立 Surface，高配机走主 UI 线程绘制。 */
+    public static final int RENDER_MODE_AUTO = 0;
+    /** 弹幕渲染模式：主 UI 线程绘制（兼容性优先，个别盒子叠层异常时用这个）。 */
+    public static final int RENDER_MODE_VIEW = 1;
+    /** 弹幕渲染模式：独立线程 + 独立 Surface（低配机优先，不占主线程）。 */
+    public static final int RENDER_MODE_SURFACE = 2;
 
     private static final float DEFAULT_TRANSPARENCY = 0.2f;
     private static final int DEFAULT_STYLE_MODE = DanmakuConfig.STYLE_NONE;
@@ -15,6 +23,8 @@ public class DanmakuSetting {
     private static final int DEFAULT_MAX_ON_SCREEN = 80;
     private static final int DEFAULT_MAX_SCROLL_LINES = 3;
     private static final float DEFAULT_LINE_SPACING = 1.5f;
+    /** 低配模式下同屏弹幕上限，避免 4K 播放时绘制过多文本。 */
+    private static final int LOW_POWER_MAX_ON_SCREEN = 40;
 
     public static boolean isLoad() {
         return Prefers.getBoolean("danmaku_load", true);
@@ -322,6 +332,7 @@ public class DanmakuSetting {
     }
 
     public static DanmakuConfig getConfig() {
+        boolean lowPower = DeviceProfile.isLowSpec();
         return new DanmakuConfig.Builder()
                 .setTextScale(getTextScale())
                 .setTransparency(getTransparency())
@@ -336,7 +347,7 @@ public class DanmakuSetting {
                 .setDurationMs(getDurationMs())
                 .setFixedDurationMs(getFixedDurationMs())
                 .setTimeOffsetMs(getTimeOffsetMs())
-                .setMaxOnScreen(getMaxOnScreen())
+                .setMaxOnScreen(lowPower ? Math.min(getMaxOnScreen(), LOW_POWER_MAX_ON_SCREEN) : getMaxOnScreen())
                 .setScrollAreaRatio(getScrollAreaRatio())
                 .setScrollGapRatio(getScrollGapRatio())
                 .setLineSpacing(getLineSpacing())
@@ -350,6 +361,29 @@ public class DanmakuSetting {
                 .setShowPositioned(isShowPositioned())
                 .setShowSubtitle(isShowSubtitle())
                 .setShowSpecial(isShowSpecial())
+                .setLowPower(lowPower)
                 .build();
+    }
+
+    public static int getRenderMode() {
+        return Math.min(Math.max(Prefers.getInt("danmaku_render_mode", RENDER_MODE_AUTO), 0), 2);
+    }
+
+    public static void putRenderMode(int mode) {
+        Prefers.put("danmaku_render_mode", Math.min(Math.max(mode, 0), 2));
+    }
+
+    /**
+     * 实际生效的弹幕渲染模式。
+     *
+     * <p>自动模式下：高配机保持原来的主 UI 线程绘制；低配机（905L3 系列等）切到独立线程 +
+     * 独立 Surface，把弹幕绘制从主 UI 线程挪走，让主线程专心处理遥控器按键。
+     */
+    public static int resolveRenderMode() {
+        int mode = getRenderMode();
+        if (mode != RENDER_MODE_AUTO) {
+            return mode;
+        }
+        return DeviceProfile.isLowSpec() ? RENDER_MODE_SURFACE : RENDER_MODE_VIEW;
     }
 }

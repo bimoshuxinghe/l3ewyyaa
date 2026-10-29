@@ -25,6 +25,7 @@ import android.graphics.Paint;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.Handler;
+import android.os.SystemClock;
 import android.os.HandlerThread;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -50,6 +51,8 @@ public final class DanmakuView extends View {
   private static final float COLORFUL_SATURATION = 0.55f;
   private static final float COLORFUL_VALUE = 1f;
   private static final float GRADIENT_HUE_OFFSET = 117f;
+  /** 低配模式下弹幕的目标帧率：滚动文字 30fps 与 60fps 肉眼几乎无差别。 */
+  private static final int LOW_POWER_FPS = 30;
   private final Object lock = new Object();
   private final TreeMap<Long, List<Danmaku>> pool = new TreeMap<>();
   private final List<Danmaku> activeItems = new ArrayList<>(200);
@@ -79,6 +82,14 @@ public final class DanmakuView extends View {
   private int nextTopTrackIndex;
   private int nextBottomTrackIndex;
   private boolean drawEnabled = true;
+  /** 弹幕绘制节流间隔（毫秒），0 表示跟随 vsync 不限帧。 */
+  private long minDrawIntervalMs;
+  private long lastDrawTimeMs;
+  /**
+   * 保护 {@code activeItems} 的锁。Surface 模式下弹幕绘制发生在独立线程，
+   * 而 start/seekTo/clear 等仍在主线程修改同一列表，需要串行化。
+   */
+  private final Object drawLock = new Object();
   private float lastStrokeWidth = -1f;
   private float defaultAscent;
   private float defaultDescent;
@@ -153,8 +164,10 @@ public final class DanmakuView extends View {
   }
 
   private void applyLayerTypeForStyle() {
-    int desired = config.styleMode == DanmakuConfig.STYLE_SHADOW
-        ? LAYER_TYPE_SOFTWARE : LAYER_TYPE_HARDWARE;
+    // 低配机上整屏 LAYER_TYPE_SOFTWARE 会让每一帧弹幕都在 CPU 上做全屏软件合成，
+    // 与 4K 硬解直接抢 CPU，因此低配时统一走硬件层。
+    boolean useSoftware = config.styleMode == DanmakuConfig.STYLE_SHADOW && !config.lowPower;
+    int desired = useSoftware ? LAYER_TYPE_SOFTWARE : LAYER_TYPE_HARDWARE;
     if (getLayerType() != desired) {
       setLayerType(desired, null);
     }
@@ -172,6 +185,10 @@ public final class DanmakuView extends View {
     this.config = config;
     updatePaintConfig();
     applyLayerTypeForStyle();
+    // 低配机把弹幕重绘限制到 30fps：省下的主线程时间留给遥控器按键分发。
+    if (config.lowPower) {
+      setRenderFps(LOW_POWER_FPS);
+    }
     if (oldConfig.styleMode == DanmakuConfig.STYLE_SHADOW
         && config.styleMode != DanmakuConfig.STYLE_SHADOW) {
       shadowState.clearIfSet(fillPaint);
@@ -182,8 +199,10 @@ public final class DanmakuView extends View {
     }
     remeasurePool();
     remeasureActiveItems();
-    for (int i = 0; i < activeItems.size(); i++) {
-      activeItems.get(i).cachedStrokeColor = 0;
+    synchronized (drawLock) {
+      for (int i = 0; i < activeItems.size(); i++) {
+        activeItems.get(i).cachedStrokeColor = 0;
+      }
     }
     recalculateTracks();
     reconcileActiveItemsToTracks();
@@ -299,7 +318,9 @@ public final class DanmakuView extends View {
       forceSendActivate(danmaku, currentMs);
     }
     if (danmaku.active) {
-      activeItems.add(danmaku);
+      synchronized (drawLock) {
+        activeItems.add(danmaku);
+      }
       if (!clock.paused) {
         postInvalidateOnAnimation();
       }
@@ -405,39 +426,112 @@ public final class DanmakuView extends View {
     if (!clock.started || viewWidth <= 0 || viewHeight <= 0) {
       return;
     }
-    long currentMs = getCurrentPositionMs();
-    currentPaintSizePx = textSizePx;
-    fillPaint.setTextSize(textSizePx);
-    strokePaint.setTextSize(textSizePx);
-    activateNewItems(currentMs);
-    int writeIdx = 0;
-    for (int i = 0; i < activeItems.size(); i++) {
-      Danmaku d = activeItems.get(i);
-      boolean alive = drawDanmaku(drawEnabled ? canvas : null, d, currentMs);
-      if (alive) {
-        if (writeIdx != i) {
-          activeItems.set(writeIdx, d);
-        }
-        writeIdx++;
-      } else {
-        d.active = false;
-        d.trackIndex = -1;
+    if (minDrawIntervalMs > 0) {
+      long elapsed = SystemClock.uptimeMillis() - lastDrawTimeMs;
+      if (elapsed < minDrawIntervalMs) {
+        postInvalidateDelayed(minDrawIntervalMs - elapsed);
+        return;
       }
+      lastDrawTimeMs = SystemClock.uptimeMillis();
     }
-    if (activeItems.size() > writeIdx) {
-      activeItems.subList(writeIdx, activeItems.size()).clear();
-    }
+    int aliveCount = renderToCanvas(canvas);
     if (!clock.paused) {
-      if (writeIdx > 0) {
-        postInvalidateOnAnimation();
+      if (aliveCount > 0) {
+        // 限帧时用定时重绘，避免 postInvalidateOnAnimation 直接顶到 vsync 频率。
+        if (minDrawIntervalMs > 0) {
+          postInvalidateDelayed(minDrawIntervalMs);
+        } else {
+          postInvalidateOnAnimation();
+        }
       } else {
-        long nextDelayMs = nextActivationDelayMs(currentMs);
+        long nextDelayMs = nextActivationDelayMs(getCurrentPositionMs());
         if (nextDelayMs == 0L) {
           postInvalidateOnAnimation();
         } else if (nextDelayMs > 0L) {
           postInvalidateDelayed(Math.max(16L, nextDelayMs - 16L));
         }
       }
+    }
+  }
+
+  /**
+   * 把当前时刻的弹幕绘制到给定画布，返回仍然存活的弹幕数量。
+   *
+   * <p>对外暴露是为了让 {@link DanmakuSurfaceView} 在独立线程上复用同一套布局与绘制逻辑，
+   * 从而把弹幕绘制挪出主 UI 线程 —— 主线程还要负责遥控器按键分发，4K 播放时它本来就被
+   * 解码抢占，弹幕再每帧贴上去就会把按键响应时间拖长到「遥控器失灵」的程度。
+   */
+  public int renderToCanvas(@NonNull Canvas canvas) {
+    return renderToCanvas(canvas, getCurrentPositionMs());
+  }
+
+  /**
+   * 把指定时刻的弹幕绘制到给定画布，返回仍然存活的弹幕数量。
+   *
+   * @param currentMs 当前播放进度，用于计算每条弹幕的位置与存活状态
+   */
+  public int renderToCanvas(@NonNull Canvas canvas, long currentMs) {
+    if (!clock.started || viewWidth <= 0 || viewHeight <= 0) {
+      return 0;
+    }
+    currentPaintSizePx = textSizePx;
+    fillPaint.setTextSize(textSizePx);
+    strokePaint.setTextSize(textSizePx);
+    int writeIdx = 0;
+    synchronized (drawLock) {
+      activateNewItems(currentMs);
+      for (int i = 0; i < activeItems.size(); i++) {
+        Danmaku d = activeItems.get(i);
+        boolean alive = drawDanmaku(drawEnabled ? canvas : null, d, currentMs);
+        if (alive) {
+          if (writeIdx != i) {
+            activeItems.set(writeIdx, d);
+          }
+          writeIdx++;
+        } else {
+          d.active = false;
+          d.trackIndex = -1;
+        }
+      }
+      if (activeItems.size() > writeIdx) {
+        activeItems.subList(writeIdx, activeItems.size()).clear();
+      }
+    }
+    return writeIdx;
+  }
+
+  /**
+   * 设置弹幕绘制目标帧率，0 表示跟随 vsync 不限帧。
+   *
+   * <p>弹幕是缓慢横向滚动的文字，30fps 与 60fps 肉眼几乎无差别，但能省掉一半绘制工作量。
+   */
+  public void setRenderFps(int fps) {
+    minDrawIntervalMs = fps <= 0 ? 0L : Math.max(8L, 1000L / fps);
+  }
+
+  /**
+   * 离屏模式下手动设置弹幕画布尺寸。
+   *
+   * <p>{@link DanmakuSurfaceView} 持有的本视图不会挂载到窗口，{@link #onSizeChanged} 不会回调，
+   * 必须由外部在 Surface 尺寸确定后同步，否则弹幕算不出轨道与位置。
+   */
+  public void setOffscreenSize(int width, int height) {
+    if (width <= 0 || height <= 0 || (viewWidth == width && viewHeight == height)) {
+      return;
+    }
+    viewWidth = width;
+    viewHeight = height;
+    synchronized (drawLock) {
+      resetActivationCursor(getCurrentPositionMs());
+      clearActiveItems();
+      recalculateTracks();
+    }
+  }
+
+  /** 当前同屏弹幕条数。 */
+  public int getActiveCount() {
+    synchronized (drawLock) {
+      return activeItems.size();
     }
   }
 
@@ -841,14 +935,16 @@ public final class DanmakuView extends View {
   }
 
   private void clearActiveItems() {
-    for (int i = 0; i < activeItems.size(); i++) {
-      Danmaku d = activeItems.get(i);
-      d.active = false;
-      d.trackIndex = -1;
-      d.activatedTimeMs = -1;
-      d.cachedStrokeColor = 0;
+    synchronized (drawLock) {
+      for (int i = 0; i < activeItems.size(); i++) {
+        Danmaku d = activeItems.get(i);
+        d.active = false;
+        d.trackIndex = -1;
+        d.activatedTimeMs = -1;
+        d.cachedStrokeColor = 0;
+      }
+      activeItems.clear();
     }
-    activeItems.clear();
     Arrays.fill(scrollTrackTails, null);
     Arrays.fill(reverseTrackTails, null);
     Arrays.fill(topTrackExpiries, 0);
@@ -893,21 +989,23 @@ public final class DanmakuView extends View {
 
   private void reconcileActiveItemsToTracks() {
     int writeIdx = 0;
-    for (int i = 0; i < activeItems.size(); i++) {
-      Danmaku d = activeItems.get(i);
-      if (d.trackIndex < trackCountForType(d.type)) {
-        if (writeIdx != i) {
-          activeItems.set(writeIdx, d);
+    synchronized (drawLock) {
+      for (int i = 0; i < activeItems.size(); i++) {
+        Danmaku d = activeItems.get(i);
+        if (d.trackIndex < trackCountForType(d.type)) {
+          if (writeIdx != i) {
+            activeItems.set(writeIdx, d);
+          }
+          writeIdx++;
+        } else {
+          d.active = false;
+          d.trackIndex = -1;
+          d.activatedTimeMs = -1;
         }
-        writeIdx++;
-      } else {
-        d.active = false;
-        d.trackIndex = -1;
-        d.activatedTimeMs = -1;
       }
-    }
-    if (activeItems.size() > writeIdx) {
-      activeItems.subList(writeIdx, activeItems.size()).clear();
+      if (activeItems.size() > writeIdx) {
+        activeItems.subList(writeIdx, activeItems.size()).clear();
+      }
     }
     Arrays.fill(scrollTrackTails, null);
     Arrays.fill(reverseTrackTails, null);

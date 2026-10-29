@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.view.View;
 
 import com.fongmi.android.tv.App;
+import com.fongmi.android.tv.player.exo.DeviceProfile;
 import com.github.catvod.net.OkHttp;
 import com.github.catvod.utils.Path;
 import com.github.catvod.utils.Prefers;
@@ -213,6 +214,30 @@ public class PlayerSetting {
 
     public static void putScale(int scale) {
         Prefers.put("scale", scale);
+    }
+
+    /**
+     * 低配模式：0=自动识别，1=强制低配，2=强制按高配处理。
+     *
+     * <p>低配模式下会收敛缓冲、限制轨道分辨率/码率、关闭解码器 fallback（避免硬解失败
+     * 后回落系统软解把低配盒子 CPU 打满），并把弹幕绘制挪到独立线程。
+     */
+    public static int getLowSpecMode() {
+        return Math.min(Math.max(Prefers.getInt("low_spec_mode", 0), 0), 2);
+    }
+
+    public static void putLowSpecMode(int mode) {
+        Prefers.put("low_spec_mode", Math.min(Math.max(mode, 0), 2));
+        DeviceProfile.invalidate();
+    }
+
+    /** 播放缓存上限（MB）。 */
+    public static int getCacheSize() {
+        return Math.min(Math.max(Prefers.getInt("player_cache_size", 512), 64), 4096);
+    }
+
+    public static void putCacheSize(int size) {
+        Prefers.put("player_cache_size", Math.min(Math.max(size, 64), 4096));
     }
 
     public static int getBuffer() {

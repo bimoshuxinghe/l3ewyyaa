@@ -61,6 +61,8 @@ public final class DanmakuConfig {
   public final int maxBottomLines;
   public final float scrollAreaRatio;
   public final float lineSpacing;
+  /** 低配模式：弹幕绘制降载（限帧到 30fps、避免整屏软件图层）。 */
+  public final boolean lowPower;
   public final boolean showScroll;
   public final boolean showTop;
   public final boolean showBottom;
@@ -98,6 +100,7 @@ public final class DanmakuConfig {
     this.maxBottomLines = builder.maxBottomLines;
     this.scrollAreaRatio = builder.scrollAreaRatio;
     this.lineSpacing = builder.lineSpacing;
+    this.lowPower = builder.lowPower;
     this.showScroll = builder.showScroll;
     this.showTop = builder.showTop;
     this.showBottom = builder.showBottom;
@@ -157,6 +160,7 @@ public final class DanmakuConfig {
     private int maxBottomLines;
     private float scrollAreaRatio;
     private float lineSpacing;
+    private boolean lowPower;
     private boolean showScroll;
     private boolean showTop;
     private boolean showBottom;
@@ -194,6 +198,7 @@ public final class DanmakuConfig {
       maxBottomLines = 0;
       scrollAreaRatio = 0.5f;
       lineSpacing = 1.4f;
+      lowPower = false;
       showScroll = true;
       showTop = true;
       showBottom = true;
@@ -232,6 +237,7 @@ public final class DanmakuConfig {
       this.maxBottomLines = config.maxBottomLines;
       this.scrollAreaRatio = config.scrollAreaRatio;
       this.lineSpacing = config.lineSpacing;
+      this.lowPower = config.lowPower;
       this.showScroll = config.showScroll;
       this.showTop = config.showTop;
       this.showBottom = config.showBottom;
@@ -346,6 +352,17 @@ public final class DanmakuConfig {
 
     public Builder setLineSpacing(float lineSpacing) {
       this.lineSpacing = Math.max(0.01f, lineSpacing);
+      return this;
+    }
+
+    /**
+     * 设置低配模式。
+     *
+     * <p>低配机（905L3 系列等）上弹幕逐帧全量重绘会与 4K 视频解码抢占 CPU，开启后会：
+     * 1) 把弹幕重绘限制到约 30fps；2) 强制使用硬件图层，避免整屏软件合成。
+     */
+    public Builder setLowPower(boolean lowPower) {
+      this.lowPower = lowPower;
       return this;
     }
 

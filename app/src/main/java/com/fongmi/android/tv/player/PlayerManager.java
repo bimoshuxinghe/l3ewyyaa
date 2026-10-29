@@ -30,6 +30,7 @@ import com.fongmi.android.tv.impl.ParseCallback;
 import com.fongmi.android.tv.player.engine.ExoPlayerEngine;
 import com.fongmi.android.tv.player.engine.PlaySpec;
 import com.fongmi.android.tv.player.engine.PlayerEngine;
+import com.fongmi.android.tv.player.exo.DeviceProfile;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.utils.Notify;
@@ -669,6 +670,10 @@ public class PlayerManager implements ParseCallback {
             } else if (action == PlayerEngine.ErrorAction.FATAL) {
                 callback.onError(engine.getErrorMessage(e));
             } else if (++retry > 1) {
+                callback.onError(engine.getErrorMessage(e));
+            } else if (DeviceProfile.isLowSpec() && getVideoHeight() >= 1440) {
+                // 低配机播放 4K 时不要自动切软解：软件解码 4K 会把 CPU 打满，
+                // 表现为画面卡死 + 遥控器按键无响应。这里直接报错，让用户自行决定。
                 callback.onError(engine.getErrorMessage(e));
             } else {
                 toggleDecode();
