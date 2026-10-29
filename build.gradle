@@ -1,9 +1,9 @@
 plugins {
     alias libs.plugins.android.application apply false
     alias libs.plugins.android.library apply false
-    // 与 fix/danmaku-fongmi-port 分支一致的官方 Chaquopy 插件，
-    // 该版本原生支持 AGP 9.x / Gradle 9.x，无需本地打补丁的插件副本。
-    id "com.chaquo.python" version "17.0.0" apply false
+    // 官方 Chaquopy 15.0.1：最后一个支持 minSdk 21（Android 5.0）的版本，
+    // 支持 AGP 7.0-8.5（本仓库已降级到 AGP 8.5.2 + Gradle 8.9 配合）。
+    id "com.chaquo.python" version "15.0.1" apply false
 }
 
 tasks.register('clean', Delete) {
