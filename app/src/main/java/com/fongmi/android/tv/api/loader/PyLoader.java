@@ -1,5 +1,7 @@
 package com.fongmi.android.tv.api.loader;
 
+import android.util.Log;
+
 import com.fongmi.android.tv.App;
 import com.fongmi.chaquo.Loader;
 import com.github.catvod.crawler.Spider;
@@ -14,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * 单个站源加载失败时降级为 {@link SpiderNull}，不影响 JS / JAR(csp_) 爬虫。
  */
 public class PyLoader {
+
+    private static final String TAG = "PyLoader";
 
     private final ConcurrentHashMap<String, Spider> spiders;
     private final Loader loader;
@@ -42,7 +46,9 @@ public class PyLoader {
                 spider.init(App.get(), ext);
                 return spider;
             } catch (Throwable e) {
-                e.printStackTrace();
+                // 站源加载失败时降级为空爬虫；把原因打到 logcat，方便定位
+                // （例如站源缺少标准接口、依赖模块不存在等）。
+                Log.e(TAG, "py load failed, key=" + key + " api=" + api, e);
                 return new SpiderNull();
             }
         });

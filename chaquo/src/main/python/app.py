@@ -1,4 +1,7 @@
 import os
+import sys
+import types
+import tempfile
 import requests
 from importlib.machinery import SourceFileLoader
 import json
@@ -6,9 +9,72 @@ import time
 
 STREAM_PROXY_MIME = 'application/x-codex-stream-url'
 
+# 内置 python 源码根目录（本文件所在目录），使 `base.spider` 等内置模块
+# 在加载站源脚本时始终可被 import（站源里的 sys.path.append('..') 依赖
+# 进程工作目录，在 Android 上并不可靠）。
+PYTHON_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Java 侧（com.fongmi.chaquo.Spider）会调用的站源标准接口。
+REQUIRED_API = (
+    'init', 'homeContent', 'homeVideoContent', 'categoryContent', 'detailContent',
+    'searchContent', 'playerContent', 'liveContent', 'manualVideoCheck',
+    'isVideoFormat', 'localProxy', 'action', 'destroy', 'getName', 'getDependence',
+)
+
+
+def prepare_env(cache):
+    """为加载站源准备运行环境：临时目录 + sys.path。
+
+    Android 上常见的两个坑：
+      1) 没有可写的 /tmp：tempfile.gettempdir() 会在 import 阶段就抛错，
+         导致使用 tempfile 的站源（如悦听吧、听书世界）根本加载不了；
+      2) 站源的 sys.path.append('..') 依赖工作目录，实际无效，
+         导致 from base.spider import Spider 失败、退化成裸 object。
+    """
+    try:
+        if cache:
+            os.makedirs(cache, exist_ok=True)
+    except Exception:
+        pass
+    try:
+        if cache:
+            os.environ['TMPDIR'] = cache
+            os.environ['TEMP'] = cache
+            os.environ['TMP'] = cache
+            tempfile.tempdir = cache
+    except Exception:
+        pass
+    for p in (PYTHON_ROOT, cache):
+        if p and os.path.isdir(p) and p not in sys.path:
+            sys.path.insert(0, p)
+
+
+def bind_base_api(obj):
+    """给未继承 base.spider.Spider 的站源补齐标准接口（T4/hipy 风格源常见）。
+
+    缺失 getDependence 等方法时，Java 侧 Spider.init() 调用会直接抛异常，
+    站源表现为"加载不出来"。
+    """
+    try:
+        from base.spider import Spider as BaseSpider
+    except Exception:
+        return obj
+    for name in REQUIRED_API:
+        if hasattr(obj, name):
+            continue
+        fn = getattr(BaseSpider, name, None)
+        if fn is None:
+            continue
+        try:
+            setattr(obj, name, types.MethodType(fn, obj))
+        except Exception:
+            pass
+    return obj
+
 
 def spider(cache, api):
     """通用 py 源加载：支持 py:// 协议、./py/ 及任意本地路径、file://、http(s) 下载、纯模块名。"""
+    prepare_env(cache)
     src = api.strip()
     if src.startswith('py://'):
         src = src[len('py://'):]
@@ -24,7 +90,7 @@ def spider(cache, api):
         for cand in ('py.' + mod, mod):
             try:
                 import importlib
-                return importlib.import_module(cand).Spider()
+                return bind_base_api(importlib.import_module(cand).Spider())
             except ImportError:
                 continue
     # 1) 纯模块名（无路径分隔符）：先 import（内置模块/内置 py 包），失败按文件查找
@@ -33,7 +99,7 @@ def spider(cache, api):
         for cand in (module_name, 'py.' + module_name):
             try:
                 import importlib
-                return importlib.import_module(cand).Spider()
+                return bind_base_api(importlib.import_module(cand).Spider())
             except ImportError:
                 continue
         for p in (cache + '/' + src, cache + '/' + module_name + '.py'):
@@ -62,6 +128,7 @@ def spider(cache, api):
 
 
 def load_script(cache, src):
+    prepare_env(cache)
     if not os.path.exists(cache):
         os.makedirs(cache, exist_ok=True)
     if src.startswith('http'):
@@ -71,7 +138,7 @@ def load_script(cache, src):
         if os.path.getsize(path) == 0:
             raise Exception('py download failed: ' + src)
         module_name = name.split('.')[0]
-        return SourceFileLoader(module_name, path).load_module().Spider()
+        return bind_base_api(SourceFileLoader(module_name, path).load_module().Spider())
     name = os.path.basename(src)
     path = cache + '/' + name
     if os.path.abspath(src) != os.path.abspath(path):
@@ -83,7 +150,7 @@ def load_script(cache, src):
     else:
         path = src
     module_name = name.split('.')[0]
-    return SourceFileLoader(module_name, path).load_module().Spider()
+    return bind_base_api(SourceFileLoader(module_name, path).load_module().Spider())
 
 
 def download(path, api):
