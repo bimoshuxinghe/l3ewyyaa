@@ -12,8 +12,9 @@
 
     <style name="Theme.Splash" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.App</item>
-        <!-- 开屏只显示横版原图：系统开屏背景取图边缘深藏青，隐藏中央方块图标，预览窗口直接铺横版原图 -->
-        <item name="windowSplashScreenBackground">#00010E</item>
+        <!-- 开屏只显示横版原图：遮罩层设为透明，直接透出 windowBackground 的全屏启动图，
+             避免 App 初始化阶段出现长时间黑屏；图标位保持全透明占位 -->
+        <item name="windowSplashScreenBackground">@android:color/transparent</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_transparent</item>
         <item name="android:windowBackground">@drawable/ic_splash_bg</item>
     </style>
