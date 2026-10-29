@@ -57,6 +57,12 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+        resources {
+            // okhttp 5.3.2 / jspecify / bcprov-jdk18on 等 jar 均携带
+            // META-INF/versions/9/OSGI-INF/MANIFEST.MF，合并 Java resources
+            // 时冲突；该文件仅用于 OSGi，对 Android 无意义，直接排除。
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
     }
 
     signingConfigs {
