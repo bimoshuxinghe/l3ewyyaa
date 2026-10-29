@@ -178,8 +178,22 @@ def str2json(content):
 
 
 def getDependence(ru):
-    result = ru.getDependence()
-    return result
+    """返回站源依赖的模块名列表。
+
+    Java 侧会对返回值调 asList()，None / 字符串都会抛异常并让该站源直接
+    加载失败（表现为站点无数据），这里统一收敛成 list。
+    """
+    try:
+        result = ru.getDependence()
+    except Exception:
+        return []
+    if result is None:
+        return []
+    if isinstance(result, (list, tuple)):
+        return list(result)
+    if isinstance(result, str):
+        return [result]
+    return []
 
 
 def getName(ru):

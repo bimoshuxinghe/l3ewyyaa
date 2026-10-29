@@ -48,9 +48,27 @@ public class Spider extends com.github.catvod.crawler.Spider {
 
     @Override
     public void init(Context context, String extend) {
-        PyObject dependence = app.callAttr("getDependence", obj);
-        if (dependence != null) for (PyObject item : dependence.asList()) download(item + ".py");
-        obj.put("siteKey", siteKey);
+        // 依赖下载不是关键路径：不少站源的 getDependence 返回 None / 字符串，
+        // 直接 asList() 会抛异常并让整个站源加载失败（表现为该站点无数据），
+        // 因此这里单独兜住，失败也要继续 init。
+        try {
+            PyObject dependence = app.callAttr("getDependence", obj);
+            if (dependence != null && !"None".equals(dependence.toString())) {
+                for (PyObject item : dependence.asList()) {
+                    try {
+                        download(item + ".py");
+                    } catch (Throwable e) {
+                        Log.e(TAG, "download dependence failed: " + item, e);
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            Log.w(TAG, "getDependence failed: " + api, e);
+        }
+        try {
+            obj.put("siteKey", siteKey);
+        } catch (Throwable ignored) {
+        }
         app.callAttr("init", obj, extend);
     }
 
