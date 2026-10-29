@@ -15,6 +15,13 @@ import androidx.media3.buildlogic.configureCommonConfig
 
 plugins { id("com.android.application") }
 
+// AGP 9 内置 Kotlin 编译支持；AGP 8.5 需要对含 Kotlin 源码的模块
+// 显式应用 Kotlin 插件，否则 .kt 文件不参与编译（如 lib-effect）。
+if (file("src").walkTopDown().any { it.isFile && it.extension == "kt" }) {
+  apply(plugin = "org.jetbrains.kotlin.android")
+}
+
+
 group = "androidx.media3"
 
 val libs: VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
