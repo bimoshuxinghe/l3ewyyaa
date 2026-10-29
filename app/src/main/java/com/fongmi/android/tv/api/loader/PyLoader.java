@@ -1,44 +1,76 @@
 package com.fongmi.android.tv.api.loader;
 
+import com.fongmi.android.tv.App;
+import com.fongmi.chaquo.Loader;
 import com.github.catvod.crawler.Spider;
 import com.github.catvod.crawler.SpiderNull;
 
-import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Python 爬虫加载器（已停用）。
+ * Python 爬虫加载器。
  *
- * <p>本类保留原有公开 API，但不再使用 Chaquopy 解释器。原因：Chaquopy 全栈
- * （libpython3.10.so 及全部 C 扩展）依赖 {@code __register_atfork}，该符号自
- * Android 6.0（API 23）起才由 bionic 提供，在 Android 5.0/5.1（API 21/22）上
- * 加载必然失败。为把 minSdk 降到 21，此处改为空实现。
+ * <p>基于 Chaquopy 15.0.1 内置的 Python 3.11 解释器。Chaquopy 15.0.1 配套的
+ * CPython 3.11.6 原生库不依赖 {@code __register_atfork} 等 API 23 才引入的
+ * libc 符号，因此可在 minSdk 21（Android 5.0）设备上正常加载运行。
  *
- * <p>调用方行为：{@link #getSpider} 返回 {@link SpiderNull}（与原实现加载失败时
- * 的降级路径完全一致），{@link #proxy} 返回 404。JS / JAR(csp_) 爬虫不受影响。
+ * <p>解释器为<b>惰性启动</b>：只有真正出现 {@code .py} 站源时才初始化，
+ * 避免拖慢 App 启动。初始化失败（设备缺少对应 ABI 原生库等）时会记录日志并
+ * 降级为 {@link SpiderNull}，与原实现加载失败时的降级路径一致，
+ * 不会影响 JS / JAR(csp_) 爬虫。
  */
 public class PyLoader {
 
     private final ConcurrentHashMap<String, Spider> spiders;
+    private volatile Loader loader;
+    private volatile String recent;
 
     public PyLoader() {
         spiders = new ConcurrentHashMap<>();
     }
 
+    private Loader loader() {
+        Loader local = loader;
+        if (local == null) {
+            synchronized (this) {
+                local = loader;
+                if (local == null) {
+                    local = new Loader();
+                    loader = local;
+                }
+            }
+        }
+        return local;
+    }
+
     public void clear() {
+        spiders.values().forEach(Spider::destroy);
         spiders.clear();
+        recent = null;
     }
 
     public void setRecent(String recent) {
-        // Python 爬虫已停用，无需记录最近使用。
+        this.recent = recent;
     }
 
     public Spider getSpider(String key, String api, String ext) {
-        return new SpiderNull();
+        return spiders.computeIfAbsent(key, k -> {
+            try {
+                Spider spider = loader().spider(api);
+                spider.siteKey = key;
+                spider.init(App.get(), ext);
+                return spider;
+            } catch (Throwable e) {
+                e.printStackTrace();
+                return new SpiderNull();
+            }
+        });
     }
 
     public Object[] proxy(Map<String, String> params) throws Exception {
-        return new Object[]{404, "text/plain", new ByteArrayInputStream("py spider not supported on this build".getBytes()), null};
+        if (recent == null) return null;
+        Spider spider = spiders.get(recent);
+        return spider != null ? spider.proxy(params) : null;
     }
 }

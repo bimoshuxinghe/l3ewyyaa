@@ -29,10 +29,12 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Python 3.10
+      # Chaquopy 15.0.1 使用 Python 3.11，buildPython 需与之匹配，
+      # 否则字节码编译会退化为在设备端实时编译（启动变慢）。
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Set up Android SDK
         run: |

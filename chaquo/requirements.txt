@@ -1,0 +1,23 @@
+# Chaquopy 15.0.1 / Python 3.11 的依赖清单。
+#
+# 注意：本项目要支持 Android 5.0 (API 21)，而 Chaquopy 15.0.1 的原生包仓库
+# (chaquo.com/pypi-13.1) 中，lxml / ujson 只有 cp38 版本提供 android_21 标签的
+# wheel；cp311（Python 3.11）只有 android_24 标签，在 API 21 上无法安装。
+#
+# 因此这里不安装 lxml / ujson / pyquery（pyquery 依赖 lxml）：
+#   * HTML 解析改用 chaquo/src/main/python/base/htmlcompat.py，
+#     它在 lxml 可用时使用 lxml，否则回退到标准库 html.parser；
+#   * ujson 由标准库 json 替代。
+#
+# 其余均为纯 Python 包，会从 PyPI 正常安装，不受 API 等级限制。
+requests
+PySocks
+cachetools
+pycryptodome
+beautifulsoup4
+
+# 固定 soupsieve 版本：3.0.2 及以上要求 Python >= 3.11.5，而构建机上用于
+# 编译字节码的 host Python 可能是 3.11.0 ~ 3.11.4，导致 pip 报
+# "Package 'soupsieve' requires a different Python"。
+# 3.0.1 只要求 >= 3.11，与 Chaquopy 内置的 Python 3.11.6 兼容。
+soupsieve==3.0.1
