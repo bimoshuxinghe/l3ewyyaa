@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 全屏启动图：作为 window 背景绘制，会被拉伸铺满整个窗口 -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_splash_full"
+    android:gravity="fill"
+    android:tileMode="disabled" />

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 空白透明图标：splash 图标位只有 288dp 见方且 Android 12+ 会被圆形遮罩，
+     无法全屏，因此置空，由 window 背景层的全屏启动图负责展示 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

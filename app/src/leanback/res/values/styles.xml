@@ -12,8 +12,11 @@
 
     <style name="Theme.Splash" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.App</item>
-        <item name="windowSplashScreenBackground">#141218</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <!-- 启动图放在 window 背景层全屏铺满；splash 图标位只有 288dp 见方且
+             Android 12+ 会被圆形遮罩，无法做到全屏，故背景透明、图标置空 -->
+        <item name="windowSplashScreenBackground">@android:color/transparent</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_blank</item>
+        <item name="android:windowBackground">@drawable/ic_splash_bg</item>
     </style>
 
     <style name="Theme.App" parent="Theme.Base" />
