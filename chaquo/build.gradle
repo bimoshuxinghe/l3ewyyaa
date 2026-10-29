@@ -41,6 +41,11 @@ chaquopy {
         // lxml/ujson 等无 API 21 wheel 的包，HTML 解析由 htmlcompat 兜底。
         version = "3.11"
 
+        // 把 base 包以真实文件形式解压到文件系统（而不是打包在 zip 资产里），
+        // 避免站源/内置代码按磁盘路径读取 __file__ 同目录文件时找不到
+        //（Chaquopy 默认从 APK 内的 zip 直接加载模块，__file__ 是虚拟路径）。
+        extractPackages("base")
+
         pip {
             // Chaquopy 官方原生包仓库。带 C 扩展的包（如 pycryptodome）的
             // android_<api>_<abi> wheel 只在这里提供。
