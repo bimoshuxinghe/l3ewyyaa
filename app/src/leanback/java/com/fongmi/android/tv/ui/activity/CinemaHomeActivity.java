@@ -127,6 +127,8 @@ public class CinemaHomeActivity extends BaseActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
+        // 开屏页：全屏显示横版原图，停留后渐隐
+        com.fongmi.android.tv.utils.SplashOverlay.show(this);
     }
 
     @Override
