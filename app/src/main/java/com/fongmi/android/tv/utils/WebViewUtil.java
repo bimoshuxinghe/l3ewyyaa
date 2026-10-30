@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.utils;
 
+import java.util.Collection;
 import java.util.Arrays;
 import android.content.pm.PackageManager;
 import android.webkit.CookieManager;
@@ -12,7 +13,7 @@ public class WebViewUtil {
 
     private static final String SYSTEM_SETTINGS_PACKAGE = "com.android.settings";
 
-    private static final Set<String> BROWSER_PACKAGES = Arrays.asList(
+    private static final Collection<String> BROWSER_PACKAGES = Arrays.asList(
             "com.android.chrome",
             "com.mi.globalbrowser",
             "com.huawei.browser",
