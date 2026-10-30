@@ -33,7 +33,7 @@ public class LiveApi {
     }
 
     public static boolean parseXml(@NonNull Live item) {
-        return item.getEpgXml().stream().map(url -> startXml(item, url)).reduce(false, Boolean::logicalOr);
+        return item.getEpgXml().stream().map(url -> startXml(item, url)).reduce(false, (a, b) -> a | b);
     }
 
     @NonNull

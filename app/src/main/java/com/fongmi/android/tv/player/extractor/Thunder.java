@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.player.extractor;
 
+import java.util.stream.Collectors;
 import android.net.Uri;
 import android.os.SystemClock;
 
@@ -29,7 +30,7 @@ public class Thunder implements Source.Extractor {
 
     @Override
     public boolean match(Uri uri) {
-        return List.of("magnet", "ed2k").contains(UrlUtil.scheme(uri));
+        return Arrays.asList("magnet", "ed2k").contains(UrlUtil.scheme(uri));
     }
 
     @Override
@@ -103,7 +104,7 @@ public class Thunder implements Source.Extractor {
             if (torrent && url.startsWith("http")) Download.create(url, taskId.getSaveFile()).get();
             if (!torrent) waitDone(taskId);
             try {
-                return XLTaskHelper.get().getTorrentInfo(taskId.getSaveFile()).getMedias().stream().map(this::create).toList();
+                return XLTaskHelper.get().getTorrentInfo(taskId.getSaveFile()).getMedias().stream().map(this::create).collect(Collectors.toList());
             } finally {
                 XLTaskHelper.get().stopTask(taskId);
             }

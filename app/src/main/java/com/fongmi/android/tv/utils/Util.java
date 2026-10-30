@@ -119,7 +119,7 @@ public class Util {
     public static String clean(String text) {
         if (!text.contains("<")) return text;
         StringBuilder sb = new StringBuilder();
-        text = Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY).toString().replace("\u00A0", " ").replace("\u3000", " ");
+        text = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY) : Html.fromHtml(text)).toString().replace("\u00A0", " ").replace("\u3000", " ");
         for (String line : text.split("\\r?\\n")) sb.append(line.trim()).append("\n");
         return substring(sb.toString()).trim();
     }

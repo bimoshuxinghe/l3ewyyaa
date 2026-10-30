@@ -195,7 +195,7 @@ public class VodConfig extends BaseConfig {
 
         List<Site> localNasSites = dbSites.stream()
                 .filter(site -> site.getKey() != null && site.getKey().startsWith("local_nas_"))
-                .toList();
+                .collect(Collectors.toList());
         for (Site site : localNasSites) {
             if (TextUtils.isEmpty(site.getJar())) {
                 site.setJar(spider);
@@ -249,12 +249,12 @@ public class VodConfig extends BaseConfig {
     }
 
     public List<Parse> getParses(int type) {
-        return getParses().stream().filter(item -> item.getType() == type).toList();
+        return getParses().stream().filter(item -> item.getType() == type).collect(Collectors.toList());
     }
 
     public List<Parse> getParses(int type, String flag) {
         List<Parse> items = getParses(type);
-        List<Parse> filter = items.stream().filter(item -> item.getExt().getFlag().contains(flag)).toList();
+        List<Parse> filter = items.stream().filter(item -> item.getExt().getFlag().contains(flag)).collect(Collectors.toList());
         return filter.isEmpty() ? items : filter;
     }
 

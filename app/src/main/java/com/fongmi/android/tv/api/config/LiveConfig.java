@@ -161,7 +161,7 @@ public class LiveConfig extends BaseConfig {
             live.setEpg("https://gitee.com/taksssss/tv/raw/main/epg/51zmt.xml.gz");
             live.setLogo("https://gcore.jsdelivr.net/gh/sparkssssssssss/epg/logo/{name}.png");
         }
-        lives = new ArrayList<>(List.of(live));
+        lives = new ArrayList<>(Collections.singletonList(live));
         LiveParser.text(live, text);
         setHome(config, live, false);
     }

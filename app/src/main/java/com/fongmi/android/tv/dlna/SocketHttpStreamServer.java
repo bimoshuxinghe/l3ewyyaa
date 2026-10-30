@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.dlna;
 
+import java.util.Collections;
 import org.jupnp.model.message.Connection;
 import org.jupnp.model.message.StreamRequestMessage;
 import org.jupnp.model.message.StreamResponseMessage;
@@ -110,7 +111,7 @@ public class SocketHttpStreamServer implements StreamServer<SocketHttpStreamServ
         }
 
         private void writeStatusLine(OutputStream os, int code, String reason) throws IOException {
-            os.write(("HTTP/1.1 " + code + " " + Objects.requireNonNullElse(reason, "") + "\r\n").getBytes(StandardCharsets.ISO_8859_1));
+            os.write(("HTTP/1.1 " + code + " " + (reason != null ? reason : "") + "\r\n").getBytes(StandardCharsets.ISO_8859_1));
         }
 
         private void writeHeader(OutputStream os, String name, String value) throws IOException {
@@ -168,7 +169,7 @@ public class SocketHttpStreamServer implements StreamServer<SocketHttpStreamServ
         }
 
         private void readBodyInto(InputStream is, StreamRequestMessage msg, Map<String, List<String>> headers) throws IOException {
-            List<String> length = headers.getOrDefault("content-length", List.of());
+            List<String> length = headers.getOrDefault("content-length", Collections.emptyList());
             if (length == null || length.isEmpty()) return;
             int len = Integer.parseInt(length.get(0).trim());
             if (len <= 0) return;

@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.utils;
 
+import java.util.Collections;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -104,7 +105,7 @@ public class TmdbUtil {
         try {
             String encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8.name());
             String url = baseUrl + "/search/multi?api_key=" + apiKey + "&query=" + encodedName + "&language=zh-CN&page=1&include_adult=true";
-            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            String json = OkHttp.string(url, Collections.singletonMap("Accept", "application/json"));
             return extractFromResults(json, baseUrl, apiKey, "");
         } catch (Exception e) {
             Log.w(TAG, "searchMulti failed: " + e.getMessage());
@@ -116,7 +117,7 @@ public class TmdbUtil {
         try {
             String encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8.name());
             String url = baseUrl + "/search/movie?api_key=" + apiKey + "&query=" + encodedName + "&language=zh-CN&page=1&include_adult=true";
-            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            String json = OkHttp.string(url, Collections.singletonMap("Accept", "application/json"));
             return extractFromResults(json, baseUrl, apiKey, "movie");
         } catch (Exception e) {
             Log.w(TAG, "searchMovie failed: " + e.getMessage());
@@ -128,7 +129,7 @@ public class TmdbUtil {
         try {
             String encodedName = URLEncoder.encode(name, StandardCharsets.UTF_8.name());
             String url = baseUrl + "/search/tv?api_key=" + apiKey + "&query=" + encodedName + "&language=zh-CN&page=1&include_adult=true";
-            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            String json = OkHttp.string(url, Collections.singletonMap("Accept", "application/json"));
             return extractFromResults(json, baseUrl, apiKey, "tv");
         } catch (Exception e) {
             Log.w(TAG, "searchTv failed: " + e.getMessage());
@@ -182,7 +183,7 @@ public class TmdbUtil {
         String typePath = "tv".equals(mediaType) ? "tv" : "movie";
         try {
             String url = baseUrl + "/" + typePath + "/" + id + "/images?api_key=" + apiKey;
-            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            String json = OkHttp.string(url, Collections.singletonMap("Accept", "application/json"));
             if (TextUtils.isEmpty(json)) return TmdbResult.empty();
             JsonObject root = JsonParser.parseString(json).getAsJsonObject();
             List<String> backdrops = new ArrayList<>();
@@ -331,7 +332,7 @@ public class TmdbUtil {
         String type = "tv".equalsIgnoreCase(mediaType) ? "tv" : "movie";
         try {
             String url = baseUrl + "/" + type + "/" + id + "/credits?api_key=" + apiKey + "&language=zh-CN";
-            String json = OkHttp.string(url, Map.of("Accept", "application/json"));
+            String json = OkHttp.string(url, Collections.singletonMap("Accept", "application/json"));
             return parseCredits(json);
         } catch (Exception e) {
             Log.w(TAG, "getCredits failed: " + e.getMessage());

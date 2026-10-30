@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.live.cctv;
 
+import java.util.Collections;
 import android.util.Log;
 
 import com.github.catvod.net.OkHttp;
@@ -84,7 +85,7 @@ public final class YspEpg {
     private static String fetch(YspChannels.Channel channel, String code, String date) {
         try {
             String url = API + "?serviceId=" + SERVICE_ID + "&c=" + code + "&d=" + date + "&cb=t";
-            String body = OkHttp.string(url, Map.of("User-Agent", UA));
+            String body = OkHttp.string(url, Collections.singletonMap("User-Agent", UA));
             if (body == null || body.isEmpty()) return "";
 
             // 剥掉 JSONP 外壳 t(...);
@@ -196,7 +197,7 @@ public final class YspEpg {
                 // 整批被拒（接口对任何非法频道名都会返回 params error），
                 // 逐个子请求重试，让单个坏频道只影响它自己。
                 Log.w(TAG, "batch rejected, retrying individually: " + slice);
-                for (String code : slice) fetchSlice(new ArrayList<>(List.of(code)), date, result);
+                for (String code : slice) fetchSlice(new ArrayList<>(Collections.singletonList(code)), date, result);
             }
         }
         return result;
@@ -208,7 +209,7 @@ public final class YspEpg {
             String url = API + "?serviceId=" + SERVICE_ID
                     + "&c=" + String.join(",", codes)
                     + "&d=" + date + "&cb=t";
-            String body = OkHttp.string(url, Map.of("User-Agent", UA));
+            String body = OkHttp.string(url, Collections.singletonMap("User-Agent", UA));
             if (body == null || body.isEmpty()) return false;
 
             int start = body.indexOf('(');

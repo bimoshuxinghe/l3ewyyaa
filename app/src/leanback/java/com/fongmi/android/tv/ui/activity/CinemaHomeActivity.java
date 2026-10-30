@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.ui.activity;
 
+import java.util.stream.Collectors;
 import android.app.SearchManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -617,7 +618,7 @@ public class CinemaHomeActivity extends BaseActivity implements
     private void startSmartPlay(Vod item) {
         if (getHome() == null) return;
         String keyword = item.getName();
-        List<Site> sites = VodConfig.get().getSites().stream().filter(Site::isSearchable).toList();
+        List<Site> sites = VodConfig.get().getSites().stream().filter(Site::isSearchable).collect(Collectors.toList());
         if (sites.isEmpty()) {
             // 没有任何可搜索站点，退回普通搜索页
             SearchActivity.start(this, keyword);

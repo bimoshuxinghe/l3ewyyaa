@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.live.cctv;
 
+import java.util.Arrays;
 import android.util.Log;
 
 import com.github.catvod.Init;
@@ -59,7 +60,7 @@ public final class YspSpider {
     private static final String PLAYBACK_PATH_PREFIX = "/tcloud.cctv.com";
 
     /** 候选 CDN（测速兜底用；原域名优先） */
-    private static final List<String> CDN_CANDIDATES = List.of(
+    private static final List<String> CDN_CANDIDATES = Arrays.asList(
             "hlslive-tx-cdn.ysp.cctv.cn",
             "hlsliveali-cdn.ysp.cctv.cn",
             "outlivecloud-cdn.ysp.cctv.cn");

@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.live.cctv;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -118,14 +119,14 @@ public final class YspChannels {
         CHANNELS = Collections.unmodifiableMap(channels);
 
         Map<String, List<String>> groups = new LinkedHashMap<>();
-        groups.put("央视", List.of(
+        groups.put("央视", Arrays.asList(
                 "cctv1", "cctv2", "cctv3", "cctv4", "cctv5", "cctv5p",
                 "cctv6", "cctv7", "cctv8", "cctv9", "cctv10", "cctv11",
                 "cctv12", "cctv13", "cctv14", "cctv15", "cctv16", "cctv164k",
                 "cctv17", "cctv4k", "cctv8k", "cgtn", "cgtnfy", "cgtney",
                 "cgtnalby", "cgtnxby", "cgtnwyjl"
         ));
-        groups.put("卫视", List.of(
+        groups.put("卫视", Arrays.asList(
                 "bjws", "jsws", "dfws", "zjws", "hnws", "hbws",
                 "gdws", "gxws", "hljws", "hnws2", "cqws", "szws",
                 "scws", "henanws", "fjdnhz", "gzhws", "jxws", "lnws",
@@ -133,7 +134,7 @@ public final class YspChannels {
                 "nxws", "nmgws", "ynws", "shanxiws2", "qhws", "xzws",
                 "cetv1", "xjws"
         ));
-        groups.put("数字付费", List.of(
+        groups.put("数字付费", Arrays.asList(
                 "cctvfyjc", "cctvdyjc", "cctvhjjc", "cctvsjdl", "cctvfyyy", "cctvbqkj",
                 "cctvfyzq", "cctvgeqwq", "cctvnxss", "cctvyswhjp", "cctvystq", "cctvdszn",
                 "cctvwsjk", "gxpd"

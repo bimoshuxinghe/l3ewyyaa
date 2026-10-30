@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.browse;
 
+import java.util.stream.Collectors;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
@@ -63,8 +64,8 @@ class VodBrowse {
     static ImmutableList<MediaItem> search(@NonNull String query) {
         VodConfig.get().ensureLoaded();
         String keyword = Trans.t2s(query);
-        List<Site> sites = VodConfig.get().getSites().stream().filter(Site::isSearchable).toList();
-        List<ListenableFuture<List<MediaItem>>> futures = sites.stream().map(site -> Task.largeExecutor().submit(() -> searchSite(site, keyword))).toList();
+        List<Site> sites = VodConfig.get().getSites().stream().filter(Site::isSearchable).collect(Collectors.toList());
+        List<ListenableFuture<List<MediaItem>>> futures = sites.stream().map(site -> Task.largeExecutor().submit(() -> searchSite(site, keyword))).collect(Collectors.toList());
         List<MediaItem> items = collectResults(futures);
         items.sort((a, b) -> matchScore(b, keyword) - matchScore(a, keyword));
         searchCache = ImmutableList.copyOf(items.subList(0, Math.min(items.size(), SEARCH_LIMIT)));
@@ -73,7 +74,7 @@ class VodBrowse {
 
     private static List<MediaItem> searchSite(@NonNull Site site, @NonNull String keyword) throws Exception {
         Result result = SiteApi.searchContent(site, keyword, false, "1");
-        return result.getList().stream().map(vod -> BrowseTree.playable(VOD_SEARCH + site.getKey() + "|" + vod.getId(), vod.getName(), vod.getRemarks(), vod.getPic())).toList();
+        return result.getList().stream().map(vod -> BrowseTree.playable(VOD_SEARCH + site.getKey() + "|" + vod.getId(), vod.getName(), vod.getRemarks(), vod.getPic())).collect(Collectors.toList());
     }
 
     private static List<MediaItem> collectResults(@NonNull List<ListenableFuture<List<MediaItem>>> futures) {

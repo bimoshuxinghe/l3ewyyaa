@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.ui.custom;
 
+import java.util.stream.Collectors;
 import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
@@ -54,7 +55,7 @@ public class CustomVerticalGridView extends VerticalGridView {
     }
 
     public void setHeader(FragmentActivity activity, int... layoutIds) {
-        if (activity != null) views = Arrays.stream(layoutIds).mapToObj(id -> (View) activity.findViewById(id)).filter(Objects::nonNull).toList();
+        if (activity != null) views = Arrays.stream(layoutIds).mapToObj(id -> (View) activity.findViewById(id)).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     public void setMoveTop(boolean moveTop) {

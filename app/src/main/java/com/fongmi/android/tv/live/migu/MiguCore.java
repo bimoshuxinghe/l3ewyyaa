@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.live.migu;
 
+import java.util.Arrays;
 import android.util.Log;
 
 import com.fongmi.android.tv.setting.Setting;
@@ -69,7 +70,7 @@ public final class MiguCore {
     private static final String DD_KEYS = "cdabyzwxkl";
 
     /** 这两个频道开 flv 后不能回放，原项目不加 appCode */
-    private static final List<String> NO_APP_CODE = List.of("641886683", "641886773");
+    private static final List<String> NO_APP_CODE = Arrays.asList("641886683", "641886773");
 
     // ------------------------------------------------------------------ 单例
 

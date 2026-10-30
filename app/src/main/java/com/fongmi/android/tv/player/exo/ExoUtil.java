@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.player.exo;
 
+import java.util.Collections;
 import android.content.Context;
 import android.graphics.Color;
 import android.net.Uri;
@@ -99,7 +100,7 @@ public class ExoUtil {
             }
         }
         if (!hasDolbyVision || bestGroup == null || (selectedNonDolbyVision && !selectedDolbyVision)) return;
-        player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setOverrideForType(new TrackSelectionOverride(bestGroup, List.of(bestIndex))).build());
+        player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon().setOverrideForType(new TrackSelectionOverride(bestGroup, Collections.singletonList(bestIndex))).build());
     }
 
     public static boolean hasSelectedDolbyVision(Player player) {

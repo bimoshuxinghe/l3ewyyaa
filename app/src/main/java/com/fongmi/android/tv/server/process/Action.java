@@ -344,7 +344,7 @@ public class Action implements Process {
     private void onSync(Map<String, String> params) {
         String type = params.get("type");
         boolean force = Objects.equals(params.get("force"), "true");
-        String mode = Objects.requireNonNullElse(params.get("mode"), "0");
+        String mode = (params.get("mode") != null ? params.get("mode") : "0");
         if (params.get("device") != null && (mode.equals("0") || mode.equals("2"))) {
             Device device = Device.objectFrom(params.get("device"));
             if ("history".equals(type)) sendHistory(device, params);

@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.proxy;
 
+import java.util.HashMap;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Base64;
@@ -281,10 +282,10 @@ public class ProxySubscriptionManager {
         };
         for (String ua : userAgents) {
             try {
-                String text = OkHttp.string(url, Map.of(
-                    "User-Agent", ua,
-                    "Accept", "text/plain, application/json, application/yaml, */*"
-                ));
+                Map<String, String> headers = new HashMap<>();
+                headers.put("User-Agent", ua);
+                headers.put("Accept", "text/plain, application/json, application/yaml, */*");
+                String text = OkHttp.string(url, headers);
                 if (!TextUtils.isEmpty(text) && text.length() > 10) {
                     android.util.Log.d("ProxySub", "fetch: success with UA=" + ua + " len=" + text.length());
                     return text;
